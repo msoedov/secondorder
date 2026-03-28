@@ -533,7 +533,7 @@ func (u *UI) EvolvePage(w http.ResponseWriter, r *http.Request) {
 	disabledPolicies := u.readPolicyDir(filepath.Join("policies", "disabled"))
 	errMsg := r.URL.Query().Get("error")
 
-	u.render(w, "evolve", map[string]any{
+	u.render(w, "policies", map[string]any{
 		"BoardPolicies":    boardPolicies,
 		"PendingPolicies":  pendingPolicies,
 		"AcceptedPolicies": acceptedPolicies,
