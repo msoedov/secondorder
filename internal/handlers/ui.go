@@ -375,8 +375,9 @@ func (u *UI) RunDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	agent, _ := u.db.GetAgent(run.AgentID)
 	u.render(w, "run_detail", map[string]any{
-		"Run":   run,
-		"Agent": agent,
+		"Run":             run,
+		"Agent":           agent,
+		"FormattedStdout": template.HTML(formatStreamJSON(run.Stdout, run.Status)),
 	})
 }
 

@@ -58,7 +58,7 @@
            id="stdout-container"
            {{if eq .Run.Status "running"}}hx-get="/runs/{{.Run.ID}}/stdout" hx-trigger="every 2s" hx-target="#stdout-container" hx-swap="innerHTML transition:true"{{end}}>
         {{if .Run.Stdout}}
-        <pre class="text-xs font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed">{{.Run.Stdout}}</pre>
+        {{.FormattedStdout}}
         {{else}}
         <div class="text-sm text-zinc-600 fade-in">{{if eq .Run.Status "running"}}<div class="flex items-center gap-2"><span class="spinner text-zinc-600"></span> Waiting for output...</div>{{else}}No output captured.{{end}}</div>
         {{end}}
