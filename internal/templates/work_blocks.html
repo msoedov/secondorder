@@ -1,44 +1,44 @@
 {{template "head" .}}
 {{template "nav" .}}
-<main class="flex-1 ml-0 md:ml-56 p-8 pt-16 md:pt-8">
-  <div class="max-w-5xl mx-auto">
+<main class="app-main">
+  <div class="container-md">
 
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-lg font-semibold text-zinc-100 tracking-tight">Work Blocks</h1>
-        <p class="text-[13px] text-zinc-500 mt-0.5">Shippable units of work</p>
+        <h1 class="text-lg font-semibold text-white">Work Blocks</h1>
+        <p class="text-xs text-muted mt-0.5">Shippable units of work</p>
       </div>
-      <button onclick="document.getElementById('create-form').classList.toggle('hidden')" class="px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] text-white rounded-md transition-all">Propose Block</button>
+      <button onclick="document.getElementById('create-form').classList.toggle('hidden')" class="btn btn-primary">Propose Block</button>
     </div>
 
     <!-- Create form -->
-    <form id="create-form" method="POST" action="/work-blocks" class="hidden mb-6 bg-zinc-800/50 border border-zinc-800 rounded-lg p-4 space-y-3">
+    <form id="create-form" method="POST" action="/work-blocks" class="hidden mb-6 card card-section space-y-3">
       <div>
-        <label for="wb-title" class="text-xs text-zinc-400 block mb-1">Title</label>
-        <input id="wb-title" name="title" type="text" required class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-indigo-500" placeholder="e.g. User Authentication">
+        <label for="wb-title">Title</label>
+        <input id="wb-title" name="title" type="text" required placeholder="e.g. User Authentication">
       </div>
       <div>
-        <label for="wb-goal" class="text-xs text-zinc-400 block mb-1">Goal</label>
-        <textarea id="wb-goal" name="goal" rows="2" class="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-indigo-500" placeholder="What should this block deliver when shipped?"></textarea>
+        <label for="wb-goal">Goal</label>
+        <textarea id="wb-goal" name="goal" rows="2" placeholder="What should this block deliver when shipped?"></textarea>
       </div>
-      <button type="submit" class="px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors">Create</button>
+      <button type="submit" class="btn btn-primary">Create</button>
     </form>
 
     <!-- Blocks list -->
     <div class="space-y-2 stagger">
       {{range .Blocks}}
-      <a href="/work-blocks/{{.ID}}" class="block bg-zinc-800/50 border border-zinc-800 rounded-lg px-5 py-4 hover:border-zinc-700 hover:translate-x-0.5 transition-all group">
+      <a href="/work-blocks/{{.ID}}" class="card" style="text-decoration:none;color:inherit;display:block;padding:1rem 1.25rem;">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <span class="{{wbStatusColor .Status}} inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium">{{upper .Status}}</span>
-            <span class="text-[15px] font-medium text-zinc-200 group-hover:text-zinc-100">{{.Title}}</span>
+            <span class="badge {{wbStatusColor .Status}}">{{upper .Status}}</span>
+            <span class="text-sm font-medium text-light">{{.Title}}</span>
           </div>
-          <span class="text-[11px] text-zinc-500 tabular-nums">{{timeAgo .CreatedAt}}</span>
+          <span class="text-xs text-muted tabular-nums">{{timeAgo .CreatedAt}}</span>
         </div>
-        {{if .Goal}}<p class="text-[13px] text-zinc-500 mt-1.5 line-clamp-1">{{.Goal}}</p>{{end}}
+        {{if .Goal}}<p class="text-xs text-muted mt-1.5 line-clamp-1">{{.Goal}}</p>{{end}}
       </a>
       {{else}}
-      <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg px-5 py-12 text-center text-sm text-zinc-500">No work blocks yet. Propose one to get started.</div>
+      <div class="card list-empty" style="padding:3rem 1.25rem;">No work blocks yet. Propose one to get started.</div>
       {{end}}
     </div>
 

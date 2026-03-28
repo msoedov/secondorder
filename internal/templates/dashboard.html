@@ -1,77 +1,75 @@
 {{template "head" .}}
 {{template "nav" .}}
-<main class="flex-1 ml-0 md:ml-56 p-8 pt-16 md:pt-8">
-  <div class="max-w-6xl mx-auto">
+<main class="app-main">
+  <div class="container-lg">
 
     <div class="mb-8">
-      <h1 class="text-lg font-semibold text-zinc-100 tracking-tight">Dashboard</h1>
-      <p class="text-[13px] text-zinc-500 mt-0.5">Organization overview</p>
+      <h1 class="text-lg font-semibold text-white">Dashboard</h1>
+      <p class="text-xs text-muted mt-0.5">Organization overview</p>
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 stagger">
-      <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors">
-        <div class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Agents</div>
+    <div class="grid-4 mb-8 stagger">
+      <div class="card">
+        <div class="stat-label">Agents</div>
         <div class="mt-2 flex items-baseline gap-1.5">
-          <span class="text-2xl font-semibold text-zinc-100 tabular-nums">{{.Stats.ActiveAgents}}</span>
-          <span class="text-xs text-zinc-500">/ {{.Stats.TotalAgents}}</span>
+          <span class="stat-value">{{.Stats.ActiveAgents}}</span>
+          <span class="text-xs text-muted">/ {{.Stats.TotalAgents}}</span>
         </div>
       </div>
-      <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors">
-        <div class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Open Issues</div>
+      <div class="card">
+        <div class="stat-label">Open Issues</div>
         <div class="mt-2 flex items-baseline gap-1.5">
-          <span class="text-2xl font-semibold text-zinc-100 tabular-nums">{{.Stats.OpenIssues}}</span>
-          <span class="text-xs text-zinc-500">/ {{.Stats.TotalIssues}}</span>
+          <span class="stat-value">{{.Stats.OpenIssues}}</span>
+          <span class="text-xs text-muted">/ {{.Stats.TotalIssues}}</span>
         </div>
       </div>
-      <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors">
-        <div class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Running</div>
+      <div class="card">
+        <div class="stat-label">Running</div>
         <div class="mt-2">
-          <span class="text-2xl font-semibold text-blue-400 tabular-nums">{{.Stats.RunningRuns}}</span>
+          <span class="stat-value text-blue">{{.Stats.RunningRuns}}</span>
         </div>
       </div>
-      <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-colors">
-        <div class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Cost Today</div>
+      <div class="card">
+        <div class="stat-label">Cost Today</div>
         <div class="mt-2">
-          <span class="text-2xl font-semibold text-zinc-100 tabular-nums">{{formatCost .Stats.TotalCostToday}}</span>
+          <span class="stat-value">{{formatCost .Stats.TotalCostToday}}</span>
         </div>
       </div>
     </div>
 
     {{if .ActiveBlock}}
-    <a href="/work-blocks/{{.ActiveBlock.ID}}" class="block mb-6 bg-zinc-800/50 border border-indigo-500/30 rounded-lg p-4 hover:border-indigo-500/50 transition-colors group">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <span class="{{wbStatusColor .ActiveBlock.Status}} inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium">{{upper .ActiveBlock.Status}}</span>
-          <span class="text-sm font-medium text-zinc-200 group-hover:text-zinc-100">{{.ActiveBlock.Title}}</span>
-        </div>
-        {{if .ActiveBlockStats}}
-        <span class="text-xs text-zinc-500 tabular-nums">{{.ActiveBlockStats.IssuesCompleted}}/{{.ActiveBlockStats.IssuesPlanned}} issues -- {{formatCost .ActiveBlockStats.TotalCost}}</span>
-        {{end}}
+    <a href="/work-blocks/{{.ActiveBlock.ID}}" class="card flex items-center justify-between mb-6" style="border-color:rgba(99,102,241,0.3);text-decoration:none;color:inherit;display:flex;">
+      <div class="flex items-center gap-3">
+        <span class="badge {{wbStatusColor .ActiveBlock.Status}}">{{upper .ActiveBlock.Status}}</span>
+        <span class="text-sm font-medium text-light">{{.ActiveBlock.Title}}</span>
       </div>
-      {{if .ActiveBlock.Goal}}<p class="text-[12px] text-zinc-500 mt-1.5">{{truncate .ActiveBlock.Goal 120}}</p>{{end}}
+      {{if .ActiveBlockStats}}
+      <span class="text-xs text-muted tabular-nums">{{.ActiveBlockStats.IssuesCompleted}}/{{.ActiveBlockStats.IssuesPlanned}} issues -- {{formatCost .ActiveBlockStats.TotalCost}}</span>
+      {{end}}
     </a>
+    {{if .ActiveBlock.Goal}}<p class="text-xs text-muted" style="margin-top:-1.25rem;margin-bottom:1.5rem;">{{truncate .ActiveBlock.Goal 120}}</p>{{end}}
     {{end}}
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid-cols-1-2">
       <!-- Recent Issues -->
-      <div class="lg:col-span-2">
+      <div>
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-[13px] font-medium text-zinc-300">Recent Issues</h2>
-          <a href="/issues" class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">View all</a>
+          <h2 class="text-xs font-medium text-light">Recent Issues</h2>
+          <a href="/issues" class="text-xs text-muted" style="text-decoration:none;">View all</a>
         </div>
-        <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg divide-y divide-zinc-800/60 overflow-hidden fade-in">
+        <div class="list-card fade-in">
           {{range .Issues}}
-          <a href="/issues/{{.Key}}" class="flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-800/40 transition-all group">
-            <span class="{{statusColor .Status}} inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0">{{statusIcon .Status}}</span>
-            <span class="font-mono text-xs text-zinc-500 w-14 shrink-0">{{.Key}}</span>
-            <span class="text-[13px] text-zinc-200 flex-1 truncate group-hover:text-zinc-100" title="{{.Title}}">{{.Title}}</span>
-            {{if gt .Priority 0}}<span class="text-[11px] {{priorityColor .Priority}} shrink-0">{{priorityLabel .Priority}}</span>{{end}}
-            {{if .AssigneeName}}<span class="text-[11px] text-zinc-500 shrink-0">{{.AssigneeName}}</span>{{end}}
-            <span class="text-[11px] text-zinc-500 shrink-0 tabular-nums">{{timeAgo .CreatedAt}}</span>
+          <a href="/issues/{{.Key}}" class="list-row">
+            <span class="badge {{statusColor .Status}}">{{statusIcon .Status}}</span>
+            <span class="font-mono text-xs text-muted w-14 shrink-0">{{.Key}}</span>
+            <span class="text-sm text-light flex-1 truncate">{{.Title}}</span>
+            {{if gt .Priority 0}}<span class="text-xs {{priorityColor .Priority}} shrink-0">{{priorityLabel .Priority}}</span>{{end}}
+            {{if .AssigneeName}}<span class="text-xs text-muted shrink-0">{{.AssigneeName}}</span>{{end}}
+            <span class="text-xs text-muted shrink-0 tabular-nums">{{timeAgo .CreatedAt}}</span>
           </a>
           {{else}}
-          <div class="px-4 py-10 text-center text-sm text-zinc-500">No issues yet. Create one to get started.</div>
+          <div class="list-empty">No issues yet. Create one to get started.</div>
           {{end}}
         </div>
       </div>
@@ -79,25 +77,25 @@
       <!-- Agents -->
       <div>
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-[13px] font-medium text-zinc-300">Agents</h2>
-          <a href="/agents" class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Manage</a>
+          <h2 class="text-xs font-medium text-light">Agents</h2>
+          <a href="/agents" class="text-xs text-muted" style="text-decoration:none;">Manage</a>
         </div>
         <div class="space-y-1.5 stagger">
           {{range .Agents}}
-          <a href="/agents/{{.Slug}}" class="flex items-center gap-3 bg-zinc-800/50 border border-zinc-800 rounded-lg px-4 py-3 hover:border-zinc-700 transition-all hover:translate-x-0.5 group">
-            <div class="w-2 h-2 rounded-full shrink-0 {{if .Active}}bg-emerald-400{{else}}bg-zinc-600{{end}}" role="img" aria-label="{{if .Active}}Active{{else}}Inactive{{end}}"></div>
-            <div class="flex-1 min-w-0">
-              <div class="text-[13px] font-medium text-zinc-200 truncate group-hover:text-zinc-100">{{.Name}}</div>
-              <div class="text-[11px] text-zinc-500 flex items-center gap-1.5 mt-0.5">
+          <a href="/agents/{{.Slug}}" class="card flex items-center gap-3" style="text-decoration:none;color:inherit;padding:0.75rem 1rem;">
+            <div class="dot {{if .Active}}dot-green{{else}}dot-dim{{end}}" role="img" aria-label="{{if .Active}}Active{{else}}Inactive{{end}}"></div>
+            <div class="flex-1" style="min-width:0;">
+              <div class="text-sm font-medium text-light truncate">{{.Name}}</div>
+              <div class="text-xs text-muted flex items-center gap-1.5 mt-0.5">
                 <span>{{.ArchetypeSlug}}</span>
-                <span class="text-zinc-700">&middot;</span>
+                <span class="text-dim">&middot;</span>
                 <span>{{.Model}}</span>
-                {{if .HeartbeatEnabled}}<span class="text-zinc-700">&middot;</span><span class="text-emerald-500">heartbeat</span>{{end}}
+                {{if .HeartbeatEnabled}}<span class="text-dim">&middot;</span><span class="text-green">heartbeat</span>{{end}}
               </div>
             </div>
           </a>
           {{else}}
-          <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg px-4 py-8 text-center text-sm text-zinc-500">No agents configured.</div>
+          <div class="card list-empty">No agents configured.</div>
           {{end}}
         </div>
       </div>

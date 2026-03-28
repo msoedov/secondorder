@@ -1,66 +1,66 @@
 {{template "head" .}}
 {{template "nav" .}}
-<main class="flex-1 ml-0 md:ml-56 p-8 pt-16 md:pt-8">
-  <div class="max-w-6xl mx-auto">
+<main class="app-main">
+  <div class="container-lg">
 
-    <div class="flex items-center gap-1.5 mb-5 text-xs">
-      {{if .Agent}}<a href="/agents/{{.Agent.Slug}}" class="text-zinc-500 hover:text-zinc-300 transition-colors">{{.Agent.Name}}</a>
-      <span class="text-zinc-700">/</span>{{end}}
-      <span class="text-zinc-400">Run</span>
-      <span class="text-zinc-700">/</span>
-      <span class="text-zinc-400 font-mono">{{truncate .Run.ID 8}}</span>
+    <div class="breadcrumb">
+      {{if .Agent}}<a href="/agents/{{.Agent.Slug}}">{{.Agent.Name}}</a>
+      <span class="sep">/</span>{{end}}
+      <span class="current">Run</span>
+      <span class="sep">/</span>
+      <span class="current font-mono">{{truncate .Run.ID 8}}</span>
     </div>
 
     <div class="flex items-center gap-3 mb-6">
-      <h1 class="text-xl font-semibold text-zinc-100">
+      <h1 class="text-xl font-semibold text-white">
         {{if .Agent}}{{.Agent.Name}}{{end}} &mdash; {{.Run.Mode}}
-        {{if .Run.IssueKey}}<a href="/issues/{{deref .Run.IssueKey}}" class="text-indigo-400 font-mono text-base hover:text-indigo-300 transition-colors ml-1">{{deref .Run.IssueKey}}</a>{{end}}
+        {{if .Run.IssueKey}}<a href="/issues/{{deref .Run.IssueKey}}" class="text-primary font-mono text-sm ml-1" style="text-decoration:none;">{{deref .Run.IssueKey}}</a>{{end}}
       </h1>
-      <span class="{{runStatusColor .Run.Status}} inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium">
-        {{if eq .Run.Status "running"}}<span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>{{end}}
+      <span class="badge {{runStatusColor .Run.Status}}" style="padding:0.25rem 0.625rem;border-radius:9999px;">
+        {{if eq .Run.Status "running"}}<span class="dot dot-blue pulse" style="width:0.375rem;height:0.375rem;"></span>{{end}}
         {{.Run.Status}}
       </span>
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6 stagger">
-      <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg p-3 hover:border-zinc-700 transition-colors">
-        <div class="text-[11px] text-zinc-500 uppercase tracking-wider">Cost</div>
-        <div class="text-sm font-semibold text-zinc-100 mt-1 tabular-nums">{{formatCost .Run.TotalCostUSD}}</div>
+    <div class="grid-5 mb-6 stagger">
+      <div class="card card-compact">
+        <div class="stat-label">Cost</div>
+        <div class="stat-value-sm mt-1 tabular-nums">{{formatCost .Run.TotalCostUSD}}</div>
       </div>
-      <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg p-3 hover:border-zinc-700 transition-colors">
-        <div class="text-[11px] text-zinc-500 uppercase tracking-wider">Input</div>
-        <div class="text-sm font-semibold text-zinc-100 mt-1 tabular-nums">{{formatTokens .Run.InputTokens}}</div>
+      <div class="card card-compact">
+        <div class="stat-label">Input</div>
+        <div class="stat-value-sm mt-1 tabular-nums">{{formatTokens .Run.InputTokens}}</div>
       </div>
-      <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg p-3 hover:border-zinc-700 transition-colors">
-        <div class="text-[11px] text-zinc-500 uppercase tracking-wider">Output</div>
-        <div class="text-sm font-semibold text-zinc-100 mt-1 tabular-nums">{{formatTokens .Run.OutputTokens}}</div>
+      <div class="card card-compact">
+        <div class="stat-label">Output</div>
+        <div class="stat-value-sm mt-1 tabular-nums">{{formatTokens .Run.OutputTokens}}</div>
       </div>
-      <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg p-3 hover:border-zinc-700 transition-colors">
-        <div class="text-[11px] text-zinc-500 uppercase tracking-wider">Cache Read</div>
-        <div class="text-sm font-semibold text-zinc-100 mt-1 tabular-nums">{{formatTokens .Run.CacheReadTokens}}</div>
+      <div class="card card-compact">
+        <div class="stat-label">Cache Read</div>
+        <div class="stat-value-sm mt-1 tabular-nums">{{formatTokens .Run.CacheReadTokens}}</div>
       </div>
-      <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg p-3 hover:border-zinc-700 transition-colors">
-        <div class="text-[11px] text-zinc-500 uppercase tracking-wider">Cache Write</div>
-        <div class="text-sm font-semibold text-zinc-100 mt-1 tabular-nums">{{formatTokens .Run.CacheCreateTokens}}</div>
+      <div class="card card-compact">
+        <div class="stat-label">Cache Write</div>
+        <div class="stat-value-sm mt-1 tabular-nums">{{formatTokens .Run.CacheCreateTokens}}</div>
       </div>
     </div>
 
     <!-- Live Stdout -->
     <div class="mb-6">
       <div class="flex items-center justify-between mb-2">
-        <h3 class="text-[13px] font-medium text-zinc-300">Output</h3>
+        <h3 class="text-xs font-medium text-light">Output</h3>
         {{if eq .Run.Status "running"}}
-        <span class="flex items-center gap-1.5 text-xs text-blue-400"><span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span> Live <span class="htmx-indicator spinner text-blue-400 ml-1"></span></span>
+        <span class="flex items-center gap-1.5 text-xs text-blue"><span class="dot dot-blue pulse" style="width:0.375rem;height:0.375rem;"></span> Live <span class="htmx-indicator spinner text-blue ml-1"></span></span>
         {{end}}
       </div>
-      <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-4 min-h-[200px] overflow-auto max-h-[600px] scroll-smooth"
+      <div class="code-block" style="min-height:200px;max-height:600px;scroll-behavior:smooth;"
            id="stdout-container"
            {{if eq .Run.Status "running"}}hx-get="/runs/{{.Run.ID}}/stdout" hx-trigger="every 2s" hx-target="#stdout-container" hx-swap="innerHTML transition:true"{{end}}>
         {{if .Run.Stdout}}
-        <pre class="text-xs font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed">{{.Run.Stdout}}</pre>
+        <pre class="text-xs font-mono text-light whitespace-pre-wrap leading-relaxed" style="margin:0;">{{.Run.Stdout}}</pre>
         {{else}}
-        <div class="text-sm text-zinc-600 fade-in">{{if eq .Run.Status "running"}}<div class="flex items-center gap-2"><span class="spinner text-zinc-600"></span> Waiting for output...</div>{{else}}No output captured.{{end}}</div>
+        <div class="text-sm text-dim fade-in">{{if eq .Run.Status "running"}}<div class="flex items-center gap-2"><span class="spinner text-dim"></span> Waiting for output...</div>{{else}}No output captured.{{end}}</div>
         {{end}}
       </div>
     </div>
@@ -68,14 +68,14 @@
     <!-- Diff -->
     {{if .Run.Diff}}
     <div>
-      <h3 class="text-[13px] font-medium text-zinc-300 mb-2">Git Diff</h3>
-      <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-4 overflow-x-auto">
-        <pre class="text-xs font-mono leading-relaxed">{{range diffLines .Run.Diff}}<div class="{{.Class}} px-2 rounded-sm">{{.Content}}</div>{{end}}</pre>
+      <h3 class="text-xs font-medium text-light mb-2">Git Diff</h3>
+      <div class="code-block" style="overflow-x:auto;">
+        <pre class="text-xs font-mono leading-relaxed" style="margin:0;">{{range diffLines .Run.Diff}}<div class="{{.Class}}">{{.Content}}</div>{{end}}</pre>
       </div>
     </div>
     {{end}}
 
-    <div class="text-[11px] text-zinc-600 mt-6 space-y-0.5">
+    <div class="text-xs text-dim mt-6 space-y-0.5">
       <div>Started {{timeAgo .Run.StartedAt}}</div>
       {{if .Run.CompletedAt}}<div>Completed {{timeAgo .Run.CompletedAt}}</div>{{end}}
       <div class="font-mono">{{.Run.ID}}</div>

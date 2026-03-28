@@ -1,30 +1,30 @@
 {{template "head" .}}
 {{template "nav" .}}
-<main class="flex-1 ml-0 md:ml-56 p-8 pt-16 md:pt-8">
-  <div class="max-w-6xl mx-auto">
+<main class="app-main">
+  <div class="container-lg">
 
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-lg font-semibold text-zinc-100 tracking-tight">Agents</h1>
-        <p class="text-[13px] text-zinc-500 mt-0.5">{{len .Agents}} configured</p>
+        <h1 class="text-lg font-semibold text-white">Agents</h1>
+        <p class="text-xs text-muted mt-0.5">{{len .Agents}} configured</p>
       </div>
-      <button onclick="document.getElementById('new-agent').classList.toggle('hidden')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium bg-indigo-600 text-white hover:bg-indigo-500 active:scale-[0.97] transition-all">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+      <button onclick="document.getElementById('new-agent').classList.toggle('hidden')" class="btn btn-primary">
+        <svg class="icon-sm" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
         New Agent
       </button>
     </div>
 
     <!-- Create Form -->
     <div id="new-agent" class="hidden mb-5">
-      <form method="POST" action="/agents" class="bg-zinc-800/50 border border-zinc-800 rounded-lg p-5 space-y-4">
-        <div class="grid grid-cols-2 gap-4">
+      <form method="POST" action="/agents" class="card card-section space-y-4">
+        <div class="grid-2">
           <div>
-            <label for="agent-name" class="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">Name</label>
-            <input id="agent-name" name="name" required placeholder="Agent name" class="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none focus:ring-1 focus:ring-indigo-500 transition-shadow">
+            <label for="agent-name">Name</label>
+            <input id="agent-name" name="name" required placeholder="Agent name">
           </div>
           <div>
-            <label for="agent-archetype" class="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">Archetype</label>
-            <select id="agent-archetype" name="archetype_slug" class="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-indigo-500">
+            <label for="agent-archetype">Archetype</label>
+            <select id="agent-archetype" name="archetype_slug">
               <option value="ceo">CEO</option>
               <option value="fullstack" selected>Fullstack</option>
               <option value="backend">Backend</option>
@@ -39,73 +39,71 @@
             </select>
           </div>
         </div>
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid-3">
           <div>
-            <label for="agent-model" class="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">Model</label>
-            <select id="agent-model" name="model" class="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-indigo-500">
+            <label for="agent-model">Model</label>
+            <select id="agent-model" name="model">
               <option value="sonnet">Sonnet</option>
               <option value="opus">Opus</option>
               <option value="haiku">Haiku</option>
             </select>
           </div>
           <div>
-            <label for="agent-max-turns" class="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">Max Turns</label>
-            <input id="agent-max-turns" name="max_turns" type="number" value="50" class="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-1 focus:ring-indigo-500 transition-shadow">
+            <label for="agent-max-turns">Max Turns</label>
+            <input id="agent-max-turns" name="max_turns" type="number" value="50">
           </div>
           <div>
-            <label for="agent-timeout" class="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">Timeout (s)</label>
-            <input id="agent-timeout" name="timeout_sec" type="number" value="600" class="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-1 focus:ring-indigo-500 transition-shadow">
+            <label for="agent-timeout">Timeout (s)</label>
+            <input id="agent-timeout" name="timeout_sec" type="number" value="600">
           </div>
         </div>
         <div>
-          <label for="agent-working-dir" class="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">Working Directory</label>
-          <input id="agent-working-dir" name="working_dir" placeholder="." class="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none focus:ring-1 focus:ring-indigo-500 transition-shadow">
+          <label for="agent-working-dir">Working Directory</label>
+          <input id="agent-working-dir" name="working_dir" placeholder=".">
         </div>
         <div class="flex items-center gap-6">
-          <label class="flex items-center gap-2 text-[13px] text-zinc-300 cursor-pointer">
-            <input type="checkbox" name="heartbeat_enabled" class="rounded border-zinc-600 bg-zinc-900 text-indigo-600 focus:ring-indigo-500">
-            Heartbeat
+          <label class="flex items-center gap-2 text-sm text-light" style="cursor:pointer;text-transform:none;font-weight:normal;">
+            <input type="checkbox" name="heartbeat_enabled"> Heartbeat
           </label>
-          <label class="flex items-center gap-2 text-[13px] text-zinc-300 cursor-pointer">
-            <input type="checkbox" name="chrome_enabled" class="rounded border-zinc-600 bg-zinc-900 text-indigo-600 focus:ring-indigo-500">
-            Chrome
+          <label class="flex items-center gap-2 text-sm text-light" style="cursor:pointer;text-transform:none;font-weight:normal;">
+            <input type="checkbox" name="chrome_enabled"> Chrome
           </label>
         </div>
         <div class="flex justify-end gap-2">
-          <button type="button" onclick="document.getElementById('new-agent').classList.add('hidden')" class="px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">Cancel</button>
-          <button type="submit" class="px-5 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">Create</button>
+          <button type="button" onclick="document.getElementById('new-agent').classList.add('hidden')" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create</button>
         </div>
       </form>
     </div>
 
     <!-- Grid -->
     {{if .Agents}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 stagger">
+    <div class="grid-3 stagger">
       {{range .Agents}}
-      <a href="/agents/{{.Slug}}" class="block bg-zinc-800/50 border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 hover:bg-zinc-800/70 hover:-translate-y-0.5 transition-all group">
-        <div class="flex items-start justify-between mb-2.5">
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-700 flex items-center justify-center text-[11px] font-semibold text-zinc-400 group-hover:text-indigo-400 group-hover:border-indigo-500/30 transition-colors uppercase">{{printf "%.2s" .Name}}</div>
+      <a href="/agents/{{.Slug}}" class="card" style="text-decoration:none;color:inherit;display:block;">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <div class="avatar-sm">{{printf "%.2s" .Name}}</div>
             <div>
-              <div class="text-[13px] font-medium text-zinc-200 group-hover:text-zinc-100 transition-colors">{{.Name}}</div>
-              <div class="text-[11px] text-zinc-500 font-mono">{{.Slug}}</div>
+              <div class="text-sm font-medium text-light">{{.Name}}</div>
+              <div class="text-xs text-muted font-mono">{{.Slug}}</div>
             </div>
           </div>
-          <div class="w-2 h-2 rounded-full mt-1.5 {{if .Active}}bg-emerald-400{{else}}bg-zinc-600{{end}}" role="img" aria-label="{{if .Active}}Active{{else}}Inactive{{end}}"></div>
+          <div class="dot {{if .Active}}dot-green{{else}}dot-dim{{end}}" style="margin-top:0.375rem;" role="img" aria-label="{{if .Active}}Active{{else}}Inactive{{end}}"></div>
         </div>
-        <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span class="px-1.5 py-0.5 bg-zinc-900/80 text-zinc-500 rounded">{{.ArchetypeSlug}}</span>
-          <span class="px-1.5 py-0.5 bg-zinc-900/80 text-zinc-500 rounded">{{.Model}}</span>
-          {{if .HeartbeatEnabled}}<span class="px-1.5 py-0.5 bg-emerald-950/40 text-emerald-500 rounded">heartbeat</span>{{end}}
-          {{if .ChromeEnabled}}<span class="px-1.5 py-0.5 bg-blue-950/40 text-blue-500 rounded">chrome</span>{{end}}
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="tag">{{.ArchetypeSlug}}</span>
+          <span class="tag">{{.Model}}</span>
+          {{if .HeartbeatEnabled}}<span class="tag tag-green">heartbeat</span>{{end}}
+          {{if .ChromeEnabled}}<span class="tag tag-blue">chrome</span>{{end}}
         </div>
       </a>
       {{end}}
     </div>
     {{else}}
-    <div class="bg-zinc-800/50 border border-zinc-800 rounded-lg px-4 py-16 text-center">
-      <svg class="w-8 h-8 mx-auto text-zinc-700 mb-2" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-      <p class="text-sm text-zinc-500">No agents configured yet</p>
+    <div class="card" style="padding:4rem 1rem;text-align:center;">
+      <svg style="width:2rem;height:2rem;margin:0 auto 0.5rem;color:#3f3f46;" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <p class="text-sm text-muted">No agents configured yet</p>
     </div>
     {{end}}
 
