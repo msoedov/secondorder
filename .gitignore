@@ -16,6 +16,15 @@ tlo.db
 *.db-wal
 *.db-shm
 
+# Env and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
 # Vendor (if not committed)
 vendor/
 
