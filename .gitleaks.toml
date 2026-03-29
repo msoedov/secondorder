@@ -1,0 +1,52 @@
+# gitleaks.toml — secret scanning configuration for thelastorg
+# https://github.com/gitleaks/gitleaks
+
+title = "thelastorg secret scanning rules"
+
+[extend]
+useDefault = true
+
+# --- Project-specific rules ---
+
+[[rules]]
+id = "tlo-api-key"
+description = "thelastorg API key"
+regex = '''tlo_[a-zA-Z0-9_]{16,}'''
+tags = ["api-key", "thelastorg"]
+
+[[rules]]
+id = "telegram-bot-token"
+description = "Telegram bot token"
+regex = '''\b\d{8,10}:[A-Za-z0-9_-]{35}\b'''
+tags = ["telegram", "bot-token"]
+
+# --- Global allowlist: paths and patterns that are always safe to ignore ---
+
+[allowlist]
+description = "Global allowlist"
+
+# Test fixtures and mock values — keys are fake by design
+paths = [
+    '''(?i)_test\.go$''',
+    '''(?i)testdata/''',
+    '''(?i)fixtures/''',
+    # Secret scanning test script embeds intentional fake secrets as heredoc fixtures
+    '''scripts/test-secret-scanning\.sh''',
+]
+
+# Known test/placeholder secrets used in unit tests
+regexes = [
+    # handlers_test.go test keys
+    '''tlo_test_key_123''',
+    '''tlo_dup_test_key''',
+    # Short stub tokens in test assertions
+    '''tok123''',
+    # Bearer placeholder in docs/examples
+    '''\$THELASTORG_API_KEY''',
+    # go.sum hashes are not secrets
+    '''h1:[A-Za-z0-9+/=]{44}''',
+    # Documentation example keys — clearly fake by context
+    '''tlo_abcdef1234567890''',
+]
+
+commits = []
