@@ -24,16 +24,16 @@ func main() {
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetLevel(log.InfoLevel)
 
-	port := envOr("TLO_PORT", "8080")
-	dbPath := envOr("TLO_DB", "tlo.db")
-	archetypesDir := envOr("TLO_ARCHETYPES", "archetypes")
+	port := envOr("PORT", "3001")
+	dbPath := envOr("DB", "tlo.db")
+	archetypesDir := envOr("ARCHETYPES", "archetypes")
 
 	// CLI: thelastorg [port]
 	if len(os.Args) > 1 {
 		arg := os.Args[1]
 		if arg == "-h" || arg == "--help" {
 			fmt.Println("Usage: thelastorg [port]")
-			fmt.Println("  port  HTTP port (default: 8080, or TLO_PORT env)")
+			fmt.Println("  port  HTTP port (default: 3001, or PORT env)")
 			os.Exit(0)
 		}
 		port = arg
@@ -55,7 +55,7 @@ func main() {
 	sse := handlers.NewSSEHub()
 
 	// Scheduler
-	portInt := 8080
+	portInt := 3001
 	if p, err := parsePort(port); err == nil {
 		portInt = p
 	}
@@ -87,8 +87,8 @@ func main() {
 
 	// Telegram bot (optional)
 	var tg handlers.TelegramNotifier
-	if token := os.Getenv("TLO_TELEGRAM_TOKEN"); token != "" {
-		chatID := os.Getenv("TLO_TELEGRAM_CHAT_ID")
+	if token := os.Getenv("TELEGRAM_TOKEN"); token != "" {
+		chatID := os.Getenv("TELEGRAM_CHAT_ID")
 		bot := telegram.New(token, chatID)
 		bot.OnApproval = func(blockID, decision string) {
 			if decision == "approve" {

@@ -568,7 +568,7 @@ INSTRUCTIONS:
 
 4. For each archetype that needs improvement, propose a patch via:
    POST $THELASTORG_API_URL/api/v1/archetype-patches
-   Headers: Authorization: Bearer $TLO_API_KEY, X-Audit-Run-ID: %s
+   Headers: Authorization: Bearer $THELASTORG_API_KEY, X-Audit-Run-ID: %s
    Body: {"agent_slug": "...", "proposed_content": "...full new archetype content..."}
 
 5. Create feature requests for workflow improvements you identify. Use:
@@ -578,7 +578,7 @@ INSTRUCTIONS:
 
 6. Review artifact-docs for stale or contradictory documentation. Clean up.
 
-TLO API (Authorization: Bearer $TLO_API_KEY):
+TLO API (Authorization: Bearer $THELASTORG_API_KEY):
   POST   $THELASTORG_API_URL/api/v1/archetype-patches  - propose archetype change
   POST   $THELASTORG_API_URL/api/v1/issues              - create feature request
   GET    $THELASTORG_API_URL/api/v1/agents              - list team
