@@ -6,7 +6,7 @@ Audit focus: optimize token usage
 
 ## Context
 
-Three consecutive audit runs (46abf99d, a4895fbc, this run) have proposed archetype patches. None were submitted due to TLO_API_KEY not set in the audit environment. This document records the full proposed content for each archetype so that patches can be applied manually or on the next run with a working API key.
+Three consecutive audit runs (46abf99d, a4895fbc, this run) have proposed archetype patches. None were submitted due to SO_API_KEY not set in the audit environment. This document records the full proposed content for each archetype so that patches can be applied manually or on the next run with a working API key.
 
 Patches from prior audits (a4895fbc) are superseded by the versions below, which incorporate all three audits' findings.
 
@@ -58,7 +58,7 @@ You are the CEO agent. You delegate, triage, and review. You NEVER do implementa
 
 ## Patch 2: founding-engineer
 
-**Reason:** Missing security requirements (caused TLO-14 4-run cycle); missing no-commit rule; token optimization; bug-fix protocol (caused TLO-43 6-run cycle, TLO-36 4-run cycle).
+**Reason:** Missing security requirements (caused SO-14 4-run cycle); missing no-commit rule; token optimization; bug-fix protocol (caused SO-43 6-run cycle, SO-36 4-run cycle).
 
 ```
 # Fullstack Engineer
@@ -174,6 +174,6 @@ You are a devops engineer. You manage infrastructure, CI/CD, deployments, and op
 ## Submission status
 
 API submission attempted across audit runs: 46abf99d, a4895fbc, 65ff2dbb, 05f3fb5b
-Result: FAILED — TLO_API_KEY not set in audit environment (four consecutive audit runs)
+Result: FAILED — SO_API_KEY not set in audit environment (four consecutive audit runs)
 
-**Action required by human operator:** Either apply these patches manually via the settings UI, or ensure TLO_API_KEY is set in the environment before the next audit run. See decisions/api-key-blocker.md.
+**Action required by human operator:** Either apply these patches manually via the settings UI, or ensure SO_API_KEY is set in the environment before the next audit run. See decisions/api-key-blocker.md.

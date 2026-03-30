@@ -1,4 +1,4 @@
-# Contributing to thelastorg
+# Contributing to secondorder
 
 ## Secret Scanning
 
@@ -7,7 +7,7 @@
 We use [gitleaks](https://github.com/gitleaks/gitleaks) to prevent secrets (API keys, passwords, tokens) from being committed to the repository. This runs as a pre-commit check and in CI to catch accidental credential leaks before they reach the remote.
 
 Why it matters:
-- thelastorg handles API keys, encrypted secrets, and agent credentials
+- secondorder handles API keys, encrypted secrets, and agent credentials
 - A leaked secret in git history is effectively permanent (force-pushing doesn't remove it from clones)
 - Automated scanning catches what code review misses
 
@@ -52,7 +52,7 @@ After this, every `git commit` will automatically scan staged files for secrets.
 
 The project includes a `.gitleaks.toml` configuration file at the repository root. This file:
 - Extends the default gitleaks ruleset
-- Adds custom rules for thelastorg-specific patterns (`tlo_` API keys, Telegram bot tokens)
+- Adds custom rules for secondorder-specific patterns (`so_` API keys, Telegram bot tokens)
 - Allowlists test files (`_test.go`, `testdata/`, `fixtures/`) and known test placeholder values
 - Allowlists `go.sum` hashes which are not secrets
 

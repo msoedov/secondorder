@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 
-	"github.com/msoedov/thelastorg/internal/models"
+	"github.com/msoedov/secondorder/internal/models"
 )
 
 type ctxKey string

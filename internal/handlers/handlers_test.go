@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msoedov/thelastorg/internal/db"
-	"github.com/msoedov/thelastorg/internal/models"
-	"github.com/msoedov/thelastorg/internal/templates"
+	"github.com/msoedov/secondorder/internal/db"
+	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/secondorder/internal/templates"
 )
 
 func testDB(t *testing.T) *db.DB {
@@ -69,11 +69,11 @@ func TestSSEHubBroadcast(t *testing.T) {
 	hub.clients[ch] = struct{}{}
 	hub.mu.Unlock()
 
-	hub.Broadcast("update", `{"key":"TLO-1"}`)
+	hub.Broadcast("update", `{"key":"SO-1"}`)
 
 	select {
 	case msg := <-ch:
-		want := "event: update\ndata: {\"key\":\"TLO-1\"}\n\n"
+		want := "event: update\ndata: {\"key\":\"SO-1\"}\n\n"
 		if msg != want {
 			t.Errorf("got %q, want %q", msg, want)
 		}
@@ -171,10 +171,10 @@ func TestAuthValidKey(t *testing.T) {
 	}
 	d.CreateAgent(agent)
 
-	rawKey := "tlo_test_key_123"
+	rawKey := "so_test_key_123"
 	hash := sha256.Sum256([]byte(rawKey))
 	keyHash := hex.EncodeToString(hash[:])
-	d.CreateAPIKey(agent.ID, keyHash, "tlo_test_ke")
+	d.CreateAPIKey(agent.ID, keyHash, "so_test_ke")
 
 	var gotAgent *models.Agent
 	api := NewAPI(d, hub, nil, &stubTelegram{})
@@ -242,10 +242,10 @@ func TestCreateIssueDuplicateDetection(t *testing.T) {
 	}
 	d.CreateAgent(agent)
 
-	rawKey := "tlo_dup_test_key"
+	rawKey := "so_dup_test_key"
 	h := sha256.Sum256([]byte(rawKey))
 	keyHash := hex.EncodeToString(h[:])
-	d.CreateAPIKey(agent.ID, keyHash, "tlo_dup_tes")
+	d.CreateAPIKey(agent.ID, keyHash, "so_dup_tes")
 
 	authHandler := api.Auth(api.CreateIssue)
 
@@ -378,8 +378,8 @@ func TestIssueDetail_NotFound(t *testing.T) {
 	d := testDB(t)
 	ui := testUI(t, d)
 
-	req := httptest.NewRequest("GET", "/issues/TLO-999", nil)
-	req.SetPathValue("key", "TLO-999")
+	req := httptest.NewRequest("GET", "/issues/SO-999", nil)
+	req.SetPathValue("key", "SO-999")
 	w := httptest.NewRecorder()
 
 	ui.IssueDetail(w, req)
@@ -541,7 +541,7 @@ func TestBoardCommentReopensIssue(t *testing.T) {
 			d.CreateAgent(agent)
 
 			issue := &models.Issue{
-				Key:             "TLO-1",
+				Key:             "SO-1",
 				Title:           "Test issue",
 				Status:          tt.initial,
 				AssigneeAgentID: &agent.ID,
@@ -550,9 +550,9 @@ func TestBoardCommentReopensIssue(t *testing.T) {
 
 			// Post board comment
 			form := strings.NewReader("action=comment&body=Please+fix+this")
-			req := httptest.NewRequest("POST", "/issues/TLO-1", form)
+			req := httptest.NewRequest("POST", "/issues/SO-1", form)
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			req.SetPathValue("key", "TLO-1")
+			req.SetPathValue("key", "SO-1")
 			w := httptest.NewRecorder()
 
 			ui.IssueDetail(w, req)
@@ -561,7 +561,7 @@ func TestBoardCommentReopensIssue(t *testing.T) {
 				t.Fatalf("status = %d, want 303", w.Code)
 			}
 
-			got, err := d.GetIssue("TLO-1")
+			got, err := d.GetIssue("SO-1")
 			if err != nil {
 				t.Fatalf("get issue: %v", err)
 			}

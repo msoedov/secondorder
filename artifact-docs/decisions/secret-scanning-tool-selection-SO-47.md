@@ -1,5 +1,5 @@
 ---
-issue: TLO-47
+issue: SO-47
 date: 2026-03-29
 status: decided
 decision: gitleaks
@@ -97,4 +97,4 @@ truffleHog's live verification is valuable for incident response but adds latenc
 
 ## Implementation
 
-See [secret-scanning-TLO-49.md](../infra/secret-scanning-TLO-49.md) for gitleaks configuration and CI integration details.
+See [secret-scanning-SO-49.md](../infra/secret-scanning-SO-49.md) for gitleaks configuration and CI integration details.

@@ -1,6 +1,6 @@
 # Retro: Audit & Self-Improvement
 
-The retro system is TLO's self-improvement loop. It reviews completed work, identifies performance patterns, produces short actionable policies, and proposes archetype updates -- all with human approval gates.
+The retro system is SecondOrder's self-improvement loop. It reviews completed work, identifies performance patterns, produces short actionable policies, and proposes archetype updates -- all with human approval gates.
 
 ## Concept
 
@@ -117,7 +117,7 @@ Human reviews on /policies:
 
 ```
 POST /api/v1/archetype-patches
-  Headers: Authorization: Bearer $TLO_API_KEY, X-Audit-Run-ID: {audit_run_id}
+  Headers: Authorization: Bearer $SO_API_KEY, X-Audit-Run-ID: {audit_run_id}
   Body: {"agent_slug": "backend", "proposed_content": "# Backend Engineer\n..."}
   Response: 201 Created
 ```
@@ -150,7 +150,7 @@ The auditor agent must exist in the agents table:
 {"name": "Auditor", "slug": "auditor", "archetype_slug": "auditor", "model": "sonnet"}
 ```
 
-It is included in the default startup template (`cmd/thelastorg/templates/startup.json`). If agents were created before the auditor was added, create it manually via `/agents` or direct DB insert.
+It is included in the default startup template (`cmd/secondorder/templates/startup.json`). If agents were created before the auditor was added, create it manually via `/agents` or direct DB insert.
 
 ## Design Principles
 

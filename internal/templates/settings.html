@@ -29,8 +29,8 @@
           </div>
           <div>
             <label for="issue_prefix" class="block text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Issue Prefix</label>
-            <input id="issue_prefix" name="issue_prefix" type="text" value="{{index .Settings "issue_prefix"}}" placeholder="TLO" class="w-full bg-sf border border-bd rounded-md px-3 py-2 text-sm text-ink placeholder-ink3/30 outline-none focus:ring-1 focus:ring-ac focus:border-ac transition-shadow">
-            <p class="text-[11px] text-ink3/40 mt-1">Prefix used for issue keys (e.g. TLO-1, TLO-2)</p>
+            <input id="issue_prefix" name="issue_prefix" type="text" value="{{index .Settings "issue_prefix"}}" placeholder="SO" class="w-full bg-sf border border-bd rounded-md px-3 py-2 text-sm text-ink placeholder-ink3/30 outline-none focus:ring-1 focus:ring-ac focus:border-ac transition-shadow">
+            <p class="text-[11px] text-ink3/40 mt-1">Prefix used for issue keys (e.g. SO-1, SO-2)</p>
           </div>
         </div>
         <div class="mt-4 flex justify-end">
@@ -73,8 +73,8 @@
       </div>
     </div>
     <script>
-    (function(){var s=document.getElementById('theme_select');s.value=localStorage.getItem('tlo-theme')||'light';})();
-    function setTheme(v){document.documentElement.classList.toggle('dark',v==='dark');localStorage.setItem('tlo-theme',v);}
+    (function(){var s=document.getElementById('theme_select');s.value=localStorage.getItem('so-theme')||'light';})();
+    function setTheme(v){document.documentElement.classList.toggle('dark',v==='dark');localStorage.setItem('so-theme',v);}
     </script>
 
     <!-- About -->

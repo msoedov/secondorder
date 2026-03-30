@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/msoedov/thelastorg/internal/db"
-	"github.com/msoedov/thelastorg/internal/models"
+	"github.com/msoedov/secondorder/internal/db"
+	"github.com/msoedov/secondorder/internal/models"
 )
 
 type UI struct {
@@ -768,7 +768,7 @@ func (u *UI) Settings(w http.ResponseWriter, r *http.Request) {
 
 	gitHubURL := settings["github_url"]
 	if gitHubURL == "" {
-		gitHubURL = "https://github.com/msoedov/thelastorg"
+		gitHubURL = "https://github.com/msoedov/secondorder"
 	}
 
 	u.render(w, "settings", map[string]any{

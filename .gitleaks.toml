@@ -1,7 +1,7 @@
-# gitleaks.toml — secret scanning configuration for thelastorg
+# gitleaks.toml — secret scanning configuration for secondorder
 # https://github.com/gitleaks/gitleaks
 
-title = "thelastorg secret scanning rules"
+title = "secondorder secret scanning rules"
 
 [extend]
 useDefault = true
@@ -9,10 +9,10 @@ useDefault = true
 # --- Project-specific rules ---
 
 [[rules]]
-id = "tlo-api-key"
-description = "thelastorg API key"
-regex = '''tlo_[a-zA-Z0-9_]{16,}'''
-tags = ["api-key", "thelastorg"]
+id = "so-api-key"
+description = "secondorder API key"
+regex = '''so_[a-zA-Z0-9_]{16,}'''
+tags = ["api-key", "secondorder"]
 
 [[rules]]
 id = "telegram-bot-token"
@@ -37,16 +37,16 @@ paths = [
 # Known test/placeholder secrets used in unit tests
 regexes = [
     # handlers_test.go test keys
-    '''tlo_test_key_123''',
-    '''tlo_dup_test_key''',
+    '''so_test_key_123''',
+    '''so_dup_test_key''',
     # Short stub tokens in test assertions
     '''tok123''',
     # Bearer placeholder in docs/examples
-    '''\$THELASTORG_API_KEY''',
+    '''\$SECONDORDER_API_KEY''',
     # go.sum hashes are not secrets
     '''h1:[A-Za-z0-9+/=]{44}''',
     # Documentation example keys — clearly fake by context
-    '''tlo_abcdef1234567890''',
+    '''so_abcdef1234567890''',
 ]
 
 commits = []

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msoedov/thelastorg/internal/db"
-	"github.com/msoedov/thelastorg/internal/models"
+	"github.com/msoedov/secondorder/internal/db"
+	"github.com/msoedov/secondorder/internal/models"
 )
 
 func testDB(t *testing.T) *db.DB {
@@ -44,7 +44,7 @@ func TestSetCallbacks(t *testing.T) {
 
 	commentCalled := false
 	s.SetOnComment(func(_, _, _ string) { commentCalled = true })
-	s.onComment("TLO-1", "agent", "hello")
+	s.onComment("SO-1", "agent", "hello")
 	if !commentCalled {
 		t.Error("onComment not called")
 	}
@@ -73,8 +73,8 @@ func TestProvisionAPIKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("provision: %v", err)
 	}
-	if !strings.HasPrefix(key, "tlo_") {
-		t.Errorf("key = %q, want tlo_ prefix", key)
+	if !strings.HasPrefix(key, "so_") {
+		t.Errorf("key = %q, want so_ prefix", key)
 	}
 	if len(key) < 20 {
 		t.Errorf("key too short: %d chars", len(key))
@@ -219,11 +219,11 @@ func TestBuildTaskPrompt(t *testing.T) {
 	}
 	d.CreateAgent(agent)
 
-	issue := &models.Issue{Key: "TLO-1", Title: "Test Issue", Description: "Do the thing", Status: "todo", Priority: 1}
+	issue := &models.Issue{Key: "SO-1", Title: "Test Issue", Description: "Do the thing", Status: "todo", Priority: 1}
 	d.CreateIssue(issue)
 
 	prompt := s.buildTaskPrompt(agent, issue)
-	if !strings.Contains(prompt, "TLO-1") {
+	if !strings.Contains(prompt, "SO-1") {
 		t.Error("prompt missing issue key")
 	}
 	if !strings.Contains(prompt, "Test Issue") {
@@ -235,7 +235,7 @@ func TestBuildTaskPrompt(t *testing.T) {
 	if !strings.Contains(prompt, "RULES:") {
 		t.Error("prompt missing rules")
 	}
-	if !strings.Contains(prompt, "TLO API") {
+	if !strings.Contains(prompt, "SO API") {
 		t.Error("prompt missing API ref")
 	}
 }
@@ -250,7 +250,7 @@ func TestBuildTaskPromptCEO(t *testing.T) {
 	}
 	d.CreateAgent(ceo)
 
-	issue := &models.Issue{Key: "TLO-1", Title: "Plan", Description: "Plan the sprint", Status: "todo"}
+	issue := &models.Issue{Key: "SO-1", Title: "Plan", Description: "Plan the sprint", Status: "todo"}
 	d.CreateIssue(issue)
 
 	prompt := s.buildTaskPrompt(ceo, issue)
@@ -273,14 +273,14 @@ func TestBuildHeartbeatPrompt(t *testing.T) {
 	d.CreateAgent(agent)
 
 	// Add an inbox issue
-	issue := &models.Issue{Key: "TLO-1", Title: "Inbox Item", Status: "todo", AssigneeAgentID: &agent.ID}
+	issue := &models.Issue{Key: "SO-1", Title: "Inbox Item", Status: "todo", AssigneeAgentID: &agent.ID}
 	d.CreateIssue(issue)
 
 	prompt := s.buildHeartbeatPrompt(agent)
 	if !strings.Contains(prompt, "HEARTBEAT") {
 		t.Error("prompt missing HEARTBEAT")
 	}
-	if !strings.Contains(prompt, "TLO-1") {
+	if !strings.Contains(prompt, "SO-1") {
 		t.Error("prompt missing inbox item")
 	}
 }
@@ -345,7 +345,7 @@ func TestWakeAgentWhenStopped(t *testing.T) {
 	s.Stop()
 
 	agent := &models.Agent{ID: "a1", Name: "Test"}
-	issue := &models.Issue{Key: "TLO-1", Title: "Test"}
+	issue := &models.Issue{Key: "SO-1", Title: "Test"}
 
 	// Should not panic, just return
 	s.WakeAgent(agent, issue)
@@ -363,15 +363,15 @@ func TestWakeReviewerSelfReviewSkipped(t *testing.T) {
 	}
 	d.CreateAgent(ceo)
 
-	issue := &models.Issue{Key: "TLO-99", Title: "Self review test", Description: "test", Status: "done", Priority: 1}
+	issue := &models.Issue{Key: "SO-99", Title: "Self review test", Description: "test", Status: "done", Priority: 1}
 	d.CreateIssue(issue)
 
 	// WakeReviewer should not spawn a run when reviewer == agent
-	s.WakeReviewer(ceo.ID, "TLO-99")
+	s.WakeReviewer(ceo.ID, "SO-99")
 
 	runs, _ := d.ListRunsForAgent(ceo.ID, 100)
 	for _, r := range runs {
-		if r.IssueKey != nil && *r.IssueKey == "TLO-99" {
+		if r.IssueKey != nil && *r.IssueKey == "SO-99" {
 			t.Error("expected no run spawned for self-review, but found one")
 		}
 	}
@@ -395,7 +395,7 @@ func TestWakeReviewerDifferentReviewer(t *testing.T) {
 	}
 	d.CreateAgent(worker)
 
-	issue := &models.Issue{Key: "TLO-100", Title: "Review chain test", Description: "test", Status: "done", Priority: 1}
+	issue := &models.Issue{Key: "SO-100", Title: "Review chain test", Description: "test", Status: "done", Priority: 1}
 	d.CreateIssue(issue)
 
 	// GetReviewer for worker should return CEO (different agent), so WakeReviewer should proceed

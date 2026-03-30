@@ -1,5 +1,5 @@
 # UX Audit: The Last Org
-Issue: TLO-11 | Date: 2026-03-28
+Issue: SO-11 | Date: 2026-03-28
 
 ## Executive Summary
 
@@ -365,8 +365,8 @@ Issue Detail (no sub-issues, no runs)
 │ Search issues and agents...         │
 ├─────────────────────────────────────┤
 │ ISSUES                              │
-│  ▪ TLO-5  Implement auth            │
-│  ▪ TLO-3  Fix dashboard layout      │
+│  ▪ SO-5  Implement auth            │
+│  ▪ SO-3  Fix dashboard layout      │
 ├─────────────────────────────────────┤
 │ AGENTS                              │
 │  ● ceo-agent  CEO Agent             │

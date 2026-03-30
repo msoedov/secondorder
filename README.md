@@ -1,8 +1,8 @@
-# thelastorg
+# secondorder
 
 **Open-source orchestration for zero-human companies.**
 
-If OpenClaw is an employee, Paperclip is the company. thelastorg is self improving org system.
+If OpenClaw is an employee, Paperclip is the company. secondorder is self improving org system.
 
 **Manage business goals, not pull requests.**
 
@@ -32,11 +32,11 @@ This isn't prompt engineering. It's agents building institutional knowledge -- t
 
 ---
 
-**thelastorg is a single-binary AI agent management platform built with Go + HTMX + Tailwind CSS + SQLite, providing Linear-style project management for autonomous AI agents with built-in cost controls, work block coordination, and full audit trails.** Target deployment: zero-ops single binary with embedded database, no external dependencies, sub-second startup. The architecture combines server-rendered HTML (Go html/template + HTMX) with a pure-Go SQLite driver (modernc.org/sqlite) for a deployment experience that's `go build && ./thelastorg` -- nothing else.
+**secondorder is a single-binary AI agent management platform built with Go + HTMX + Tailwind CSS + SQLite, providing Linear-style project management for autonomous AI agents with built-in cost controls, work block coordination, and full audit trails.** Target deployment: zero-ops single binary with embedded database, no external dependencies, sub-second startup. The architecture combines server-rendered HTML (Go html/template + HTMX) with a pure-Go SQLite driver (modernc.org/sqlite) for a deployment experience that's `go build && ./secondorder` -- nothing else.
 
-**Why it matters**: Organizations running multiple AI agents across projects face scattered terminals, no cost visibility, no audit trail, and no coordination layer. thelastorg consolidates agent management, issue tracking, execution monitoring, and budget enforcement into one dashboard. Think of it as Linear meets agent orchestration -- a command center where humans assign work, agents execute, and everything is tracked.
+**Why it matters**: Organizations running multiple AI agents across projects face scattered terminals, no cost visibility, no audit trail, and no coordination layer. secondorder consolidates agent management, issue tracking, execution monitoring, and budget enforcement into one dashboard. Think of it as Linear meets agent orchestration -- a command center where humans assign work, agents execute, and everything is tracked.
 
-**The opportunity**: AI agent usage is exploding, but tooling hasn't caught up. Teams run Claude Code, Codex, and custom agents in disconnected terminals. There's no unified way to assign tasks, monitor costs, enforce budgets, or review outputs. thelastorg fills this gap with a platform that's simpler to deploy than a Docker container (single binary, SQLite) while offering enterprise-grade features (budget policies, approval workflows, config versioning, encrypted secrets).
+**The opportunity**: AI agent usage is exploding, but tooling hasn't caught up. Teams run Claude Code, Codex, and custom agents in disconnected terminals. There's no unified way to assign tasks, monitor costs, enforce budgets, or review outputs. secondorder fills this gap with a platform that's simpler to deploy than a Docker container (single binary, SQLite) while offering enterprise-grade features (budget policies, approval workflows, config versioning, encrypted secrets).
 
 ## What It Actually Is
 
@@ -57,11 +57,11 @@ Current state forces you to:
 - **No coordination** -- agents duplicate work, contradict each other, miss dependencies
 - **No guardrails** -- a misconfigured agent can burn $500 in tokens overnight
 
-**thelastorg gives you one place to manage it all.**
+**secondorder gives you one place to manage it all.**
 
 ## Market Comparison Table
 
-| Feature | thelastorg | Paperclip (TS) | Custom Scripts | Slack + Manual | Linear + CLI |
+| Feature | secondorder | Paperclip (TS) | Custom Scripts | Slack + Manual | Linear + CLI |
 |---------|-----------|----------------|----------------|----------------|--------------|
 | **Deployment** | Single binary | Node.js + Docker | Per-team DIY | N/A | Multi-tool |
 | **Agent Registry** | Built-in | Built-in | None | None | None |
@@ -84,36 +84,36 @@ Current state forces you to:
 **What it is:** The Node.js/TypeScript version of this same concept, requiring Docker and external databases.
 **Similarity:** Same feature set, same UI patterns, same mental model.
 **Key differences:**
-- Paperclip = multi-service (Node + DB + Docker), thelastorg = single binary
-- Paperclip = JavaScript ecosystem overhead, thelastorg = compiled Go with embedded assets
-- Paperclip = external SQLite/Postgres, thelastorg = pure-Go SQLite compiled in
-- Paperclip = ~15s cold start, thelastorg = <1s start
+- Paperclip = multi-service (Node + DB + Docker), secondorder = single binary
+- Paperclip = JavaScript ecosystem overhead, secondorder = compiled Go with embedded assets
+- Paperclip = external SQLite/Postgres, secondorder = pure-Go SQLite compiled in
+- Paperclip = ~15s cold start, secondorder = <1s start
 
-**Why thelastorg wins:** Zero-ops deployment. `scp` the binary to a server and run it. No Docker, no npm, no runtime.
+**Why secondorder wins:** Zero-ops deployment. `scp` the binary to a server and run it. No Docker, no npm, no runtime.
 
 ### 2. **Custom Agent Scripts + Slack**
 **What it is:** The most common "solution" -- bash scripts, cron jobs, and Slack channels for coordination.
 **Similarity:** Gets the job done for 1-2 agents.
 **Key differences:**
-- Scripts = no cost tracking, thelastorg = per-agent budget policies with hard limits
-- Scripts = no audit trail, thelastorg = comprehensive activity log
-- Scripts = no UI, thelastorg = Linear-style dashboard
-- Scripts = breaks at 3+ agents, thelastorg = designed for fleet management
+- Scripts = no cost tracking, secondorder = per-agent budget policies with hard limits
+- Scripts = no audit trail, secondorder = comprehensive activity log
+- Scripts = no UI, secondorder = Linear-style dashboard
+- Scripts = breaks at 3+ agents, secondorder = designed for fleet management
 
-**Why thelastorg wins:** Moves from "it works on my machine" to "we have a system."
+**Why secondorder wins:** Moves from "it works on my machine" to "we have a system."
 
 ### 3. **Linear + Claude Code CLI**
 **What it is:** Using Linear for issue tracking and running agents manually from terminals.
 **Similarity:** Similar issue tracking UX, manual agent dispatch.
 **Key differences:**
-- Linear = human-oriented, thelastorg = agent-oriented (API-first for agent auth, inbox, work products)
-- Linear = no execution tracking, thelastorg = stdout capture, token usage, cost per run
-- Linear = no budget controls, thelastorg = monthly caps, per-run limits, alert thresholds
-- Linear = $10+/user/mo SaaS, thelastorg = free, self-hosted, data stays local
+- Linear = human-oriented, secondorder = agent-oriented (API-first for agent auth, inbox, work products)
+- Linear = no execution tracking, secondorder = stdout capture, token usage, cost per run
+- Linear = no budget controls, secondorder = monthly caps, per-run limits, alert thresholds
+- Linear = $10+/user/mo SaaS, secondorder = free, self-hosted, data stays local
 
-**Why thelastorg wins:** Purpose-built for the agent loop: assign -> execute -> monitor -> review.
+**Why secondorder wins:** Purpose-built for the agent loop: assign -> execute -> monitor -> review.
 
-## What Makes thelastorg Unique
+## What Makes secondorder Unique
 
 **The "triple unlock":**
 
@@ -128,33 +128,33 @@ Current state forces you to:
 ### Use Case 1: Engineering Team with Multiple Claude Code Agents
 **Current state:** 5 engineers each running Claude Code in separate terminals
 **Pain:** No visibility into aggregate costs, duplicated work, no review process
-**thelastorg solution:** Register each agent, assign issues from a shared board, enforce $50/day per-agent budgets, require approval for destructive operations
+**secondorder solution:** Register each agent, assign issues from a shared board, enforce $50/day per-agent budgets, require approval for destructive operations
 **Impact:** 40-60% cost reduction from budget enforcement alone, zero duplicated work
 
 ### Use Case 2: Content Operations
 **Current state:** Marketing team manually prompting AI for blog posts, social content, docs
 **Pain:** No version history, no approval workflow, outputs scattered across conversations
-**thelastorg solution:** Content agent with cron routines (weekly blog draft), issue-based workflow with review stages, work products attached to issues
+**secondorder solution:** Content agent with cron routines (weekly blog draft), issue-based workflow with review stages, work products attached to issues
 **Impact:** Automated content pipeline with human review gates
 
 ### Use Case 3: Automated Triage and Bug Fixing
 **Current state:** Bugs reported in GitHub, manually assigned to engineers
 **Pain:** Triage bottleneck, simple bugs wait days for human attention
-**thelastorg solution:** Triage agent with webhook trigger, auto-creates issues, assigns fix agents based on project/skill match, human approves before merge
+**secondorder solution:** Triage agent with webhook trigger, auto-creates issues, assigns fix agents based on project/skill match, human approves before merge
 **Impact:** Simple bugs fixed in minutes instead of days
 
 ### Use Case 4: Multi-Agent Research Pipeline
 **Current state:** Research tasks require multiple AI passes (search, synthesize, verify)
 **Pain:** Manual handoff between stages, no tracking of intermediate results
-**thelastorg solution:** Agent hierarchy (researcher reports to lead), sub-issues for each stage, work products flow between agents, cost tracking per pipeline run
+**secondorder solution:** Agent hierarchy (researcher reports to lead), sub-issues for each stage, work products flow between agents, cost tracking per pipeline run
 **Impact:** Reproducible research pipelines with full provenance
 
 ## Architecture Overview: Server-Rendered Single Binary
 
-thelastorg's architecture prioritizes operational simplicity -- every component compiles into one binary, runs without external services, and serves a full-featured UI.
+secondorder's architecture prioritizes operational simplicity -- every component compiles into one binary, runs without external services, and serves a full-featured UI.
 
 ```
-cmd/thelastorg/
+cmd/secondorder/
   main.go                      Entry point, env config, route wiring, graceful shutdown
   templates/startup.json       Default org bootstrap template (CEO + 5 agents)
 internal/
@@ -243,7 +243,7 @@ The scheduler combines event-driven waking with a 5-minute heartbeat safety net.
 
 **Dispatch flow:**
 1. Check if agent is already running (concurrent map with mutex protection)
-2. Provision a per-run API key (SHA256-hashed, passed as `TLO_API_KEY` env var)
+2. Provision a per-run API key (SHA256-hashed, passed as `SO_API_KEY` env var)
 3. Create run record, spawn agent subprocess with archetype instructions and artifact-docs
 4. Capture stdout, parse token usage from CLI output, record cost
 5. On completion, update run status, broadcast SSE event, release running lock
@@ -331,24 +331,24 @@ Server-Sent Events provide one-way real-time updates from server to browser. Sim
 
 | Env Var | CLI Arg | Default | Description |
 |---------|---------|---------|-------------|
-| `TLO_PORT` | `[port]` (1st arg) | `8080` | HTTP listen port |
-| `TLO_DB` | -- | `tlo.db` | SQLite database path |
-| `TLO_ARCHETYPES` | -- | `archetypes` | Agent archetype definitions directory |
-| `TLO_TELEGRAM_TOKEN` | -- | -- | Telegram bot token (optional) |
-| `TLO_TELEGRAM_CHAT_ID` | -- | -- | Telegram chat ID for approvals (optional) |
+| `SO_PORT` | `[port]` (1st arg) | `8080` | HTTP listen port |
+| `SO_DB` | -- | `so.db` | SQLite database path |
+| `SO_ARCHETYPES` | -- | `archetypes` | Agent archetype definitions directory |
+| `SO_TELEGRAM_TOKEN` | -- | -- | Telegram bot token (optional) |
+| `SO_TELEGRAM_CHAT_ID` | -- | -- | Telegram chat ID for approvals (optional) |
 
 ## Starter Templates
 
-On first run (empty database), the startup template is automatically applied from `cmd/thelastorg/templates/startup.json`:
+On first run (empty database), the startup template is automatically applied from `cmd/secondorder/templates/startup.json`:
 
 - **`startup`** -- CEO + 5 agents (Founding Engineer, Product Lead, Designer, QA, DevOps) with archetype assignments and model configs
 
 ```bash
 # Run with defaults (auto-applies startup template on empty DB)
-./thelastorg
+./secondorder
 
 # Custom port
-./thelastorg 9090
+./secondorder 9090
 ```
 
 Templates create agents in a single atomic operation. Safe to re-apply -- skips if agents already exist.
@@ -366,16 +366,16 @@ Each archetype provides the agent's system instructions, defining how it approac
 ```bash
 # Build
 make build
-# or: go build -o thelastorg ./cmd/thelastorg
+# or: go build -o secondorder ./cmd/secondorder
 
-# Run (defaults: port 8080, db tlo.db, auto-applies startup template)
-./thelastorg
+# Run (defaults: port 8080, db so.db, auto-applies startup template)
+./secondorder
 
 # Custom port
-./thelastorg 9090
+./secondorder 9090
 
 # Custom config via env
-TLO_PORT=3000 TLO_DB=/var/data/org.db ./thelastorg
+SO_PORT=3000 SO_DB=/var/data/org.db ./secondorder
 ```
 
 Open `http://localhost:8080`.
@@ -384,54 +384,54 @@ Open `http://localhost:8080`.
 
 ### 1. **Zero-Ops Deployment**
 **Problem:** Most agent platforms require Docker, databases, message queues, and ops expertise.
-**thelastorg:** `go build && ./thelastorg`. One binary, one SQLite file. Backup is `cp thelastorg.db backup.db`. Migration is `scp thelastorg server:~/`.
+**secondorder:** `go build && ./secondorder`. One binary, one SQLite file. Backup is `cp secondorder.db backup.db`. Migration is `scp secondorder server:~/`.
 
 **Why it matters:** The team running AI agents doesn't want to also run infrastructure for the management layer.
 
 ### 2. **Agent-Native API Design**
 **Problem:** Generic project management tools (Linear, Jira) don't speak agent. No inbox endpoint, no token reporting, no approval requests.
-**thelastorg:** Purpose-built REST API where agents authenticate, poll for work, report progress, request approvals, and attach artifacts -- all through dedicated endpoints.
+**secondorder:** Purpose-built REST API where agents authenticate, poll for work, report progress, request approvals, and attach artifacts -- all through dedicated endpoints.
 
 **Why it matters:** Agents are first-class citizens, not humans using a UI through browser automation.
 
 ### 3. **Budget Enforcement at the Platform Level**
 **Problem:** Cost overruns discovered after the fact on monthly invoices.
-**thelastorg:** Per-agent budget policies with monthly caps, per-run limits, and token quotas. Alert thresholds trigger warnings. Hard limits pause execution before overspend.
+**secondorder:** Per-agent budget policies with monthly caps, per-run limits, and token quotas. Alert thresholds trigger warnings. Hard limits pause execution before overspend.
 
 **Why it matters:** A single misconfigured agent prompt can burn hundreds of dollars. Budget enforcement should be infrastructure, not discipline.
 
 ### 4. **Configuration Versioning with Rollback**
 **Problem:** Changing an agent's model, instructions, or permissions and it breaks. No way to go back.
-**thelastorg:** Every config change creates a numbered revision. View diff between revisions. One-click rollback to any previous state.
+**secondorder:** Every config change creates a numbered revision. View diff between revisions. One-click rollback to any previous state.
 
 **Why it matters:** Agent configs are code. They deserve version control.
 
 ### 5. **Execution Isolation**
 **Problem:** Agents running in the same directory can interfere with each other, corrupt files, or conflict on git branches.
-**thelastorg:** Execution workspaces provide isolation -- git worktrees (branch per run), Docker containers, or local filesystem sandboxes. The scheduler creates the workspace before dispatch and archives after.
+**secondorder:** Execution workspaces provide isolation -- git worktrees (branch per run), Docker containers, or local filesystem sandboxes. The scheduler creates the workspace before dispatch and archives after.
 
 **Why it matters:** Concurrent agent execution requires isolation the same way concurrent processes require separate memory spaces.
 
-## Market Gaps thelastorg Fills
+## Market Gaps secondorder Fills
 
 ### Gap 1: "Managed + Self-Hosted"
 **Existing:** Cloud agent platforms (expensive, data leaves your network)
 **Existing:** DIY scripts (free but fragile, no features)
-**thelastorg:** Full-featured platform that runs on a $5/month VPS
+**secondorder:** Full-featured platform that runs on a $5/month VPS
 
 **Validation:** Teams running sensitive code can't send it to cloud platforms. Self-hosted is the only option, and current self-hosted options require ops expertise.
 
 ### Gap 2: "Cost Controls for AI Agents"
 **Existing:** Anthropic/OpenAI usage dashboards (after the fact, account-level)
 **Existing:** Nothing at the per-agent level
-**thelastorg:** Per-agent budgets with real-time enforcement
+**secondorder:** Per-agent budgets with real-time enforcement
 
 **Validation:** Every team running agents has a cost horror story. Budget enforcement is the most-requested feature in agent tooling.
 
 ### Gap 3: "Agent Coordination Layer"
 **Existing:** Agents run independently, humans coordinate via Slack
 **Existing:** No system for agent-to-agent task delegation
-**thelastorg:** Agent hierarchy (reports-to), sub-issues, shared inbox, work product handoff
+**secondorder:** Agent hierarchy (reports-to), sub-issues, shared inbox, work product handoff
 
 **Validation:** Multi-agent workflows are the next frontier. Agents that can delegate, review, and build on each other's work need a coordination layer.
 
@@ -447,7 +447,7 @@ Open `http://localhost:8080`.
 
 ### Risk 3: "Agents don't need project management"
 **Likelihood:** Low
-**Mitigation:** Every production agent deployment develops ad-hoc tracking (spreadsheets, Slack channels, scripts). thelastorg formalizes what teams already do informally.
+**Mitigation:** Every production agent deployment develops ad-hoc tracking (spreadsheets, Slack channels, scripts). secondorder formalizes what teams already do informally.
 
 ### Risk 4: "Open source means no revenue"
 **Likelihood:** Medium
@@ -504,7 +504,7 @@ Open `http://localhost:8080`.
 - `POST /api/v1/approvals/{id}/resolve` -- approve/reject with comment
 
 **Telegram Bot (Polling-Based)**
-- Set `TLO_TELEGRAM_TOKEN` + `TLO_TELEGRAM_CHAT_ID` env vars
+- Set `SO_TELEGRAM_TOKEN` + `SO_TELEGRAM_CHAT_ID` env vars
 - Bot polls Telegram for callback queries (no webhook needed)
 - Work block transitions (proposed->active, ready->shipped) trigger Telegram messages with inline Approve/Reject buttons
 - Clicking a button updates work block status and wakes the CEO agent
@@ -546,7 +546,7 @@ Open `http://localhost:8080`.
 
 ## Bottom Line
 
-**What is thelastorg practically?**
+**What is secondorder practically?**
 The command center your AI agent fleet needs -- assign work, enforce budgets, monitor execution, review outputs, all from one dashboard deployed as a single binary.
 
 **Is there anything like it?**
@@ -557,7 +557,7 @@ If you run 2+ AI agents and have ever lost track of costs, duplicated work, or w
 
 **The opportunity:** First purpose-built, self-hosted agent management platform that deploys in 60 seconds and scales from a side project to an engineering organization.
 
-[![RepoStars](https://repostars.dev/api/embed?repo=msoedov%2Fthelastorg&theme=sakura)](https://repostars.dev/?repos=msoedov%2Fthelastorg&theme=sakura)
+[![RepoStars](https://repostars.dev/api/embed?repo=msoedov%2Fsecondorder&theme=sakura)](https://repostars.dev/?repos=msoedov%2Fsecondorder&theme=sakura)
 
 ## License
 

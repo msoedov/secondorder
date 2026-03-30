@@ -1,10 +1,10 @@
-# TLO v2 Architecture: Simplified Agent Orchestration
+# SecondOrder v2 Architecture: Simplified Agent Orchestration
 
 ## Overview
 
-TLO is a lean orchestration layer for autonomous AI agents. A CEO agent handles triage, delegation, and review -- it never does implementation work itself. All other agents are fire-and-forget subprocesses that communicate exclusively through API callbacks. Token usage is minimized because context lives in files (archetypes + artifact-docs), not in prompts. All agents have Chrome browser automation available via `--chrome`.
+SecondOrder is a lean orchestration layer for autonomous AI agents. A CEO agent handles triage, delegation, and review -- it never does implementation work itself. All other agents are fire-and-forget subprocesses that communicate exclusively through API callbacks. Token usage is minimized because context lives in files (archetypes + artifact-docs), not in prompts. All agents have Chrome browser automation available via `--chrome`.
 
-https://github.com/msoedov/thelastorg
+https://github.com/msoedov/secondorder
 
 
 ## Core Principles
@@ -129,14 +129,14 @@ The agent receives:
 - Archetype file for role identity
 - Artifact-docs for project context
 - Chrome browser automation via `--chrome`
-- `TLO_API_KEY` env var for API callbacks (auto-provisioned per agent)
+- `SO_API_KEY` env var for API callbacks (auto-provisioned per agent)
 
 ### 3. Agent Checkout
 
 ```
 POST /api/v1/issues/{key}/checkout
-Authorization: Bearer $TLO_API_KEY
-{ "agentId": "$THELASTORG_AGENT_ID", "expectedStatuses": ["todo", "backlog"] }
+Authorization: Bearer $SO_API_KEY
+{ "agentId": "$SECONDORDER_AGENT_ID", "expectedStatuses": ["todo", "backlog"] }
 ```
 
 Atomic: fails if issue is not in expected status (prevents double-checkout). Sets status to `in_progress`.
@@ -198,7 +198,7 @@ RULES:
 ### Worker agent API
 
 ```
-TLO API (Authorization: Bearer $TLO_API_KEY):
+SO API (Authorization: Bearer $SO_API_KEY):
   GET    /api/v1/inbox                              - your assigned issues
   GET    /api/v1/issues/{key}                       - issue detail + comments
   POST   /api/v1/issues/{key}/checkout              - claim issue
@@ -223,7 +223,7 @@ RULES:
 ### CEO agent API
 
 ```
-TLO API (Authorization: Bearer $TLO_API_KEY):
+SO API (Authorization: Bearer $SO_API_KEY):
   GET    /api/v1/inbox                              - your assigned issues
   GET    /api/v1/issues/{key}                       - issue detail + comments
   PATCH  /api/v1/issues/{key}                       - update status + comment
@@ -281,20 +281,20 @@ Includes issue title, description, recent comments (last 5), plus the role-speci
 ## Environment Variables (Agent Subprocess)
 
 ```
-THELASTORG_AGENT_ID={agent-uuid}
-THELASTORG_AGENT_NAME={agent-name}
-THELASTORG_RUN_ID={run-uuid}
-THELASTORG_API_URL=http://localhost:{port}
-THELASTORG_ISSUE_KEY={issue-key}
-THELASTORG_ARTIFACT_DOCS={working_dir}/artifact-docs
-TLO_API_KEY={auto-provisioned-raw-key}
+SECONDORDER_AGENT_ID={agent-uuid}
+SECONDORDER_AGENT_NAME={agent-name}
+SECONDORDER_RUN_ID={run-uuid}
+SECONDORDER_API_URL=http://localhost:{port}
+SECONDORDER_ISSUE_KEY={issue-key}
+SECONDORDER_ARTIFACT_DOCS={working_dir}/artifact-docs
+SO_API_KEY={auto-provisioned-raw-key}
 ```
 
 ## File Structure
 
 ```
-thelastorg/
-  cmd/thelastorg/
+secondorder/
+  cmd/secondorder/
     main.go                # entry point, template application, logrus init
     templates/             # org templates (startup.json, dev-team.json, etc.)
   internal/
@@ -390,7 +390,7 @@ A work block is a shippable unit of work -- analogous to a sprint in Agile but s
 - A work block contains a set of issues that together form a complete, deployable increment
 - The CEO delegates and orchestrates issues within a work block toward a single shippable goal
 - Each block has a clear definition of done: all grouped issues completed, reviewed, and approved
-- Deployment is handled **outside** the system -- TLO produces the work, humans ship it
+- Deployment is handled **outside** the system -- SecondOrder produces the work, humans ship it
 
 ### Lifecycle
 
@@ -410,7 +410,7 @@ Board creates work block (title, goal, issues)
 - **Atomic scope**: a block should be small enough to demo or deploy in one shot
 - **Human gate**: blocks require explicit human approval before deployment -- agents produce, humans ship
 - **Iterative**: each block is a complete iteration, not a partial milestone. If something isn't done, it stays in the next block
-- **No deployment automation**: TLO orchestrates the work, not the release. Deployment tooling, CI/CD, and release processes live outside the system
+- **No deployment automation**: SecondOrder orchestrates the work, not the release. Deployment tooling, CI/CD, and release processes live outside the system
 
 ### Relationship to Issues
 

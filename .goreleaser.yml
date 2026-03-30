@@ -5,9 +5,9 @@ before:
     - go mod tidy
 
 builds:
-  - id: thelastorg
-    main: ./cmd/thelastorg
-    binary: thelastorg
+  - id: secondorder
+    main: ./cmd/secondorder
+    binary: secondorder
     env:
       - CGO_ENABLED=0
     goos:
@@ -39,6 +39,6 @@ changelog:
 release:
   github:
     owner: msoedov
-    name: thelastorg
+    name: secondorder
   draft: false
   prerelease: auto

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/msoedov/thelastorg/internal/models"
+	"github.com/msoedov/secondorder/internal/models"
 )
 
 func testDB(t *testing.T) *DB {
@@ -250,23 +250,23 @@ func makeIssue(key string) *models.Issue {
 
 func TestCreateAndGetIssue(t *testing.T) {
 	d := testDB(t)
-	i := makeIssue("TLO-1")
+	i := makeIssue("SO-1")
 	if err := d.CreateIssue(i); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 
-	got, err := d.GetIssue("TLO-1")
+	got, err := d.GetIssue("SO-1")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	if got.Title != "Issue TLO-1" {
+	if got.Title != "Issue SO-1" {
 		t.Errorf("title = %q", got.Title)
 	}
 }
 
 func TestGetIssueNotFound(t *testing.T) {
 	d := testDB(t)
-	_, err := d.GetIssue("TLO-999")
+	_, err := d.GetIssue("SO-999")
 	if err != sql.ErrNoRows {
 		t.Errorf("expected ErrNoRows, got %v", err)
 	}
@@ -274,8 +274,8 @@ func TestGetIssueNotFound(t *testing.T) {
 
 func TestListIssues(t *testing.T) {
 	d := testDB(t)
-	d.CreateIssue(makeIssue("TLO-1"))
-	done := makeIssue("TLO-2")
+	d.CreateIssue(makeIssue("SO-1"))
+	done := makeIssue("SO-2")
 	done.Status = models.StatusDone
 	d.CreateIssue(done)
 
@@ -309,7 +309,7 @@ func TestListIssues(t *testing.T) {
 
 func TestUpdateIssue(t *testing.T) {
 	d := testDB(t)
-	i := makeIssue("TLO-1")
+	i := makeIssue("SO-1")
 	d.CreateIssue(i)
 
 	i.Status = models.StatusDone
@@ -318,7 +318,7 @@ func TestUpdateIssue(t *testing.T) {
 		t.Fatalf("update: %v", err)
 	}
 
-	got, _ := d.GetIssue("TLO-1")
+	got, _ := d.GetIssue("SO-1")
 	if got.Status != models.StatusDone {
 		t.Errorf("status = %q", got.Status)
 	}
@@ -331,22 +331,22 @@ func TestCheckoutIssue(t *testing.T) {
 	d := testDB(t)
 	a := makeAgent("checkout-agent")
 	d.CreateAgent(a)
-	i := makeIssue("TLO-1")
+	i := makeIssue("SO-1")
 	d.CreateIssue(i)
 
 	// Successful checkout
-	err := d.CheckoutIssue("TLO-1", a.ID, []string{models.StatusTodo})
+	err := d.CheckoutIssue("SO-1", a.ID, []string{models.StatusTodo})
 	if err != nil {
 		t.Fatalf("checkout: %v", err)
 	}
 
-	got, _ := d.GetIssue("TLO-1")
+	got, _ := d.GetIssue("SO-1")
 	if got.Status != models.StatusInProgress {
 		t.Errorf("status = %q, want in_progress", got.Status)
 	}
 
 	// Checkout again should fail (already in_progress, not in expected)
-	err = d.CheckoutIssue("TLO-1", a.ID, []string{models.StatusTodo})
+	err = d.CheckoutIssue("SO-1", a.ID, []string{models.StatusTodo})
 	if err == nil {
 		t.Fatal("expected error for double checkout")
 	}
@@ -354,7 +354,7 @@ func TestCheckoutIssue(t *testing.T) {
 
 func TestCheckoutIssueEmptyStatuses(t *testing.T) {
 	d := testDB(t)
-	err := d.CheckoutIssue("TLO-1", "agent", nil)
+	err := d.CheckoutIssue("SO-1", "agent", nil)
 	if err == nil {
 		t.Fatal("expected error for empty statuses")
 	}
@@ -365,11 +365,11 @@ func TestGetAgentInbox(t *testing.T) {
 	a := makeAgent("inbox-agent")
 	d.CreateAgent(a)
 
-	todo := makeIssue("TLO-1")
+	todo := makeIssue("SO-1")
 	todo.AssigneeAgentID = &a.ID
 	d.CreateIssue(todo)
 
-	done := makeIssue("TLO-2")
+	done := makeIssue("SO-2")
 	done.AssigneeAgentID = &a.ID
 	done.Status = models.StatusDone
 	d.CreateIssue(done)
@@ -385,8 +385,8 @@ func TestGetAgentInbox(t *testing.T) {
 
 func TestCountIssues(t *testing.T) {
 	d := testDB(t)
-	d.CreateIssue(makeIssue("TLO-1"))
-	done := makeIssue("TLO-2")
+	d.CreateIssue(makeIssue("SO-1"))
+	done := makeIssue("SO-2")
 	done.Status = models.StatusDone
 	d.CreateIssue(done)
 
@@ -404,15 +404,15 @@ func TestCountIssues(t *testing.T) {
 
 func TestGetChildIssues(t *testing.T) {
 	d := testDB(t)
-	parent := makeIssue("TLO-1")
+	parent := makeIssue("SO-1")
 	d.CreateIssue(parent)
 
-	parentKey := "TLO-1"
-	child := makeIssue("TLO-2")
+	parentKey := "SO-1"
+	child := makeIssue("SO-2")
 	child.ParentIssueKey = &parentKey
 	d.CreateIssue(child)
 
-	children, err := d.GetChildIssues("TLO-1")
+	children, err := d.GetChildIssues("SO-1")
 	if err != nil {
 		t.Fatalf("children: %v", err)
 	}
@@ -429,19 +429,19 @@ func TestNextIssueKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("next key: %v", err)
 	}
-	if key != "TLO-1" {
-		t.Errorf("got %q, want TLO-1", key)
+	if key != "SO-1" {
+		t.Errorf("got %q, want SO-1", key)
 	}
 
-	d.CreateIssue(makeIssue("TLO-1"))
-	d.CreateIssue(makeIssue("TLO-5"))
+	d.CreateIssue(makeIssue("SO-1"))
+	d.CreateIssue(makeIssue("SO-5"))
 
 	key2, err := d.NextIssueKey()
 	if err != nil {
 		t.Fatalf("next key: %v", err)
 	}
-	if key2 != "TLO-6" {
-		t.Errorf("got %q, want TLO-6", key2)
+	if key2 != "SO-6" {
+		t.Errorf("got %q, want SO-6", key2)
 	}
 }
 
@@ -451,10 +451,10 @@ func TestCreateAndGetRun(t *testing.T) {
 	d := testDB(t)
 	a := makeAgent("run-agent")
 	d.CreateAgent(a)
-	i := makeIssue("TLO-1")
+	i := makeIssue("SO-1")
 	d.CreateIssue(i)
 
-	issueKey := "TLO-1"
+	issueKey := "SO-1"
 	r := &models.Run{
 		AgentID:  a.ID,
 		IssueKey: &issueKey,
@@ -542,11 +542,11 @@ func TestListRunsForIssue(t *testing.T) {
 	d := testDB(t)
 	a := makeAgent("issue-runs")
 	d.CreateAgent(a)
-	d.CreateIssue(makeIssue("TLO-1"))
-	issueKey := "TLO-1"
+	d.CreateIssue(makeIssue("SO-1"))
+	issueKey := "SO-1"
 	d.CreateRun(&models.Run{AgentID: a.ID, IssueKey: &issueKey, Mode: "task", Status: models.RunStatusRunning})
 
-	runs, err := d.ListRunsForIssue("TLO-1")
+	runs, err := d.ListRunsForIssue("SO-1")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -575,11 +575,11 @@ func TestCountRunsForIssue(t *testing.T) {
 	d := testDB(t)
 	a := makeAgent("count-issue-runs")
 	d.CreateAgent(a)
-	d.CreateIssue(makeIssue("TLO-1"))
-	issueKey := "TLO-1"
+	d.CreateIssue(makeIssue("SO-1"))
+	issueKey := "SO-1"
 	d.CreateRun(&models.Run{AgentID: a.ID, IssueKey: &issueKey, Mode: "task", Status: models.RunStatusRunning})
 
-	count, err := d.CountRunsForIssue("TLO-1")
+	count, err := d.CountRunsForIssue("SO-1")
 	if err != nil {
 		t.Fatalf("count: %v", err)
 	}
@@ -592,10 +592,10 @@ func TestCountRunsForIssue(t *testing.T) {
 
 func TestCreateAndListComments(t *testing.T) {
 	d := testDB(t)
-	d.CreateIssue(makeIssue("TLO-1"))
+	d.CreateIssue(makeIssue("SO-1"))
 
 	c := &models.Comment{
-		IssueKey: "TLO-1",
+		IssueKey: "SO-1",
 		Author:   "system",
 		Body:     "hello",
 	}
@@ -603,7 +603,7 @@ func TestCreateAndListComments(t *testing.T) {
 		t.Fatalf("create comment: %v", err)
 	}
 
-	comments, err := d.ListComments("TLO-1")
+	comments, err := d.ListComments("SO-1")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -622,7 +622,7 @@ func TestAPIKeyLifecycle(t *testing.T) {
 	a := makeAgent("api-key-agent")
 	d.CreateAgent(a)
 
-	if err := d.CreateAPIKey(a.ID, "hash123", "tlo_abc"); err != nil {
+	if err := d.CreateAPIKey(a.ID, "hash123", "so_abc"); err != nil {
 		t.Fatalf("create key: %v", err)
 	}
 
@@ -649,12 +649,12 @@ func TestAPIKeyLifecycle(t *testing.T) {
 
 func TestApprovalLifecycle(t *testing.T) {
 	d := testDB(t)
-	d.CreateIssue(makeIssue("TLO-1"))
+	d.CreateIssue(makeIssue("SO-1"))
 	a := makeAgent("approver")
 	d.CreateAgent(a)
 
 	approval := &models.Approval{
-		IssueKey:    "TLO-1",
+		IssueKey:    "SO-1",
 		RequestedBy: a.ID,
 		Status:      "pending",
 	}
@@ -778,7 +778,7 @@ func TestGetTotalCostToday(t *testing.T) {
 
 func TestLogActivity(t *testing.T) {
 	d := testDB(t)
-	err := d.LogActivity("created", "issue", "TLO-1", nil, "test")
+	err := d.LogActivity("created", "issue", "SO-1", nil, "test")
 	if err != nil {
 		t.Fatalf("log activity: %v", err)
 	}
@@ -789,7 +789,7 @@ func TestLogActivity(t *testing.T) {
 func TestGetDashboardStats(t *testing.T) {
 	d := testDB(t)
 	d.CreateAgent(makeAgent("dash-agent"))
-	d.CreateIssue(makeIssue("TLO-1"))
+	d.CreateIssue(makeIssue("SO-1"))
 
 	stats, err := d.GetDashboardStats()
 	if err != nil {
@@ -821,8 +821,8 @@ func TestLabels(t *testing.T) {
 	}
 
 	// Add to issue
-	d.CreateIssue(makeIssue("TLO-1"))
-	issue, _ := d.GetIssue("TLO-1")
+	d.CreateIssue(makeIssue("SO-1"))
+	issue, _ := d.GetIssue("SO-1")
 	if err := d.AddLabelToIssue(issue.ID, l.ID); err != nil {
 		t.Fatalf("add label: %v", err)
 	}
@@ -912,16 +912,16 @@ func TestAssignIssueToWorkBlock(t *testing.T) {
 	wb := &models.WorkBlock{Title: "T", Goal: "G"}
 	d.CreateWorkBlock(wb)
 
-	d.CreateIssue(makeIssue("TLO-1"))
+	d.CreateIssue(makeIssue("SO-1"))
 
 	// Can't assign to proposed block
-	if err := d.AssignIssueToWorkBlock("TLO-1", wb.ID); err == nil {
+	if err := d.AssignIssueToWorkBlock("SO-1", wb.ID); err == nil {
 		t.Fatal("expected error: block not active")
 	}
 
 	// Activate and assign
 	d.UpdateWorkBlockStatus(wb.ID, models.WBStatusActive)
-	if err := d.AssignIssueToWorkBlock("TLO-1", wb.ID); err != nil {
+	if err := d.AssignIssueToWorkBlock("SO-1", wb.ID); err != nil {
 		t.Fatalf("assign: %v", err)
 	}
 
@@ -931,7 +931,7 @@ func TestAssignIssueToWorkBlock(t *testing.T) {
 	}
 
 	// Unassign
-	d.UnassignIssueFromWorkBlock("TLO-1")
+	d.UnassignIssueFromWorkBlock("SO-1")
 	issues2, _ := d.ListWorkBlockIssues(wb.ID)
 	if len(issues2) != 0 {
 		t.Errorf("got %d issues after unassign", len(issues2))
@@ -951,7 +951,7 @@ func TestCheckWorkBlockAutoReady(t *testing.T) {
 	}
 
 	// Add done issue
-	done := makeIssue("TLO-1")
+	done := makeIssue("SO-1")
 	done.Status = models.StatusDone
 	done.WorkBlockID = &wb.ID
 	d.CreateIssue(done)
@@ -962,7 +962,7 @@ func TestCheckWorkBlockAutoReady(t *testing.T) {
 	}
 
 	// Add in_progress issue
-	ip := makeIssue("TLO-2")
+	ip := makeIssue("SO-2")
 	ip.Status = models.StatusInProgress
 	ip.WorkBlockID = &wb.ID
 	d.CreateIssue(ip)
@@ -979,7 +979,7 @@ func TestGetWorkBlockStats(t *testing.T) {
 	d.CreateWorkBlock(wb)
 	d.UpdateWorkBlockStatus(wb.ID, models.WBStatusActive)
 
-	done := makeIssue("TLO-1")
+	done := makeIssue("SO-1")
 	done.Status = models.StatusDone
 	done.WorkBlockID = &wb.ID
 	d.CreateIssue(done)
@@ -1012,7 +1012,7 @@ func TestListWorkBlocks(t *testing.T) {
 
 // TestOpenWithEnvOverride verifies the DB can be opened from a temp file
 func TestOpenWithTempFile(t *testing.T) {
-	f, err := os.CreateTemp("", "tlo-test-*.db")
+	f, err := os.CreateTemp("", "so-test-*.db")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1032,7 +1032,7 @@ func TestGetIssueByTitle(t *testing.T) {
 	d := testDB(t)
 
 	issue := &models.Issue{
-		Key:    "TLO-1",
+		Key:    "SO-1",
 		Title:  "Fix Login Bug",
 		Status: "todo",
 	}
@@ -1046,10 +1046,10 @@ func TestGetIssueByTitle(t *testing.T) {
 		wantKey string
 		wantErr bool
 	}{
-		{"exact match", "Fix Login Bug", "TLO-1", false},
-		{"case insensitive lower", "fix login bug", "TLO-1", false},
-		{"case insensitive upper", "FIX LOGIN BUG", "TLO-1", false},
-		{"case insensitive mixed", "fix Login BUG", "TLO-1", false},
+		{"exact match", "Fix Login Bug", "SO-1", false},
+		{"case insensitive lower", "fix login bug", "SO-1", false},
+		{"case insensitive upper", "FIX LOGIN BUG", "SO-1", false},
+		{"case insensitive mixed", "fix Login BUG", "SO-1", false},
 		{"no match", "Different Title", "", true},
 	}
 
@@ -1080,8 +1080,8 @@ func TestSettings(t *testing.T) {
 		if err != nil {
 			t.Fatalf("get issue_prefix: %v", err)
 		}
-		if val != "TLO" {
-			t.Errorf("issue_prefix = %q, want %q", val, "TLO")
+		if val != "SO" {
+			t.Errorf("issue_prefix = %q, want %q", val, "SO")
 		}
 	})
 

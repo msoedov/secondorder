@@ -1,4 +1,4 @@
-module github.com/msoedov/thelastorg
+module github.com/msoedov/secondorder
 
 go 1.26.1
 

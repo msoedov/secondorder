@@ -1,4 +1,4 @@
-# QA UX + Accessibility Report — TLO-13
+# QA UX + Accessibility Report — SO-13
 
 Date: 2026-03-28
 Scope: All UI pages (dashboard, issues, issue detail, agents, agent detail, work blocks, work block detail, run detail, command palette, all forms)

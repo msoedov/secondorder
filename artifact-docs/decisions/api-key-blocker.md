@@ -1,4 +1,4 @@
-# Decision: TLO_API_KEY missing from auditor environment
+# Decision: SO_API_KEY missing from auditor environment
 
 Date: 2026-03-29
 Audit runs affected: 46abf99d, a4895fbc, 65ff2dbb, 05f3fb5b (4 consecutive)
@@ -7,7 +7,7 @@ Audit runs affected: 46abf99d, a4895fbc, 65ff2dbb, 05f3fb5b (4 consecutive)
 
 ## Problem
 
-The auditor agent is invoked without TLO_API_KEY in its environment. Every audit run since the first has produced valid archetype patches and feature requests that could not be submitted. The patches accumulate in artifact-docs/decisions/ as dead documentation.
+The auditor agent is invoked without SO_API_KEY in its environment. Every audit run since the first has produced valid archetype patches and feature requests that could not be submitted. The patches accumulate in artifact-docs/decisions/ as dead documentation.
 
 ## Impact
 
@@ -19,7 +19,7 @@ The auditor agent is invoked without TLO_API_KEY in its environment. Every audit
 ## Recommendation
 
 The operator should do ONE of the following:
-1. Set TLO_API_KEY as an environment variable in the audit agent's invocation config
+1. Set SO_API_KEY as an environment variable in the audit agent's invocation config
 2. Apply the patches from decisions/archetype-patches-65ff2dbb.md manually via the settings UI
 
 ## Patches ready to apply

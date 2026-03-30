@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/msoedov/thelastorg/internal/db"
-	"github.com/msoedov/thelastorg/internal/models"
+	"github.com/msoedov/secondorder/internal/db"
+	"github.com/msoedov/secondorder/internal/models"
 )
 
 type TelegramNotifier interface {

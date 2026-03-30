@@ -1,4 +1,4 @@
-# Security Audit Report - TLO-6
+# Security Audit Report - SO-6
 
 Date: 2026-03-28
 
@@ -18,8 +18,8 @@ All sensitive values are properly loaded from environment:
 
 | Var | File | Purpose |
 |-----|------|---------|
-| `TLO_TELEGRAM_TOKEN` | `cmd/thelastorg/main.go:80` | Telegram bot token (optional) |
-| `TLO_TELEGRAM_CHAT_ID` | `cmd/thelastorg/main.go:81` | Telegram chat ID (optional) |
+| `SO_TELEGRAM_TOKEN` | `cmd/secondorder/main.go:80` | Telegram bot token (optional) |
+| `SO_TELEGRAM_CHAT_ID` | `cmd/secondorder/main.go:81` | Telegram chat ID (optional) |
 
 ### GitHub Actions
 
@@ -32,7 +32,7 @@ All sensitive values are properly loaded from environment:
 
 ## Verification
 
-- `tlo.db` is excluded from git (already in `.gitignore`)
-- Binary `thelastorg` is excluded from git
+- `so.db` is excluded from git (already in `.gitignore`)
+- Binary `secondorder` is excluded from git
 - No private key or certificate files found in the repo
 - No base64-encoded secrets or hex strings matching known secret patterns found

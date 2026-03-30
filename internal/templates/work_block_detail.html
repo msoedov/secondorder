@@ -44,7 +44,7 @@
           {{if eq .Block.Status "active"}}
           <form method="POST" action="/work-blocks/{{.Block.ID}}" class="mt-3 flex gap-2">
             <input type="hidden" name="action" value="assign_issue">
-            <input name="issue_key" type="text" placeholder="Issue key (e.g. TLO-5)" class="flex-1 px-3 py-1.5 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac">
+            <input name="issue_key" type="text" placeholder="Issue key (e.g. SO-5)" class="flex-1 px-3 py-1.5 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac">
             <button type="submit" class="px-3 py-1.5 text-sm bg-bd hover:bg-ink3/40 text-ink rounded transition-colors">Assign</button>
           </form>
           {{end}}

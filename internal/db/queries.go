@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/msoedov/thelastorg/internal/models"
+	"github.com/msoedov/secondorder/internal/models"
 )
 
 // --- Agents ---
@@ -333,7 +333,7 @@ func (d *DB) GetChildIssues(parentKey string) ([]models.Issue, error) {
 
 func (d *DB) NextIssueKey() (string, error) {
 	var maxNum sql.NullInt64
-	err := d.QueryRow(`SELECT MAX(CAST(SUBSTR(key, 5) AS INTEGER)) FROM issues WHERE key LIKE 'TLO-%'`).Scan(&maxNum)
+	err := d.QueryRow(`SELECT MAX(CAST(SUBSTR(key, 4) AS INTEGER)) FROM issues WHERE key LIKE 'SO-%'`).Scan(&maxNum)
 	if err != nil {
 		return "", err
 	}
@@ -341,7 +341,7 @@ func (d *DB) NextIssueKey() (string, error) {
 	if maxNum.Valid {
 		next = int(maxNum.Int64) + 1
 	}
-	return fmt.Sprintf("TLO-%d", next), nil
+	return fmt.Sprintf("SO-%d", next), nil
 }
 
 // --- Runs ---

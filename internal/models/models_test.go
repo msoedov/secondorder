@@ -89,12 +89,12 @@ func TestAgentStruct(t *testing.T) {
 
 func TestIssueStruct(t *testing.T) {
 	i := Issue{
-		Key:    "TLO-1",
+		Key:    "SO-1",
 		Title:  "Test Issue",
 		Status: StatusTodo,
 	}
-	if i.Key != "TLO-1" {
-		t.Errorf("expected Key TLO-1, got %s", i.Key)
+	if i.Key != "SO-1" {
+		t.Errorf("expected Key SO-1, got %s", i.Key)
 	}
 	if i.AssigneeAgentID != nil {
 		t.Error("expected AssigneeAgentID to be nil")

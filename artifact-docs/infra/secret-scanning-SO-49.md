@@ -1,4 +1,4 @@
-# Secret Scanning Configuration (TLO-49)
+# Secret Scanning Configuration (SO-49)
 
 ## Tool
 
@@ -12,7 +12,7 @@
 
 | Rule | Pattern | Example |
 |------|---------|---------|
-| `tlo-api-key` | `tlo_` prefix + 16+ alphanum chars | `tlo_abcdef1234567890` |
+| `so-api-key` | `so_` prefix + 16+ alphanum chars | `so_abcdef1234567890` |
 | `telegram-bot-token` | Telegram bot token format | `123456789:ABCdef...` |
 | Default ruleset | Generic API keys, AWS, GCP, GitHub tokens, private keys, etc. | (via `useDefault = true`) |
 
@@ -21,8 +21,8 @@
 The allowlist excludes:
 - All `*_test.go` files (test fixtures use fake keys by design)
 - `testdata/` and `fixtures/` directories
-- Known stub values used in unit tests (`tlo_test_key_123`, `tlo_dup_test_key`, `tok123`)
-- Environment variable references like `$THELASTORG_API_KEY`
+- Known stub values used in unit tests (`so_test_key_123`, `so_dup_test_key`, `tok123`)
+- Environment variable references like `$SECONDORDER_API_KEY`
 - `go.sum` hash lines
 
 ## Running locally

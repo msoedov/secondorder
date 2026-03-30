@@ -1,6 +1,6 @@
-# TLO Brand System
+# SecondOrder Brand System
 ## Brand Audit + Design Tokens Reference
-_Issue: TLO-10 | Date: 2026-03-28_
+_Issue: SO-10 | Date: 2026-03-28_
 
 ---
 
@@ -173,11 +173,11 @@ No size changes needed — the compact scale is appropriate for a dense task too
 
 ## 4. Logo / Wordmark Concept
 
-### Mark: "TLO" monogram
+### Mark: "SO" monogram
 
 Replace the favicon SVG with a geometric mark built on the letter T:
 
-**Concept**: A square icon where a bold capital T has its crossbar doubled — two parallel horizontal lines with a vertical stem. This reads as a "stack of tasks" which is the core metaphor, and forms the TLO monogram subtly.
+**Concept**: A square icon where a bold capital T has its crossbar doubled — two parallel horizontal lines with a vertical stem. This reads as a "stack of tasks" which is the core metaphor, and forms the SO monogram subtly.
 
 **Updated favicon.svg:**
 ```svg

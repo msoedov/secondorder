@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/msoedov/thelastorg/internal/db"
-	"github.com/msoedov/thelastorg/internal/models"
+	"github.com/msoedov/secondorder/internal/db"
+	"github.com/msoedov/secondorder/internal/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -261,13 +261,13 @@ func (s *Scheduler) execClaude(ctx context.Context, agent *models.Agent, apiKey,
 	cmd := exec.CommandContext(ctx, "claude", args...)
 	cmd.Dir = agent.WorkingDir
 	cmd.Env = append(os.Environ(),
-		fmt.Sprintf("THELASTORG_AGENT_ID=%s", agent.ID),
-		fmt.Sprintf("THELASTORG_AGENT_NAME=%s", agent.Name),
-		fmt.Sprintf("THELASTORG_RUN_ID=%s", runID),
-		fmt.Sprintf("THELASTORG_API_URL=http://localhost:%d", s.port),
-		fmt.Sprintf("THELASTORG_ISSUE_KEY=%s", issueKey),
-		fmt.Sprintf("THELASTORG_ARTIFACT_DOCS=%s", filepath.Join(agent.WorkingDir, "artifact-docs")),
-		fmt.Sprintf("THELASTORG_API_KEY=%s", apiKey),
+		fmt.Sprintf("SECONDORDER_AGENT_ID=%s", agent.ID),
+		fmt.Sprintf("SECONDORDER_AGENT_NAME=%s", agent.Name),
+		fmt.Sprintf("SECONDORDER_RUN_ID=%s", runID),
+		fmt.Sprintf("SECONDORDER_API_URL=http://localhost:%d", s.port),
+		fmt.Sprintf("SECONDORDER_ISSUE_KEY=%s", issueKey),
+		fmt.Sprintf("SECONDORDER_ARTIFACT_DOCS=%s", filepath.Join(agent.WorkingDir, "artifact-docs")),
+		fmt.Sprintf("SECONDORDER_API_KEY=%s", apiKey),
 	)
 
 	// Use liveWriter to stream stdout to DB
@@ -293,7 +293,7 @@ func (s *Scheduler) provisionAPIKey(agentID string) (string, error) {
 	if _, err := rand.Read(raw); err != nil {
 		return "", err
 	}
-	rawKey := "tlo_" + hex.EncodeToString(raw)
+	rawKey := "so_" + hex.EncodeToString(raw)
 
 	hash := sha256.Sum256([]byte(rawKey))
 	keyHash := hex.EncodeToString(hash[:])
@@ -567,22 +567,22 @@ INSTRUCTIONS:
    Write background/rationale separately to decisions/.
 
 4. For each archetype that needs improvement, propose a patch via:
-   POST $THELASTORG_API_URL/api/v1/archetype-patches
-   Headers: Authorization: Bearer $THELASTORG_API_KEY, X-Audit-Run-ID: %s
+   POST $SECONDORDER_API_URL/api/v1/archetype-patches
+   Headers: Authorization: Bearer $SECONDORDER_API_KEY, X-Audit-Run-ID: %s
    Body: {"agent_slug": "...", "proposed_content": "...full new archetype content..."}
 
 5. Create feature requests for workflow improvements you identify. Use:
-   POST $THELASTORG_API_URL/api/v1/issues
+   POST $SECONDORDER_API_URL/api/v1/issues
    Body: {"title": "Feature: ...", "description": "...", "priority": 2}
-   These are improvements to the TLO system itself, not project work.
+   These are improvements to the SecondOrder system itself, not project work.
 
 6. Review artifact-docs for stale or contradictory documentation. Clean up.
 
-TLO API (Authorization: Bearer $THELASTORG_API_KEY):
-  POST   $THELASTORG_API_URL/api/v1/archetype-patches  - propose archetype change
-  POST   $THELASTORG_API_URL/api/v1/issues              - create feature request
-  GET    $THELASTORG_API_URL/api/v1/agents              - list team
-  GET    $THELASTORG_API_URL/api/v1/work-blocks         - list work blocks
+SO API (Authorization: Bearer $SECONDORDER_API_KEY):
+  POST   $SECONDORDER_API_URL/api/v1/archetype-patches  - propose archetype change
+  POST   $SECONDORDER_API_URL/api/v1/issues              - create feature request
+  GET    $SECONDORDER_API_URL/api/v1/agents              - list team
+  GET    $SECONDORDER_API_URL/api/v1/work-blocks         - list work blocks
 
 BASE_URL: http://localhost:%d
 `, auditRunID, s.port))
@@ -638,14 +638,14 @@ const workerRules = `RULES:
 - Always checkout the issue first, then do the work, then update status.
 - Write any documentation to the artifact-docs/ folder.`
 
-const workerAPIRef = `TLO API (Authorization: Bearer $THELASTORG_API_KEY):
-  GET    $THELASTORG_API_URL/api/v1/inbox                              - your assigned issues
-  GET    $THELASTORG_API_URL/api/v1/issues/{key}                       - issue detail + comments
-  POST   $THELASTORG_API_URL/api/v1/issues/{key}/checkout              - claim issue
-  PATCH  $THELASTORG_API_URL/api/v1/issues/{key}                       - update status + comment
-  POST   $THELASTORG_API_URL/api/v1/issues/{key}/comments              - add comment
-  POST   $THELASTORG_API_URL/api/v1/issues                             - create sub-issue
-  GET    $THELASTORG_API_URL/api/v1/usage                              - your token/cost usage`
+const workerAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
+  GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
+  GET    $SECONDORDER_API_URL/api/v1/issues/{key}                       - issue detail + comments
+  POST   $SECONDORDER_API_URL/api/v1/issues/{key}/checkout              - claim issue
+  PATCH  $SECONDORDER_API_URL/api/v1/issues/{key}                       - update status + comment
+  POST   $SECONDORDER_API_URL/api/v1/issues/{key}/comments              - add comment
+  POST   $SECONDORDER_API_URL/api/v1/issues                             - create sub-issue
+  GET    $SECONDORDER_API_URL/api/v1/usage                              - your token/cost usage`
 
 const ceoRules = `RULES:
 - You are fully autonomous. Do NOT ask questions interactively.
@@ -659,20 +659,20 @@ const ceoRules = `RULES:
 - To start new work, propose a work block first. A human must approve it before it becomes active.
 - Only one work block can be active or proposed at a time.`
 
-const ceoAPIRef = `TLO API (Authorization: Bearer $THELASTORG_API_KEY):
-  GET    $THELASTORG_API_URL/api/v1/inbox                              - your assigned issues
-  GET    $THELASTORG_API_URL/api/v1/issues/{key}                       - issue detail + comments
-  PATCH  $THELASTORG_API_URL/api/v1/issues/{key}                       - update status + comment
-  POST   $THELASTORG_API_URL/api/v1/issues/{key}/comments              - add comment
-  POST   $THELASTORG_API_URL/api/v1/issues                             - create & assign: {"title":"...","assignee_slug":"...","parent_issue_key":"..."}
-  GET    $THELASTORG_API_URL/api/v1/agents                             - list team (slug, name, archetype)
-  POST   $THELASTORG_API_URL/api/v1/approvals/{id}/resolve             - review: {"status":"approved","comment":"..."}
-  GET    $THELASTORG_API_URL/api/v1/work-blocks                        - list work blocks
-  GET    $THELASTORG_API_URL/api/v1/work-blocks/{id}                   - block detail + issues + metrics
-  POST   $THELASTORG_API_URL/api/v1/work-blocks                        - propose block: {"title":"...","goal":"..."}
-  PATCH  $THELASTORG_API_URL/api/v1/work-blocks/{id}                   - update status: {"status":"ready"}
-  POST   $THELASTORG_API_URL/api/v1/work-blocks/{id}/issues            - assign issue: {"issue_key":"TLO-5"}
-  DELETE $THELASTORG_API_URL/api/v1/work-blocks/{id}/issues/{key}      - unassign issue
+const ceoAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
+  GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
+  GET    $SECONDORDER_API_URL/api/v1/issues/{key}                       - issue detail + comments
+  PATCH  $SECONDORDER_API_URL/api/v1/issues/{key}                       - update status + comment
+  POST   $SECONDORDER_API_URL/api/v1/issues/{key}/comments              - add comment
+  POST   $SECONDORDER_API_URL/api/v1/issues                             - create & assign: {"title":"...","assignee_slug":"...","parent_issue_key":"..."}
+  GET    $SECONDORDER_API_URL/api/v1/agents                             - list team (slug, name, archetype)
+  POST   $SECONDORDER_API_URL/api/v1/approvals/{id}/resolve             - review: {"status":"approved","comment":"..."}
+  GET    $SECONDORDER_API_URL/api/v1/work-blocks                        - list work blocks
+  GET    $SECONDORDER_API_URL/api/v1/work-blocks/{id}                   - block detail + issues + metrics
+  POST   $SECONDORDER_API_URL/api/v1/work-blocks                        - propose block: {"title":"...","goal":"..."}
+  PATCH  $SECONDORDER_API_URL/api/v1/work-blocks/{id}                   - update status: {"status":"ready"}
+  POST   $SECONDORDER_API_URL/api/v1/work-blocks/{id}/issues            - assign issue: {"issue_key":"SO-5"}
+  DELETE $SECONDORDER_API_URL/api/v1/work-blocks/{id}/issues/{key}      - unassign issue
 
 Your team:
 %s`

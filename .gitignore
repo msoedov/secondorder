@@ -8,10 +8,10 @@
 *.out
 
 # Project binary
-thelastorg
+secondorder
 
 # Database
-tlo.db
+so.db
 *.db-journal
 *.db-wal
 *.db-shm
