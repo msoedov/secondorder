@@ -13,16 +13,20 @@ Open `http://localhost:3001`. On first run, a default org (CEO + 5 agents) is bo
 ## Project structure
 
 ```
-cmd/secondorder/          Entry point, env config, route wiring
+cmd/secondorder/
+  main.go                 Entry point, env config, route wiring
+  templates/              Bootstrap org templates (dev-team.json, startup.json)
 internal/
-  handlers/               HTTP handlers (ui.go), REST API (api.go), SSE (sse.go)
-  db/                     SQLite connection, migrations, 200+ query functions
+  handlers/               HTTP handlers (ui.go), REST API (api.go), SSE (sse.go), request context
+  db/                     SQLite connection, migrations, query functions
   scheduler/              Agent dispatch, heartbeat loop, budget enforcement
   models/                 Data types (Agent, Issue, Run, WorkBlock, etc.)
   templates/              Go html/template + HTMX partials
   telegram/               Telegram bot for mobile approvals
 archetypes/               21 agent role definitions (markdown files)
-static/                   CSS + JS served via http.FileServer
+static/                   Static assets (favicon, images)
+docs/                     Internal documentation
+artifact-docs/            Generated documentation artifacts
 ```
 
 ## How it works
@@ -47,13 +51,14 @@ Archetypes in `archetypes/` define agent behavior as markdown. Each file is the 
 
 ### UI
 
-Templates use Go `html/template` with HTMX attributes for interactivity. Tailwind CSS via CDN. No build step -- edit HTML, restart server, refresh browser.
+Templates use Go `html/template` with HTMX attributes for interactivity. Tailwind CSS via CDN, inline JS in templates. No build step -- edit HTML, restart server, refresh browser.
 
 ## Running tests
 
 ```bash
 # All tests
 go test ./...
+make test
 
 # Specific package
 go test ./internal/db/...
@@ -62,6 +67,18 @@ go test ./internal/scheduler/...
 ```
 
 Tests use in-memory SQLite databases -- no setup required.
+
+## Makefile targets
+
+```bash
+make build     # Build the binary
+make test      # Run all tests
+make run       # Build and run
+make lint      # Run golangci-lint
+make gl        # Run gitleaks scan
+make install   # Install to /usr/local/bin
+make clean     # Remove binary
+```
 
 ## Secret scanning
 
@@ -83,7 +100,8 @@ Configuration is in `.gitleaks.toml`. It allowlists test files and known placeho
 ## Guidelines
 
 - Keep it simple. Single binary, zero external dependencies at runtime.
-- No new runtime dependencies without strong justification.
+- No new runtime dependencies without strong justification (currently: sqlite, uuid, logrus).
 - Server-rendered HTML. No JavaScript frameworks.
 - Budget enforcement is infrastructure, not optional. Cost checks happen at the scheduler level.
 - Agent archetypes are the primary lever for behavior change -- prefer archetype edits over code changes when possible.
+- CI runs via GitHub Actions (`.github/workflows/`). Releases are managed with GoReleaser.

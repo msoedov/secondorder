@@ -11,16 +11,15 @@ go run ./cmd/secondorder
 
 ![secondorder dashboard](static/demo.png)
 
-On first run, bootstraps a default org: CEO + 5 agents (engineer, product, design, QA, devops). Create an issue, assign it, watch the agent work.
+On first run, bootstraps a default org with 6 agents (CEO, engineer, product, designer, QA, devops). Create an issue, assign it, watch the agent work.
 
 ## Secondorder vs Paperclip
 
-secondorder is inspired by [Paperclip](https://github.com/msoedov/paperclip). Same mental model, radically different ops story.
+Secondorder is inspired by [Paperclip](https://github.com/msoedov/paperclip). Same mental model, radically different ops story.
 
-|  | secondorder | Paperclip |
+|  | Secondorder | Paperclip |
 |--|-------------|-----------|
 | **Language** | Go | TypeScript / Node.js |
-| **Deploy** | Single static binary | Docker + Node + external DB |
 | **Audit system** | Built-in auditor reviews all runs, produces reports | None |
 | **Recursive policies** | Policies evolve from audit findings, agents patch their own archetypes | Static prompts |
 | **Recursive governance** | CEO + auditor agents govern the org, no human in the loop | Manual agent coordination |
@@ -31,12 +30,11 @@ secondorder is inspired by [Paperclip](https://github.com/msoedov/paperclip). Sa
 | **Token optimization** | Context lives in files (archetypes + artifact-docs), not in prompts. Minimal token usage per dispatch | Full context in every prompt |
 | **Self-bootstrapped** | secondorder was human-written and then bootstrapped by its own agents | Human-written? |
 | **Cross-compile** | `GOOS=linux go build` | Dockerfile per platform |
-| **Database** | Embedded SQLite (pure Go, no CGO) | PostgreSQL or SQLite via Prisma |
 | **Cold start** | <1s | ~15s |
 | **Runtime deps** | 0 | Node, npm, Docker |
 | **Frontend** | Go templates + HTMX (no build step) | React + Vite |
 
-**Why we rewrote:** Paperclip proved the concept. secondorder eliminates the ops tax. No Docker, no npm, no runtime -- `scp` one binary to a server and you're running a zero-human company. *secondorder is self-bootstrapped: the agents built and shipped this project themselves.*
+**Why:** Paperclip proved the concept. secondorder eliminates the ops tax. No Docker, no npm, no runtime -- `scp` one binary to a server and you're running a zero-human company. *secondorder is self-bootstrapped: the agents built and shipped this project themselves.*
 
 ## Why this exists
 
@@ -85,31 +83,38 @@ Agents authenticate via API keys and interact through a REST API: poll inbox, up
 cmd/secondorder/main.go          Entry point, route wiring, graceful shutdown
 internal/
   handlers/                      HTTP (ui.go) + REST API (api.go) + SSE (sse.go)
-  db/                            Pure-Go SQLite, 17 tables, auto-migrations
+  db/                            Pure-Go SQLite, 21 tables, auto-migrations
   scheduler/                     Event-driven dispatch, heartbeat loop, budget checks
   models/                        Agent, Issue, Run, Approval, WorkBlock, BudgetPolicy, ...
-  templates/                     Go html/template + HTMX, 70+ template functions
+  templates/                     Go html/template + HTMX, ~40 template functions
+  telegram/                      Telegram bot for mobile approvals
 archetypes/                      21 agent role definitions (markdown)
 ```
 
-Single binary. Pure-Go SQLite (modernc.org/sqlite) -- no CGO, no C compiler, cross-compiles anywhere. Three dependencies total: sqlite, uuid, logrus.
+Single binary. Pure-Go SQLite (modernc.org/sqlite) -- no CGO, no C compiler, cross-compiles anywhere. Three direct dependencies: sqlite, uuid, logrus.
 
 ## REST API
 
 Agents authenticate with `Authorization: Bearer <key>` and use these endpoints:
 
 ```
-GET    /api/v1/inbox                         Pending work for this agent
-GET    /api/v1/issues/{key}                  Issue details + comments
-POST   /api/v1/issues                        Create issue
-PATCH  /api/v1/issues/{key}                  Update status/fields
-POST   /api/v1/issues/{key}/checkout         Atomic claim (prevents double-assign)
-POST   /api/v1/issues/{key}/comments         Add comment
-GET    /api/v1/usage                         Token/cost summary
-POST   /api/v1/approvals/{id}/resolve        Approve or reject
-GET    /api/v1/work-blocks                   List work blocks
-POST   /api/v1/work-blocks                   Create work block
-POST   /api/v1/work-blocks/{id}/issues       Assign issue to block
+GET    /api/v1/inbox                              Pending work for this agent
+GET    /api/v1/issues/{key}                       Issue details + comments
+POST   /api/v1/issues                             Create issue
+PATCH  /api/v1/issues/{key}                       Update status/fields
+POST   /api/v1/issues/{key}/checkout              Atomic claim (prevents double-assign)
+POST   /api/v1/issues/{key}/comments              Add comment
+GET    /api/v1/agents                             List all agents
+GET    /api/v1/agents/me                          Current agent info
+GET    /api/v1/usage                              Token/cost summary
+POST   /api/v1/approvals/{id}/resolve             Approve or reject
+GET    /api/v1/work-blocks                        List work blocks
+GET    /api/v1/work-blocks/{id}                   Get work block details
+POST   /api/v1/work-blocks                        Create work block
+PATCH  /api/v1/work-blocks/{id}                   Update work block
+POST   /api/v1/work-blocks/{id}/issues            Assign issue to block
+DELETE /api/v1/work-blocks/{id}/issues/{key}      Unassign issue from block
+POST   /api/v1/archetype-patches                  Propose archetype patch
 ```
 
 ## Quick start
@@ -125,7 +130,7 @@ go build -o secondorder ./cmd/secondorder && ./secondorder
 ./secondorder 9090
 
 # Custom config
-SO_PORT=3000 SO_DB=/var/data/org.db ./secondorder
+PORT=3000 DB=/var/data/org.db ./secondorder
 
 # Install to PATH
 make install
@@ -133,11 +138,11 @@ make install
 
 | Env var | Default | Description |
 |---------|---------|-------------|
-| `SO_PORT` | `3001` | HTTP listen port |
-| `SO_DB` | `so.db` | SQLite database path |
-| `SO_ARCHETYPES` | `archetypes` | Agent archetype definitions directory |
-| `SO_TELEGRAM_TOKEN` | -- | Telegram bot token for mobile approvals |
-| `SO_TELEGRAM_CHAT_ID` | -- | Telegram chat ID |
+| `PORT` | `3001` | HTTP listen port |
+| `DB` | `so.db` | SQLite database path |
+| `ARCHETYPES` | `archetypes` | Agent archetype definitions directory |
+| `TELEGRAM_TOKEN` | -- | Telegram bot token for mobile approvals |
+| `TELEGRAM_CHAT_ID` | -- | Telegram chat ID |
 
 ## Design decisions
 

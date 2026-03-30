@@ -321,17 +321,19 @@ func (s *Scheduler) buildTaskPrompt(agent *models.Agent, issue *models.Issue) st
 	apiRef := workerAPIRef
 	rules := workerRules
 	wbContext := ""
+	backlog := ""
 	if agent.ArchetypeSlug == "ceo" {
 		apiRef = s.buildCEOAPIRef()
 		rules = ceoRules
 		wbContext = s.buildWorkBlockContext()
+		backlog = s.readBacklogFile(agent.WorkingDir)
 	}
 
 	return fmt.Sprintf(`ISSUE: %s
 TITLE: %s
 DESCRIPTION:
 %s
-%s
+%s%s
 RECENT COMMENTS:
 %s
 %s
@@ -339,7 +341,7 @@ RECENT COMMENTS:
 %s
 
 BASE_URL: http://localhost:%d
-`, issue.Key, issue.Title, issue.Description, wbContext, commentBlock, rules, apiRef, s.port)
+`, issue.Key, issue.Title, issue.Description, wbContext, backlog, commentBlock, rules, apiRef, s.port)
 }
 
 func (s *Scheduler) buildHeartbeatPrompt(agent *models.Agent) string {
@@ -365,6 +367,7 @@ func (s *Scheduler) buildHeartbeatPrompt(agent *models.Agent) string {
 		}
 
 		issueBlock += s.buildWorkBlockContext()
+		issueBlock += s.readBacklogFile(agent.WorkingDir)
 	}
 
 	return fmt.Sprintf(`HEARTBEAT CHECK - Review your inbox and take action on any pending items.
@@ -395,6 +398,23 @@ func (s *Scheduler) buildWorkBlockContext() string {
 		}
 	}
 	return buf.String()
+}
+
+func (s *Scheduler) readBacklogFile(workingDir string) string {
+	backlogPath := filepath.Join(workingDir, "artifact-docs", "backlog.md")
+	data, err := os.ReadFile(backlogPath)
+	if err != nil || len(strings.TrimSpace(string(data))) == 0 {
+		return ""
+	}
+	return fmt.Sprintf(`
+BACKLOG FILE (artifact-docs/backlog.md):
+%s
+
+INSTRUCTIONS FOR BACKLOG:
+- Create issues from each item in the backlog file using the API.
+- Assign each issue to the appropriate agent based on the item's scope.
+- After creating all issues, delete the backlog file to avoid duplicates.
+`, strings.TrimSpace(string(data)))
 }
 
 func (s *Scheduler) buildCEOAPIRef() string {
