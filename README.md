@@ -1,6 +1,6 @@
 # Secondorder
 
-Run a zero-human company. Single binary, zero dependencies, deploys in 60 seconds.
+Run a zero-human company. Single binary, zero dependencies, deploys in 2 seconds.
 
 Assign work to AI agents, enforce budgets, monitor execution, review outputs -- one dashboard to run an entire AI-native org.
 
