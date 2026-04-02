@@ -254,10 +254,18 @@ type BoardPolicy struct {
 }
 
 type DashboardStats struct {
-	TotalAgents    int     `json:"total_agents"`
-	ActiveAgents   int     `json:"active_agents"`
-	TotalIssues    int     `json:"total_issues"`
-	OpenIssues     int     `json:"open_issues"`
-	RunningRuns    int     `json:"running_runs"`
-	TotalCostToday float64 `json:"total_cost_today"`
+        TotalAgents    int     `json:"total_agents"`
+        ActiveAgents   int     `json:"active_agents"`
+        TotalIssues    int     `json:"total_issues"`
+        OpenIssues     int     `json:"open_issues"`
+        RunningRuns    int     `json:"running_runs"`
+        TotalCostToday float64 `json:"total_cost_today"`
 }
+
+type DailyStat struct {
+	Date      string `json:"date"`
+	Label     string `json:"label"`
+	Created   int    `json:"created"`
+	Completed int    `json:"completed"`
+}
+

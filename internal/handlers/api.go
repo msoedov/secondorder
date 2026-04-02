@@ -112,11 +112,12 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		Status  string `json:"status"`
-		Comment string `json:"comment"`
-		Title   string `json:"title"`
-		Description string `json:"description"`
-		Priority *int   `json:"priority"`
+		Status       string  `json:"status"`
+		Comment      string  `json:"comment"`
+		Title        string  `json:"title"`
+		Description  string  `json:"description"`
+		Priority     *int    `json:"priority"`
+		AssigneeSlug *string `json:"assignee_slug"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		jsonError(w, "invalid body", http.StatusBadRequest)
@@ -142,6 +143,18 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.Priority != nil {
 		issue.Priority = *body.Priority
+	}
+	if body.AssigneeSlug != nil {
+		if *body.AssigneeSlug == "" {
+			issue.AssigneeAgentID = nil
+		} else {
+			newAssignee, err := a.db.GetAgentBySlug(*body.AssigneeSlug)
+			if err != nil {
+				jsonError(w, "assignee not found", http.StatusNotFound)
+				return
+			}
+			issue.AssigneeAgentID = &newAssignee.ID
+		}
 	}
 
 	if err := a.db.UpdateIssue(issue); err != nil {

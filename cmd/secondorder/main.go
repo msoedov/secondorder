@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,6 +23,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//go:embed templates/*.json
+var startupTemplatesFS embed.FS
+
+//go:embed static
+var staticFS embed.FS
+
 func main() {
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	log.SetLevel(log.InfoLevel)
@@ -28,17 +36,38 @@ func main() {
 	port := envOr("PORT", "3001")
 	dbPath := envOr("DB", "so.db")
 	archetypesDir := envOr("ARCHETYPES", "archetypes")
+	templateName := envOr("TEMPLATE", "startup")
 	archetypes.SetOverridesDir(archetypesDir)
 
-	// CLI: secondorder [port]
-	if len(os.Args) > 1 {
-		arg := os.Args[1]
+	defaultModel := envOr("MODEL", "")
+
+	// CLI: secondorder [-t <template>] [-m <model>] [port]
+	args := os.Args[1:]
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
 		if arg == "-h" || arg == "--help" {
-			fmt.Println("Usage: secondorder [port]")
-			fmt.Println("  port  HTTP port (default: 3001, or PORT env)")
+			fmt.Println("Usage: secondorder [-t <template>] [-m <model>] [port]")
+			fmt.Println("  -t, --template  Team template: startup, dev-team, enterprise, saas, agency (default: startup)")
+			fmt.Println("  -m, --model     Default agent runner: claude, gemini, codex (default: claude)")
+			fmt.Println("  port            HTTP port (default: 3001, or PORT env)")
 			os.Exit(0)
+		} else if arg == "--template" || arg == "-t" {
+			if i+1 >= len(args) {
+				fmt.Fprintln(os.Stderr, "error: --template requires a value")
+				os.Exit(1)
+			}
+			i++
+			templateName = args[i]
+		} else if arg == "--model" || arg == "-m" {
+			if i+1 >= len(args) {
+				fmt.Fprintln(os.Stderr, "error: --model requires a value")
+				os.Exit(1)
+			}
+			i++
+			defaultModel = args[i]
+		} else {
+			port = arg
 		}
-		port = arg
 	}
 
 	// Database
@@ -157,9 +186,19 @@ func main() {
 	mux.HandleFunc("GET /runs/{id}/stdout", ui.RunStdout)
 	mux.HandleFunc("GET /search", ui.SearchIssuesAndAgents)
 	mux.HandleFunc("GET /events", sse.ServeHTTP)
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	staticSub, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		log.WithError(err).Fatal("failed to create static sub-FS")
+	}
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticSub))))
 	mux.HandleFunc("GET /favicon.svg", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "static/favicon.svg")
+		data, err := staticFS.ReadFile("static/favicon.svg")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Write(data)
 	})
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -190,7 +229,7 @@ func main() {
 	mux.HandleFunc("POST /api/v1/archetype-patches", api.Auth(api.CreateArchetypePatch))
 
 	// Apply org template on first run
-	applyStartupTemplate(database)
+	applyStartupTemplate(database, templateName, defaultModel)
 
 	// Recover stuck issues from previous run
 	if recovered := sched.RecoverStuckIssues(); recovered > 0 {
@@ -234,7 +273,18 @@ func main() {
 	log.Info("shutdown complete")
 }
 
-func applyStartupTemplate(database *db.DB) {
+func resolveRunner(model string) string {
+	switch model {
+	case "claude":
+		return "claude_code"
+	case "gemini", "codex":
+		return model
+	default:
+		return model
+	}
+}
+
+func applyStartupTemplate(database *db.DB, templateName, defaultModel string) {
 	agents, err := database.ListAgents()
 	if err != nil {
 		log.WithError(err).Error("failed to check agents table")
@@ -244,7 +294,7 @@ func applyStartupTemplate(database *db.DB) {
 		return
 	}
 
-	data, err := os.ReadFile("cmd/secondorder/templates/startup.json")
+	data, err := startupTemplatesFS.ReadFile("templates/" + templateName + ".json")
 	if err != nil {
 		log.WithError(err).Warn("startup template not found, skipping")
 		return
@@ -268,6 +318,8 @@ func applyStartupTemplate(database *db.DB) {
 
 	log.Infof("applying org template: %s (%d agents)", tmpl.Name, len(tmpl.Agents))
 
+	runner := resolveRunner(defaultModel)
+
 	for _, a := range tmpl.Agents {
 		agent := &models.Agent{
 			ID:               uuid.New().String(),
@@ -275,6 +327,7 @@ func applyStartupTemplate(database *db.DB) {
 			Slug:             a.Slug,
 			ArchetypeSlug:    a.ArchetypeSlug,
 			Model:            a.Model,
+			Runner:           runner,
 			WorkingDir:       ".",
 			MaxTurns:         50,
 			TimeoutSec:       600,

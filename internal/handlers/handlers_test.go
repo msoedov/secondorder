@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -840,4 +841,65 @@ func TestAuth_InvalidKey_Returns401(t *testing.T) {
 // Ensure DB path comes from temp for test isolation
 func TestMain(m *testing.M) {
 	os.Exit(m.Run())
+}
+
+func TestUpdateIssue_Reassign(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, &stubTelegram{})
+
+	owner, _ := createAgentWithKey(t, d, "Owner", "owner", "backend")
+	newAssignee, _ := createAgentWithKey(t, d, "NewAssignee", "new-assignee", "frontend")
+	_, ceoKey := createAgentWithKey(t, d, "CEO", "ceo", "ceo")
+
+	issue := &models.Issue{Key: "SO-55", Title: "Test Issue", Status: "todo", AssigneeAgentID: &owner.ID}
+	d.CreateIssue(issue)
+
+	// Test reassignment by CEO
+	body := fmt.Sprintf(`{"assignee_slug":"%s"}`, newAssignee.Slug)
+	req := httptest.NewRequest("PATCH", "/api/v1/issues/SO-55", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+ceoKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("key", "SO-55")
+	w := httptest.NewRecorder()
+	api.Auth(api.UpdateIssue)(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200. Body: %s", w.Code, w.Body.String())
+	}
+
+	updatedIssue, _ := d.GetIssue("SO-55")
+	if updatedIssue.AssigneeAgentID == nil || *updatedIssue.AssigneeAgentID != newAssignee.ID {
+		t.Errorf("assignee = %v, want %s", updatedIssue.AssigneeAgentID, newAssignee.ID)
+	}
+
+	// Test unassignment (empty slug)
+	req = httptest.NewRequest("PATCH", "/api/v1/issues/SO-55", strings.NewReader(`{"assignee_slug":""}`))
+	req.Header.Set("Authorization", "Bearer "+ceoKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("key", "SO-55")
+	w = httptest.NewRecorder()
+	api.Auth(api.UpdateIssue)(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+
+	updatedIssue, _ = d.GetIssue("SO-55")
+	if updatedIssue.AssigneeAgentID != nil {
+		t.Errorf("expected nil assignee, got %v", *updatedIssue.AssigneeAgentID)
+	}
+
+    // Test reassignment to non-existent agent
+	req = httptest.NewRequest("PATCH", "/api/v1/issues/SO-55", strings.NewReader(`{"assignee_slug":"non-existent"}`))
+	req.Header.Set("Authorization", "Bearer "+ceoKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("key", "SO-55")
+	w = httptest.NewRecorder()
+	api.Auth(api.UpdateIssue)(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", w.Code)
+	}
 }

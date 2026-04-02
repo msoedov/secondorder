@@ -8,47 +8,99 @@
       <p class="text-[13px] text-ink3/50 mt-0.5">Last 48 hours of activity by issue</p>
     </div>
 
-    {{if .Timeline}}
-    <div class="bg-card border border-bd rounded-lg p-4 mb-6 fade-in overflow-x-auto">
-      <p class="text-[11px] text-ink3/50 mb-3 font-medium uppercase tracking-wider">Last 48 hours</p>
-      <div class="timeline-grid" style="display:grid; grid-template-columns: auto repeat({{len .Timeline}}, 1fr); gap:0;">
-        {{/* Row headers: entity IDs */}}
-        <div></div>
-        {{range $i, $h := .Timeline}}
-        <div style="font-size:9px; color:rgb(var(--c-ink3)/0.4); padding:0 1px; text-align:center; white-space:nowrap; height:40px; overflow:hidden; writing-mode:vertical-lr; transform:rotate(180deg);">{{if eq 0 (mod $i 6)}}{{$h.Label}}{{end}}</div>
-        {{end}}
+    <style>
+    /* Bar chart specific styles */
+    .chart-card { background: rgb(var(--c-card)); border: 1px solid rgb(var(--c-bd)); border-radius: 8px; padding: 20px 20px 16px; margin-bottom: 24px; }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .chart-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: rgb(var(--c-ink3) / 0.5); }
+    .chart-legend { display: flex; gap: 12px; align-items: center; }
+    .legend-item { display: flex; gap: 5px; align-items: center; font-size: 11px; color: rgb(var(--c-ink3) / 0.6); }
+    .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .legend-swatch.created  { background: rgb(var(--c-sf)); border: 1px solid rgb(var(--c-bd)); }
+    .legend-swatch.completed { background: rgb(var(--c-ac)); }
+    .chart-area { display: flex; gap: 8px; }
+    .y-ticks { display: flex; flex-direction: column; justify-content: space-between; height: 120px; padding-bottom: 0; }
+    .y-tick { font-size: 9px; color: rgb(var(--c-ink3) / 0.4); line-height: 1; text-align: right; width: 18px; }
+    .chart-body { display: flex; align-items: flex-end; gap: 0; height: 120px; position: relative; border-bottom: 1px solid rgb(var(--c-bd)); padding-bottom: 0; flex: 1; }
+    .chart-body::before { content: ''; position: absolute; inset: 0 0 0 0; background: repeating-linear-gradient(to top, rgb(var(--c-bd) / 0.4) 0px, rgb(var(--c-bd) / 0.4) 1px, transparent 1px, transparent calc(120px / 4)); pointer-events: none; z-index: 0; }
+    .day-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; position: relative; height: 100%; z-index: 1; }
+    .day-col:hover .day-highlight { opacity: 1; }
+    .day-highlight { position: absolute; inset: 0 2px 0 2px; background: rgb(var(--c-ink) / 0.03); border-radius: 4px; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+    .bar-pair { display: flex; align-items: flex-end; gap: 2px; width: 100%; padding: 0 3px; height: 100%; justify-content: center; }
+    .bar { flex: 1; max-width: 14px; border-radius: 3px 3px 0 0; min-height: 2px; position: relative; transition: filter 0.1s; cursor: default; }
+    .bar.created { background: rgb(var(--c-sf)); border: 1px solid rgb(var(--c-bd)); border-bottom: none; }
+    .bar.completed { background: rgb(var(--c-ac)); }
+    .bar:hover { filter: brightness(0.9); }
+    .bar-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgb(var(--c-ink)); color: rgb(var(--c-pg)); font-size: 10px; padding: 3px 7px; border-radius: 4px; z-index: 10; pointer-events: none; line-height: 1.5; }
+    .bar-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: rgb(var(--c-ink)); }
+    .bar:hover .bar-tooltip { display: block; }
+    .x-axis { display: flex; gap: 0; margin-top: 6px; }
+    .x-label { flex: 1; text-align: center; font-size: 9px; color: rgb(var(--c-ink3) / 0.45); letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .summary-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding-top: 12px; border-top: 1px solid rgb(var(--c-bd)); }
+    .summary-stat { display: flex; flex-direction: column; gap: 1px; }
+    .summary-value { font-size: 18px; font-weight: 600; color: rgb(var(--c-ink)); line-height: 1; font-variant-numeric: tabular-nums; }
+    .summary-label { font-size: 10px; color: rgb(var(--c-ink3) / 0.5); }
+    .summary-divider { width: 1px; height: 28px; background: rgb(var(--c-bd)); }
+    @media (max-width: 480px) { .y-ticks { display: none; } }
+    </style>
 
-        {{range $entity := $.Entities}}
-        <div style="font-size:11px; padding:3px 8px 3px 0; white-space:nowrap; color:rgb(var(--c-ink3)/0.7); font-family:ui-monospace,monospace;">
-          <a href="/issues/{{$entity}}" class="text-ac-t hover:underline">{{$entity}}</a>
+    {{if .DailyStats}}
+    <div class="chart-card fade-in overflow-x-auto">
+      <div class="chart-header">
+        <span class="chart-title">Issues per day — last 14 days</span>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-swatch created"></div>Created</div>
+          <div class="legend-item"><div class="legend-swatch completed"></div>Completed</div>
         </div>
-        {{range $hour := $.Timeline}}
-          {{$found := false}}
-          {{$count := 0}}
-          {{$level := 0}}
-          {{range $hour.Cells}}
-            {{if eq .EntityID $entity}}
-              {{$found = true}}
-              {{$count = .Count}}
-              {{$level = .Level}}
-            {{end}}
-          {{end}}
-          {{if $found}}
-          <div class="heatmap-{{$level}}" style="min-width:10px; min-height:18px; margin:1px; border-radius:2px; cursor:default;" title="{{$entity}}: {{$count}} actions ({{$hour.Label}})"></div>
-          {{else}}
-          <div style="min-width:10px; min-height:18px; margin:1px; border-radius:2px; background:rgb(var(--c-sf)/0.3);"></div>
-          {{end}}
-        {{end}}
-        {{end}}
       </div>
-      <div class="flex items-center gap-1.5 mt-3">
-        <span class="text-[10px] text-ink3/40">Less</span>
-        <div class="w-[11px] h-[11px] rounded-[2px] heatmap-0"></div>
-        <div class="w-[11px] h-[11px] rounded-[2px] heatmap-1"></div>
-        <div class="w-[11px] h-[11px] rounded-[2px] heatmap-2"></div>
-        <div class="w-[11px] h-[11px] rounded-[2px] heatmap-3"></div>
-        <div class="w-[11px] h-[11px] rounded-[2px] heatmap-4"></div>
-        <span class="text-[10px] text-ink3/40">More</span>
+
+      {{$maxVal := 1}}
+      {{$totalCreated := 0}}
+      {{$totalCompleted := 0}}
+      {{range .DailyStats}}
+        {{$maxVal = max $maxVal .Created}}
+        {{$maxVal = max $maxVal .Completed}}
+        {{$totalCreated = add $totalCreated .Created}}
+        {{$totalCompleted = add $totalCompleted .Completed}}
+      {{end}}
+      {{$niceMax := mult (ceil (div $maxVal 4)) 4}}
+
+      <div class="chart-area">
+        <div class="y-ticks">
+          <div class="y-tick">{{$niceMax}}</div>
+          <div class="y-tick">{{mult (div $niceMax 4) 3 | ceil}}</div>
+          <div class="y-tick">{{mult (div $niceMax 4) 2 | ceil}}</div>
+          <div class="y-tick">{{mult (div $niceMax 4) 1 | ceil}}</div>
+          <div class="y-tick">0</div>
+        </div>
+        <div style="flex:1">
+          <div class="chart-body">
+            {{range $i, $d := .DailyStats}}
+            {{$cH := mult (div $d.Created $niceMax) 120 | ceil}}
+            {{if and (gt $d.Created 0) (lt $cH 2)}}{{$cH = 2}}{{end}}
+            {{$cpH := mult (div $d.Completed $niceMax) 120 | ceil}}
+            {{if and (gt $d.Completed 0) (lt $cpH 2)}}{{$cpH = 2}}{{end}}
+            <div class="day-col">
+              <div class="day-highlight"></div>
+              <div class="bar-pair">
+                <div class="bar created" style="height:{{$cH}}px"><div class="bar-tooltip">Created: {{$d.Created}}</div></div>
+                <div class="bar completed" style="height:{{$cpH}}px"><div class="bar-tooltip">Completed: {{$d.Completed}}</div></div>
+              </div>
+            </div>
+            {{end}}
+          </div>
+          <div class="x-axis">
+            {{range $i, $d := .DailyStats}}
+            <div class="x-label">{{if eq (mod $i 2) 0}}{{$d.Label}}{{end}}</div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-row">
+        <div class="summary-stat"><span class="summary-value">{{$totalCreated}}</span><span class="summary-label">created</span></div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat"><span class="summary-value">{{$totalCompleted}}</span><span class="summary-label">completed</span></div>
       </div>
     </div>
     {{end}}

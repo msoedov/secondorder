@@ -82,16 +82,58 @@ var funcMap = template.FuncMap{
 	"seq": seq,
 	"add": func(a, b int) int { return a + b },
 	"sub": func(a, b int) int { return a - b },
-	"mult": func(a, b int) int { return a * b },
+	"mult": func(a, b any) float64 {
+	        var av, bv float64
+	        switch v := a.(type) {
+	        case int: av = float64(v)
+	        case float64: av = v
+	        }
+	        switch v := b.(type) {
+	        case int: bv = float64(v)
+	        case float64: bv = v
+	        }
+	        return av * bv
+	},
 	"mod": func(a, b int) int { return a % b },
 	"wbStatusColor": wbStatusColor,
 	"derefTime": func(t *time.Time) time.Time {
-		if t == nil {
-			return time.Time{}
-		}
-		return *t
+	        if t == nil {
+	                return time.Time{}
+	        }
+	        return *t
 	},
-}
+	"max": func(a, b int) int {
+	        if a > b {
+	                return a
+	        }
+	        return b
+	},
+	"ceil": func(f any) int {
+	        switch v := f.(type) {
+	        case float64:
+	                return int(math.Ceil(v))
+	        case int:
+	                return v
+	        default:
+	                return 0
+	        }
+	},
+	"div": func(a, b any) float64 {
+	        var av, bv float64
+	        switch v := a.(type) {
+	        case int: av = float64(v)
+	        case float64: av = v
+	        }
+	        switch v := b.(type) {
+	        case int: bv = float64(v)
+	        case float64: bv = v
+	        }
+	        if bv == 0 {
+	                return 0
+	        }
+	        return av / bv
+	},
+	}
 
 func timeAgo(t time.Time) string {
 	d := time.Since(t)

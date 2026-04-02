@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/msoedov/secondorder/internal/models"
 )
@@ -1278,24 +1279,24 @@ func TestGetActiveBoardPoliciesExcludesInactive(t *testing.T) {
 func TestToggleBoardPolicyActivatesAndDeactivates(t *testing.T) {
 	d := testDB(t)
 	bp := &models.BoardPolicy{Directive: "toggle me"}
-	d.CreateBoardPolicy(bp)
-
-	// toggle on
-	if err := d.ToggleBoardPolicy(bp.ID); err != nil {
-		t.Fatalf("toggle: %v", err)
-	}
-	active, _ := d.GetActiveBoardPolicies()
-	if len(active) != 1 || active[0].ID != bp.ID {
-		t.Errorf("expected 1 active policy after toggle, got %d", len(active))
-	}
+	d.CreateBoardPolicy(bp) // active=true by default
 
 	// toggle off
 	if err := d.ToggleBoardPolicy(bp.ID); err != nil {
-		t.Fatalf("toggle: %v", err)
+		t.Fatalf("toggle off: %v", err)
+	}
+	active, _ := d.GetActiveBoardPolicies()
+	if len(active) != 0 {
+		t.Errorf("expected 0 active policies after toggle, got %d", len(active))
+	}
+
+	// toggle on
+	if err := d.ToggleBoardPolicy(bp.ID); err != nil {
+		t.Fatalf("toggle on: %v", err)
 	}
 	active, _ = d.GetActiveBoardPolicies()
-	if len(active) != 0 {
-		t.Errorf("expected 0 active policies after second toggle, got %d", len(active))
+	if len(active) != 1 || active[0].ID != bp.ID {
+		t.Errorf("expected 1 active policy after second toggle, got %d", len(active))
 	}
 }
 
@@ -1305,17 +1306,13 @@ func TestExistingActivePoliciesUnaffectedByCreate(t *testing.T) {
 	// create and manually activate one policy
 	existing := &models.BoardPolicy{Directive: "existing active"}
 	d.CreateBoardPolicy(existing)
-	d.ToggleBoardPolicy(existing.ID)
 
-	// create a new policy (should be inactive)
+	// create a new policy (also active by default)
 	d.CreateBoardPolicy(&models.BoardPolicy{Directive: "new one"})
 
 	active, _ := d.GetActiveBoardPolicies()
-	if len(active) != 1 {
-		t.Errorf("expected 1 active policy, got %d", len(active))
-	}
-	if active[0].ID != existing.ID {
-		t.Errorf("expected original policy to remain active")
+	if len(active) != 2 {
+		t.Errorf("expected 2 active policies, got %d", len(active))
 	}
 }
 
@@ -1323,18 +1320,16 @@ func TestGetActiveBoardPoliciesOnlyReturnsActive(t *testing.T) {
 	d := testDB(t)
 	cases := []struct {
 		directive string
-		activate  bool
+		active    bool
 	}{
 		{"policy A", true},
 		{"policy B", false},
 		{"policy C", true},
 	}
-	ids := map[string]string{}
 	for _, c := range cases {
 		bp := &models.BoardPolicy{Directive: c.directive}
 		d.CreateBoardPolicy(bp)
-		ids[c.directive] = bp.ID
-		if c.activate {
+		if !c.active {
 			d.ToggleBoardPolicy(bp.ID)
 		}
 	}
@@ -1350,6 +1345,46 @@ func TestGetActiveBoardPoliciesOnlyReturnsActive(t *testing.T) {
 		if !p.Active {
 			t.Errorf("policy %q returned by GetActiveBoardPolicies but active=false", p.Directive)
 		}
+	}
+}
+
+func TestGetDailyActivityStats(t *testing.T) {
+	d := testDB(t)
+
+	// Create issues on specific dates
+	// Today
+	d.CreateIssue(&models.Issue{Key: "SO-1", Title: "T1"})
+	
+	// Yesterday
+	yesterday := time.Now().Add(-24 * time.Hour).UTC().Format("2006-01-02 15:04:05")
+	d.CreateIssue(&models.Issue{Key: "SO-2", Title: "T2"})
+	d.Exec(`UPDATE issues SET created_at=?, completed_at=?, status='done' WHERE key='SO-2'`, yesterday, yesterday)
+
+	// 2 days ago
+	twoDaysAgo := time.Now().Add(-48 * time.Hour).UTC().Format("2006-01-02 15:04:05")
+	d.CreateIssue(&models.Issue{Key: "SO-3", Title: "T3"})
+	d.Exec(`UPDATE issues SET created_at=?, completed_at=?, status='cancelled' WHERE key='SO-3'`, twoDaysAgo, twoDaysAgo)
+
+	stats, err := d.GetDailyActivityStats(7)
+	if err != nil {
+		t.Fatalf("failed to get stats: %v", err)
+	}
+
+	if len(stats) != 7 {
+		t.Errorf("expected 7 days of stats, got %d", len(stats))
+	}
+
+	// Today is at index 6
+	if stats[6].Created != 1 {
+		t.Errorf("expected 1 created today, got %d", stats[6].Created)
+	}
+	// Yesterday at index 5
+	if stats[5].Created != 1 || stats[5].Completed != 1 {
+		t.Errorf("expected 1 created and 1 completed yesterday, got C:%d, D:%d", stats[5].Created, stats[5].Completed)
+	}
+	// 2 days ago at index 4
+	if stats[4].Created != 1 || stats[4].Completed != 1 {
+		t.Errorf("expected 1 created and 1 completed 2 days ago, got C:%d, D:%d", stats[4].Created, stats[4].Completed)
 	}
 }
 

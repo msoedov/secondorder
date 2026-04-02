@@ -16,7 +16,7 @@ func (d *DB) CreateAgent(a *models.Agent) error {
 	if a.ID == "" {
 		a.ID = uuid.NewString()
 	}
-	now := time.Now()
+	now := time.Now().UTC()
 	a.CreatedAt = now
 	a.UpdatedAt = now
 	_, err := d.Exec(`INSERT INTO agents (id, name, slug, archetype_slug, model, runner, api_key_env, working_dir, max_turns, timeout_sec,
@@ -75,7 +75,7 @@ func (d *DB) ListAgents() ([]models.Agent, error) {
 }
 
 func (d *DB) UpdateAgent(a *models.Agent) error {
-	a.UpdatedAt = time.Now()
+	a.UpdatedAt = time.Now().UTC()
 	_, err := d.Exec(`UPDATE agents SET name=?, slug=?, archetype_slug=?, model=?, runner=?, api_key_env=?, working_dir=?, max_turns=?, timeout_sec=?,
 		heartbeat_enabled=?, heartbeat_cron=?, chrome_enabled=?, reports_to=?, review_agent_id=?, active=?, updated_at=?
 		WHERE id=?`,
@@ -150,7 +150,7 @@ func (d *DB) CreateIssue(i *models.Issue) error {
 	if i.ID == "" {
 		i.ID = uuid.NewString()
 	}
-	now := time.Now()
+	now := time.Now().UTC()
 	i.CreatedAt = now
 	i.UpdatedAt = now
 	_, err := d.Exec(`INSERT INTO issues (id, key, title, description, status, priority, assignee_agent_id,
@@ -256,7 +256,7 @@ func (d *DB) GetRecentIssues(limit int) ([]models.Issue, error) {
 }
 
 func (d *DB) UpdateIssue(i *models.Issue) error {
-	i.UpdatedAt = time.Now()
+	i.UpdatedAt = time.Now().UTC()
 	_, err := d.Exec(`UPDATE issues SET title=?, description=?, status=?, priority=?, assignee_agent_id=?,
 		parent_issue_key=?, work_block_id=?, started_at=?, completed_at=?, updated_at=?
 		WHERE key=?`,
@@ -272,7 +272,7 @@ func (d *DB) CheckoutIssue(key, agentID string, expectedStatuses []string) error
 	placeholders := strings.Repeat("?,", len(expectedStatuses))
 	placeholders = placeholders[:len(placeholders)-1]
 
-	now := time.Now()
+	now := time.Now().UTC()
 	query := fmt.Sprintf(`UPDATE issues SET status='in_progress', assignee_agent_id=?, started_at=?, updated_at=?
 		WHERE key=? AND status IN (%s)`, placeholders)
 
@@ -360,7 +360,7 @@ func (d *DB) CreateRun(r *models.Run) error {
 	if r.ID == "" {
 		r.ID = uuid.NewString()
 	}
-	now := time.Now()
+	now := time.Now().UTC()
 	r.StartedAt = now
 	r.CreatedAt = now
 	_, err := d.Exec(`INSERT INTO runs (id, agent_id, issue_key, mode, status, stdout, diff,
@@ -426,7 +426,7 @@ func (d *DB) UpdateRunStdout(id, stdout string) error {
 }
 
 func (d *DB) CompleteRun(id, status, stdout, diff string, tokens models.Run) error {
-	now := time.Now()
+	now := time.Now().UTC()
 	_, err := d.Exec(`UPDATE runs SET status=?, stdout=?, diff=?, input_tokens=?, output_tokens=?,
 		cache_read_tokens=?, cache_create_tokens=?, total_cost_usd=?, completed_at=?
 		WHERE id=?`,
@@ -495,7 +495,7 @@ func (d *DB) CreateComment(c *models.Comment) error {
 	if c.ID == "" {
 		c.ID = uuid.NewString()
 	}
-	c.CreatedAt = time.Now()
+	c.CreatedAt = time.Now().UTC()
 	_, err := d.Exec(`INSERT INTO comments (id, issue_key, agent_id, author, body, created_at)
 		VALUES (?, ?, ?, ?, ?, ?)`,
 		c.ID, c.IssueKey, c.AgentID, c.Author, c.Body, c.CreatedAt)
@@ -525,7 +525,7 @@ func (d *DB) ListComments(issueKey string) ([]models.Comment, error) {
 
 func (d *DB) CreateAPIKey(agentID, keyHash, prefix string) error {
 	_, err := d.Exec(`INSERT INTO api_keys (id, agent_id, key_hash, prefix, created_at) VALUES (?, ?, ?, ?, ?)`,
-		uuid.NewString(), agentID, keyHash, prefix, time.Now())
+		uuid.NewString(), agentID, keyHash, prefix, time.Now().UTC())
 	return err
 }
 
@@ -544,7 +544,7 @@ func (d *DB) GetAgentByAPIKey(keyHash string) (*models.Agent, error) {
 }
 
 func (d *DB) RevokeAPIKeys(agentID string) error {
-	_, err := d.Exec(`UPDATE api_keys SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL`, time.Now(), agentID)
+	_, err := d.Exec(`UPDATE api_keys SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL`, time.Now().UTC(), agentID)
 	return err
 }
 
@@ -554,7 +554,7 @@ func (d *DB) CreateApproval(a *models.Approval) error {
 	if a.ID == "" {
 		a.ID = uuid.NewString()
 	}
-	a.CreatedAt = time.Now()
+	a.CreatedAt = time.Now().UTC()
 	_, err := d.Exec(`INSERT INTO approvals (id, issue_key, requested_by, reviewer_id, status, comment, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		a.ID, a.IssueKey, a.RequestedBy, a.ReviewerID, a.Status, a.Comment, a.CreatedAt)
@@ -592,7 +592,7 @@ func (d *DB) ListPendingApprovals() ([]models.Approval, error) {
 }
 
 func (d *DB) ResolveApproval(id, status, comment string) error {
-	now := time.Now()
+	now := time.Now().UTC()
 	_, err := d.Exec(`UPDATE approvals SET status=?, comment=?, resolved_at=? WHERE id=?`, status, comment, now, id)
 	return err
 }
@@ -603,7 +603,7 @@ func (d *DB) CreateCostEvent(e *models.CostEvent) error {
 	if e.ID == "" {
 		e.ID = uuid.NewString()
 	}
-	e.CreatedAt = time.Now()
+	e.CreatedAt = time.Now().UTC()
 	_, err := d.Exec(`INSERT INTO cost_events (id, run_id, agent_id, input_tokens, output_tokens, total_cost_usd, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		e.ID, e.RunID, e.AgentID, e.InputTokens, e.OutputTokens, e.TotalCostUSD, e.CreatedAt)
@@ -665,7 +665,7 @@ func (d *DB) IsAgentOverBudget(agentID string) (bool, error) {
 func (d *DB) LogActivity(action, entityType, entityID string, agentID *string, details string) error {
 	_, err := d.Exec(`INSERT INTO activity_log (id, action, entity_type, entity_id, agent_id, details, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		uuid.NewString(), action, entityType, entityID, agentID, details, time.Now().UTC())
+		uuid.NewString(), action, entityType, entityID, agentID, details, time.Now().UTC().UTC())
 	return err
 }
 
@@ -712,29 +712,64 @@ type TimelineEntry struct {
 }
 
 func (d *DB) ActivityTimeline48h() ([]TimelineEntry, error) {
-	since := time.Now().UTC().Add(-48 * time.Hour).Format("2006-01-02 15:04:05")
-	rows, err := d.Query(`SELECT strftime('%Y-%m-%d %H:00', substr(created_at, 1, 19)) as hour,
-		entity_type, entity_id, count(*) as cnt
-		FROM activity_log
-		WHERE created_at >= ? AND entity_type != 'system'
-		GROUP BY hour, entity_type, entity_id
-		ORDER BY hour ASC, cnt DESC`, since)
+        since := time.Now().UTC().UTC().Add(-48 * time.Hour).Format("2006-01-02 15:04:05")
+        rows, err := d.Query(`SELECT strftime('%Y-%m-%d %H:00', substr(created_at, 1, 19)) as hour,
+                entity_type, entity_id, count(*) as cnt
+                FROM activity_log
+                WHERE created_at >= ? AND entity_type != 'system'
+                GROUP BY hour, entity_type, entity_id
+                ORDER BY hour ASC, cnt DESC`, since)
+        if err != nil {
+                return nil, err
+        }
+        defer rows.Close()
+
+        var entries []TimelineEntry
+        for rows.Next() {
+                var e TimelineEntry
+                if err := rows.Scan(&e.Hour, &e.EntityType, &e.EntityID, &e.Count); err != nil {
+                        return nil, err
+                }
+                entries = append(entries, e)
+        }
+        return entries, rows.Err()
+}
+
+func (d *DB) GetDailyActivityStats(days int) ([]models.DailyStat, error) {
+	query := `
+		WITH RECURSIVE dates(date) AS (
+			SELECT DATE('now', '-' || (? - 1) || ' days')
+			UNION ALL
+			SELECT DATE(date, '+1 day') FROM dates WHERE date < DATE('now')
+		)
+		SELECT 
+			d.date,
+			(SELECT COUNT(*) FROM issues WHERE DATE(created_at) = d.date) as created,
+			(SELECT COUNT(*) FROM issues WHERE DATE(completed_at) = d.date AND status IN ('done','cancelled','wont_do')) as completed
+		FROM dates d
+		ORDER BY d.date ASC
+	`
+	rows, err := d.Query(query, days)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var entries []TimelineEntry
+	var stats []models.DailyStat
 	for rows.Next() {
-		var e TimelineEntry
-		if err := rows.Scan(&e.Hour, &e.EntityType, &e.EntityID, &e.Count); err != nil {
+		var s models.DailyStat
+		var dateStr string
+		if err := rows.Scan(&dateStr, &s.Created, &s.Completed); err != nil {
 			return nil, err
 		}
-		entries = append(entries, e)
+		s.Date = dateStr
+		// Format label in Go: "Mar 20"
+		t, _ := time.Parse("2006-01-02", dateStr)
+		s.Label = t.Format("Jan 2")
+		stats = append(stats, s)
 	}
-	return entries, rows.Err()
+	return stats, rows.Err()
 }
-
 // --- Dashboard ---
 
 func (d *DB) GetDashboardStats() (*models.DashboardStats, error) {
@@ -812,7 +847,7 @@ func (d *DB) CreateWorkBlock(wb *models.WorkBlock) error {
 	if wb.ID == "" {
 		wb.ID = uuid.NewString()
 	}
-	now := time.Now()
+	now := time.Now().UTC()
 	wb.CreatedAt = now
 	wb.UpdatedAt = now
 	if wb.Status == "" {
@@ -893,7 +928,7 @@ func (d *DB) UpdateWorkBlockStatus(id, newStatus string) error {
 		}
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	if newStatus == models.WBStatusShipped || newStatus == models.WBStatusCancelled {
 		_, err = d.Exec(`UPDATE work_blocks SET status=?, updated_at=?, completed_at=? WHERE id=?`, newStatus, now, now, id)
 	} else if newStatus == models.WBStatusActive && wb.Status == models.WBStatusReady {
@@ -916,13 +951,13 @@ func (d *DB) AssignIssueToWorkBlock(issueKey, blockID string) error {
 	if wb.Status != models.WBStatusActive {
 		return fmt.Errorf("can only assign issues to an active work block")
 	}
-	now := time.Now()
+	now := time.Now().UTC()
 	_, err = d.Exec(`UPDATE issues SET work_block_id=?, updated_at=? WHERE key=?`, blockID, now, issueKey)
 	return err
 }
 
 func (d *DB) UnassignIssueFromWorkBlock(issueKey string) error {
-	now := time.Now()
+	now := time.Now().UTC()
 	_, err := d.Exec(`UPDATE issues SET work_block_id=NULL, updated_at=? WHERE key=?`, now, issueKey)
 	return err
 }
@@ -994,7 +1029,7 @@ func (d *DB) CreateAuditRun(ar *models.AuditRun) error {
 	if ar.ID == "" {
 		ar.ID = uuid.NewString()
 	}
-	ar.CreatedAt = time.Now()
+	ar.CreatedAt = time.Now().UTC()
 	ar.Status = "running"
 	_, err := d.Exec(`INSERT INTO audit_runs (id, run_id, status, issues_reviewed, blocks_reviewed, findings, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -1042,7 +1077,7 @@ func (d *DB) CreateArchetypePatch(p *models.ArchetypePatch) error {
 	if p.ID == "" {
 		p.ID = uuid.NewString()
 	}
-	p.CreatedAt = time.Now()
+	p.CreatedAt = time.Now().UTC()
 	if p.Status == "" {
 		p.Status = "pending"
 	}
@@ -1074,7 +1109,7 @@ func (d *DB) GetArchetypePatch(id string) (*models.ArchetypePatch, error) {
 }
 
 func (d *DB) ResolvePatch(id, status string) error {
-	now := time.Now()
+	now := time.Now().UTC()
 	_, err := d.Exec(`UPDATE archetype_patches SET status=?, reviewed_at=? WHERE id=?`, status, now, id)
 	return err
 }
@@ -1094,18 +1129,17 @@ func scanPatches(rows *sql.Rows) ([]models.ArchetypePatch, error) {
 // --- Board Policies ---
 
 func (d *DB) CreateBoardPolicy(bp *models.BoardPolicy) error {
-	if bp.ID == "" {
-		bp.ID = uuid.NewString()
-	}
-	now := time.Now()
-	bp.CreatedAt = now
-	bp.UpdatedAt = now
-	bp.Active = false
-	_, err := d.Exec(`INSERT INTO board_policies (id, directive, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
-		bp.ID, bp.Directive, bp.Active, bp.CreatedAt, bp.UpdatedAt)
-	return err
+        if bp.ID == "" {
+                bp.ID = uuid.NewString()
+        }
+        now := time.Now().UTC()
+        bp.CreatedAt = now
+        bp.UpdatedAt = now
+        bp.Active = true
+        _, err := d.Exec(`INSERT INTO board_policies (id, directive, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+                bp.ID, bp.Directive, bp.Active, bp.CreatedAt, bp.UpdatedAt)
+        return err
 }
-
 func (d *DB) ListBoardPolicies() ([]models.BoardPolicy, error) {
 	rows, err := d.Query(`SELECT id, directive, active, created_at, updated_at FROM board_policies ORDER BY created_at`)
 	if err != nil {
@@ -1125,7 +1159,7 @@ func (d *DB) ListBoardPolicies() ([]models.BoardPolicy, error) {
 }
 
 func (d *DB) ToggleBoardPolicy(id string) error {
-	now := time.Now()
+	now := time.Now().UTC()
 	_, err := d.Exec(`UPDATE board_policies SET active = NOT active, updated_at=? WHERE id=?`, now, id)
 	return err
 }
@@ -1184,7 +1218,7 @@ func (d *DB) CreateCronJob(c *models.CronJob) error {
 	if c.ID == "" {
 		c.ID = uuid.NewString()
 	}
-	now := time.Now()
+	now := time.Now().UTC()
 	c.CreatedAt = now
 	c.UpdatedAt = now
 	c.Active = true
@@ -1225,7 +1259,7 @@ func (d *DB) GetCronJob(id string) (*models.CronJob, error) {
 }
 
 func (d *DB) UpdateCronJob(c *models.CronJob) error {
-	c.UpdatedAt = time.Now()
+	c.UpdatedAt = time.Now().UTC()
 	_, err := d.Exec(`UPDATE cron_jobs SET agent_id=?, task=?, frequency=?, active=?, updated_at=? WHERE id=?`,
 		c.AgentID, c.Task, c.Frequency, c.Active, c.UpdatedAt, c.ID)
 	return err

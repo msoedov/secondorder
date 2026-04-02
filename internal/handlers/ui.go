@@ -610,104 +610,30 @@ func (u *UI) updateWorkBlockUI(w http.ResponseWriter, r *http.Request, id string
 }
 
 func (u *UI) ActivityPage(w http.ResponseWriter, r *http.Request) {
-	pageStr := r.URL.Query().Get("page")
-	page, _ := strconv.Atoi(pageStr)
-	if page < 1 {
-		page = 1
-	}
-	limit := 30
-	offset := (page - 1) * limit
+        pageStr := r.URL.Query().Get("page")
+        page, _ := strconv.Atoi(pageStr)
+        if page < 1 {
+                page = 1
+        }
+        limit := 30
+        offset := (page - 1) * limit
 
-	logs, _ := u.db.ListActivity(limit, offset)
-	total, _ := u.db.CountActivity()
-	entries, _ := u.db.ActivityTimeline48h()
+        logs, _ := u.db.ListActivity(limit, offset)
+        total, _ := u.db.CountActivity()
+        dailyStats, _ := u.db.GetDailyActivityStats(14)
 
-	type TimelineCell struct {
-		EntityType string
-		EntityID   string
-		Count      int
-		Level      int // 0-4
-	}
-	type TimelineHour struct {
-		Label string // "Mar 29 14:00"
-		Cells []TimelineCell
-	}
-
-	// Build hour buckets for last 48h
-	now := time.Now().Truncate(time.Hour)
-	hours := make([]string, 48)
-	hourLabels := make([]string, 48)
-	for i := 47; i >= 0; i-- {
-		t := now.Add(-time.Duration(i) * time.Hour)
-		hours[47-i] = t.Format("2006-01-02 15:00")
-		hourLabels[47-i] = t.Format("Jan 2 15:04")
-	}
-
-	// Index entries by hour
-	hourMap := map[string][]TimelineCell{}
-	maxCount := 0
-	for _, e := range entries {
-		if e.Count > maxCount {
-			maxCount = e.Count
-		}
-	}
-	for _, e := range entries {
-		level := 0
-		if e.Count > 0 && maxCount > 0 {
-			ratio := float64(e.Count) / float64(maxCount)
-			switch {
-			case ratio > 0.75:
-				level = 4
-			case ratio > 0.5:
-				level = 3
-			case ratio > 0.25:
-				level = 2
-			default:
-				level = 1
-			}
-		}
-		hourMap[e.Hour] = append(hourMap[e.Hour], TimelineCell{
-			EntityType: e.EntityType,
-			EntityID:   e.EntityID,
-			Count:      e.Count,
-			Level:      level,
-		})
-	}
-
-	var timeline []TimelineHour
-	for i, h := range hours {
-		timeline = append(timeline, TimelineHour{
-			Label: hourLabels[i],
-			Cells: hourMap[h],
-		})
-	}
-
-	// Collect unique entity IDs (ordered by first appearance)
-	seen := map[string]bool{}
-	var entities []string
-	for _, th := range timeline {
-		for _, c := range th.Cells {
-			if !seen[c.EntityID] {
-				seen[c.EntityID] = true
-				entities = append(entities, c.EntityID)
-			}
-		}
-	}
-
-	u.render(w, "activity", map[string]any{
-		"Logs":     logs,
-		"Timeline": timeline,
-		"Entities": entities,
-		"Page":     page,
-		"Total":    total,
-		"Limit":    limit,
-		"HasNext":  total > page*limit,
-		"HasPrev":  page > 1,
-		"NextPage": page + 1,
-		"PrevPage": page - 1,
-	})
+        u.render(w, "activity", map[string]any{
+                "Logs":       logs,
+                "DailyStats": dailyStats,
+                "Page":       page,
+                "Total":      total,
+                "Limit":      limit,
+                "HasNext":    total > page*limit,
+                "HasPrev":    page > 1,
+                "NextPage":   page + 1,
+                "PrevPage":   page - 1,
+        })
 }
-
 func (u *UI) PoliciesPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		u.handlePoliciesAction(w, r)
