@@ -31,7 +31,15 @@ const (
 )
 
 var RunnerModels = map[string][]string{
-	RunnerClaudeCode:  {"sonnet", "opus", "haiku"},
+	RunnerClaudeCode: {
+		"claude-3-7-sonnet-20250219",
+		"claude-3-5-sonnet-20241022",
+		"claude-3-5-haiku-20241022",
+		"claude-3-opus-20240229",
+		"sonnet",
+		"opus",
+		"haiku",
+	},
 	RunnerGemini:      {"gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.5-flash"},
 	RunnerCodex:       {"o3", "o4-mini", "gpt-4o"},
 	RunnerAntigravity: {"default"},
@@ -254,6 +262,8 @@ type WorkBlockStats struct {
 type AuditRun struct {
 	ID             string     `json:"id"`
 	RunID          *string    `json:"run_id"`
+	Runner         string     `json:"runner"`
+	Model          string     `json:"model"`
 	Status         string     `json:"status"`
 	IssuesReviewed int        `json:"issues_reviewed"`
 	BlocksReviewed int        `json:"blocks_reviewed"`

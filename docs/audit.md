@@ -18,9 +18,24 @@ Agents do work, ship it, and the system learns nothing. Retro closes that gap:
 
 Navigate to `/policies` and click **Run Audit**. Configure:
 
-- **Blocks** -- Number of recent shipped work blocks to review (default: 3) or
+- **Blocks** -- Number of recent shipped work blocks to review (default: 3)
 - **Issues** -- Number of recent completed issues to review (default: 50)
+- **Runner** -- Select the AI runner for this audit (Claude Code, Gemini, Codex). If blank, the default runner for the auditor agent is used.
+- **Model** -- Select the model for the runner.
 - **Focus** (optional) -- Free-text prompt guiding what the auditor should focus on (e.g. "Focus on backend agent retry rates and missing test coverage")
+
+### Configuration File
+You can also configure the default audit runner and model via a `.secondorder.yml` (or `.secondorder.json`) file in the project root:
+
+```json
+{
+  "audit": {
+    "runner": "gemini",
+    "model": "gemini-1.5-pro"
+  }
+}
+```
+UI selections take precedence over this configuration file.
 
 The system spawns the **auditor agent** (`archetype_slug = "auditor"`) with a prompt containing:
 

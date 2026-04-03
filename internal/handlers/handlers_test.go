@@ -344,7 +344,7 @@ type stubSched struct{}
 
 func (s *stubSched) WakeAgentHeartbeat(*models.Agent) {}
 func (s *stubSched) CancelAudit(string) error { return nil }
-func (s *stubSched) RunAudit(int, int, string) (string, error) {
+func (s *stubSched) RunAudit(int, int, string, string, string) (string, error) {
 	return "", nil
 }
 
@@ -430,6 +430,151 @@ func TestIssueDetail_NotFound(t *testing.T) {
 	body := w.Body.String()
 	if !strings.Contains(body, "Issue not found") {
 		t.Errorf("body missing 'Issue not found', got: %s", body[:min(200, len(body))])
+	}
+}
+
+func TestCreateSubIssueUI_Success(t *testing.T) {
+	d := testDB(t)
+	ui := testUI(t, d)
+
+	// Create parent issue
+	parent := &models.Issue{
+		ID:    uuid.New().String(),
+		Key:   "SO-1",
+		Title: "Parent Issue",
+	}
+	d.CreateIssue(parent)
+
+	form := strings.NewReader("title=Sub+Issue&description=desc&parent_issue_key=SO-1")
+	req := httptest.NewRequest("POST", "/issues", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	ui.ListIssues(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want 303", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if loc != "/issues/SO-1" {
+		t.Fatalf("redirect = %q, want /issues/SO-1", loc)
+	}
+
+	// Verify the sub-issue exists in DB and has parent key
+	children, err := d.GetChildIssues("SO-1")
+	if err != nil {
+		t.Fatalf("get child issues: %v", err)
+	}
+	found := false
+	for _, iss := range children {
+		if iss.Title == "Sub Issue" {
+			found = true
+			if iss.ParentIssueKey == nil || *iss.ParentIssueKey != "SO-1" {
+				t.Errorf("ParentIssueKey = %v, want SO-1", iss.ParentIssueKey)
+			}
+			break
+		}
+	}
+	if !found {
+		t.Fatal("sub-issue not found in DB after creation")
+	}
+}
+
+func TestIssueDetail_EmptySections(t *testing.T) {
+	d := testDB(t)
+	ui := testUI(t, d)
+
+	// Create issue with no children or runs
+	issue := &models.Issue{
+		ID:    uuid.New().String(),
+		Key:   "SO-1",
+		Title: "Empty Issue",
+	}
+	d.CreateIssue(issue)
+
+	req := httptest.NewRequest("GET", "/issues/SO-1", nil)
+	req.SetPathValue("key", "SO-1")
+	w := httptest.NewRecorder()
+
+	ui.IssueDetail(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	body := w.Body.String()
+	
+	// Verify "Sub-issues" section is present
+	if !strings.Contains(body, "Sub-issues") {
+		t.Error("body missing 'Sub-issues' header")
+	}
+	if !strings.Contains(body, "No sub-issues yet") {
+		t.Error("body missing 'No sub-issues yet' placeholder")
+	}
+	if !strings.Contains(body, "Add sub-issue") {
+		t.Error("body missing 'Add sub-issue' CTA")
+	}
+
+	// Verify "Runs" section is present
+	if !strings.Contains(body, "Runs") {
+		t.Error("body missing 'Runs' header")
+	}
+	if !strings.Contains(body, "No runs yet") {
+		t.Error("body missing 'No runs yet' placeholder")
+	}
+}
+
+func TestIssueDetail_WithSections(t *testing.T) {
+	d := testDB(t)
+	ui := testUI(t, d)
+
+	// Create issue with children and runs
+	parent := &models.Issue{
+		ID:    uuid.New().String(),
+		Key:   "SO-1",
+		Title: "Parent Issue",
+	}
+	d.CreateIssue(parent)
+
+	child := &models.Issue{
+		ID:             uuid.New().String(),
+		Key:            "SO-2",
+		Title:          "Child Issue",
+		ParentIssueKey: ptr("SO-1"),
+	}
+	d.CreateIssue(child)
+
+	run := &models.Run{
+		ID:       uuid.New().String(),
+		IssueKey: ptr("SO-1"),
+		Status:   "completed",
+	}
+	d.CreateRun(run)
+
+	req := httptest.NewRequest("GET", "/issues/SO-1", nil)
+	req.SetPathValue("key", "SO-1")
+	w := httptest.NewRecorder()
+
+	ui.IssueDetail(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	body := w.Body.String()
+
+	// Verify child issue is present
+	if !strings.Contains(body, "Child Issue") {
+		t.Error("body missing 'Child Issue'")
+	}
+	if strings.Contains(body, "No sub-issues yet") {
+		t.Error("body should not contain 'No sub-issues yet'")
+	}
+
+	// Verify run is present
+	if !strings.Contains(body, run.ID[:8]) {
+		t.Errorf("body missing run ID %s", run.ID[:8])
+	}
+	if strings.Contains(body, "No runs yet") {
+		t.Error("body should not contain 'No runs yet'")
 	}
 }
 

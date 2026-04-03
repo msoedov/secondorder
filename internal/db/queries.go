@@ -763,6 +763,7 @@ func (d *DB) GetDailyActivityStats(days int) ([]models.DailyStat, error) {
 		if err := rows.Scan(&dateStr, &s.Updates, &s.Creations, &s.Checkouts); err != nil {
 			return nil, err
 		}
+
 		s.Date = dateStr
 		// Format label in Go: "Mar 20"
 		t, _ := time.Parse("2006-01-02", dateStr)
@@ -1032,17 +1033,17 @@ func (d *DB) CreateAuditRun(ar *models.AuditRun) error {
 	}
 	ar.CreatedAt = time.Now().UTC()
 	ar.Status = "running"
-	_, err := d.Exec(`INSERT INTO audit_runs (id, run_id, status, issues_reviewed, blocks_reviewed, findings, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		ar.ID, ar.RunID, ar.Status, ar.IssuesReviewed, ar.BlocksReviewed, ar.Findings, ar.CreatedAt)
+	_, err := d.Exec(`INSERT INTO audit_runs (id, run_id, runner, model, status, issues_reviewed, blocks_reviewed, findings, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		ar.ID, ar.RunID, ar.Runner, ar.Model, ar.Status, ar.IssuesReviewed, ar.BlocksReviewed, ar.Findings, ar.CreatedAt)
 	return err
 }
 
 func (d *DB) GetAuditRun(id string) (*models.AuditRun, error) {
 	ar := &models.AuditRun{}
-	err := d.QueryRow(`SELECT id, run_id, status, issues_reviewed, blocks_reviewed, findings, created_at, completed_at
+	err := d.QueryRow(`SELECT id, run_id, runner, model, status, issues_reviewed, blocks_reviewed, findings, created_at, completed_at
 		FROM audit_runs WHERE id=?`, id).Scan(
-		&ar.ID, &ar.RunID, &ar.Status, &ar.IssuesReviewed, &ar.BlocksReviewed, &ar.Findings, &ar.CreatedAt, &ar.CompletedAt)
+		&ar.ID, &ar.RunID, &ar.Runner, &ar.Model, &ar.Status, &ar.IssuesReviewed, &ar.BlocksReviewed, &ar.Findings, &ar.CreatedAt, &ar.CompletedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -1050,7 +1051,7 @@ func (d *DB) GetAuditRun(id string) (*models.AuditRun, error) {
 }
 
 func (d *DB) ListAuditRuns(limit int) ([]models.AuditRun, error) {
-	query := `SELECT id, run_id, status, issues_reviewed, blocks_reviewed, findings, created_at, completed_at
+	query := `SELECT id, run_id, runner, model, status, issues_reviewed, blocks_reviewed, findings, created_at, completed_at
 		FROM audit_runs ORDER BY created_at DESC`
 	var args []any
 	if limit > 0 {
@@ -1066,7 +1067,7 @@ func (d *DB) ListAuditRuns(limit int) ([]models.AuditRun, error) {
 	var runs []models.AuditRun
 	for rows.Next() {
 		var ar models.AuditRun
-		if err := rows.Scan(&ar.ID, &ar.RunID, &ar.Status, &ar.IssuesReviewed, &ar.BlocksReviewed, &ar.Findings, &ar.CreatedAt, &ar.CompletedAt); err != nil {
+		if err := rows.Scan(&ar.ID, &ar.RunID, &ar.Runner, &ar.Model, &ar.Status, &ar.IssuesReviewed, &ar.BlocksReviewed, &ar.Findings, &ar.CreatedAt, &ar.CompletedAt); err != nil {
 			return nil, err
 		}
 		runs = append(runs, ar)

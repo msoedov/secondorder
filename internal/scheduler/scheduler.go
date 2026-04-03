@@ -28,6 +28,7 @@ type Scheduler struct {
 	running      map[string]context.CancelFunc // runID -> cancel
 	wg           sync.WaitGroup
 	stopped      bool
+	onRunStart    func(run *models.Run)
 	onRunComplete func(run *models.Run)
 	onComment     func(issueKey, author, body string)
 	onActivity    func(action, entityType, entityID string, agentID *string, details string)
@@ -39,6 +40,10 @@ func New(database *db.DB, port int) *Scheduler {
 		port:    port,
 		running: make(map[string]context.CancelFunc),
 	}
+}
+
+func (s *Scheduler) SetOnRunStart(fn func(run *models.Run)) {
+	s.onRunStart = fn
 }
 
 func (s *Scheduler) SetOnRunComplete(fn func(run *models.Run)) {
@@ -135,6 +140,10 @@ func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt strin
 	if err := s.db.CreateRun(run); err != nil {
 		log.WithError(err).Error("scheduler: failed to create run")
 		return ""
+	}
+
+	if s.onRunStart != nil {
+		s.onRunStart(run)
 	}
 
 	// Provision API key
@@ -645,7 +654,7 @@ func (s *Scheduler) CancelAudit(auditRunID string) error {
 }
 
 // RunAudit spawns an auditor agent to review recent work
-func (s *Scheduler) RunAudit(maxBlocks, maxIssues int, focus string) (string, error) {
+func (s *Scheduler) RunAudit(maxBlocks, maxIssues int, focus, runner, model string) (string, error) {
 	agents, _ := s.db.ListAgents()
 	var auditor *models.Agent
 	for i := range agents {
@@ -658,7 +667,38 @@ func (s *Scheduler) RunAudit(maxBlocks, maxIssues int, focus string) (string, er
 		return "", fmt.Errorf("no auditor agent found -- create one with archetype 'auditor'")
 	}
 
-	ar := &models.AuditRun{}
+	// Configuration file support (.secondorder.yml)
+	if runner == "" || model == "" {
+		if data, err := os.ReadFile(".secondorder.yml"); err == nil {
+			var config struct {
+				Audit struct {
+					Runner string `json:"runner"`
+					Model  string `json:"model"`
+				} `json:"audit"`
+			}
+			// Try as JSON first (simple for now, could use YAML if needed)
+			if err := json.Unmarshal(data, &config); err == nil {
+				if runner == "" && config.Audit.Runner != "" {
+					runner = config.Audit.Runner
+				}
+				if model == "" && config.Audit.Model != "" {
+					model = config.Audit.Model
+				}
+			}
+		}
+	}
+
+	ar := &models.AuditRun{
+		Runner: runner,
+		Model:  model,
+	}
+	if ar.Runner == "" {
+		ar.Runner = auditor.Runner
+	}
+	if ar.Model == "" {
+		ar.Model = auditor.Model
+	}
+
 	if err := s.db.CreateAuditRun(ar); err != nil {
 		return "", err
 	}
@@ -667,6 +707,13 @@ func (s *Scheduler) RunAudit(maxBlocks, maxIssues int, focus string) (string, er
 
 	// Restrict auditor to artifact-docs only (no codebase access)
 	auditAgent := *auditor
+	if ar.Runner != "" {
+		auditAgent.Runner = ar.Runner
+	}
+	if ar.Model != "" {
+		auditAgent.Model = ar.Model
+	}
+
 	artifactDir := filepath.Join(auditor.WorkingDir, "artifact-docs")
 	if info, err := os.Stat(artifactDir); err == nil && info.IsDir() {
 		auditAgent.WorkingDir = artifactDir

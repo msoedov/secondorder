@@ -123,6 +123,23 @@
                 <input name="max_issues" type="number" value="50" min="1" max="200" class="w-full px-3 py-1.5 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac">
               </div>
             </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] text-ink3/50 block mb-1">Runner</label>
+                <select id="audit-runner" name="runner" onchange="updateModels('audit-runner', 'audit-model')" class="w-full bg-sf border border-bd rounded-md px-3 py-1.5 text-sm text-ink outline-none focus:ring-1 focus:ring-ac">
+                  <option value="">(Auditor Default)</option>
+                  <option value="claude_code">Claude Code</option>
+                  <option value="gemini">Gemini</option>
+                  <option value="codex">Codex</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[11px] text-ink3/50 block mb-1">Model</label>
+                <select id="audit-model" name="model" class="w-full bg-sf border border-bd rounded-md px-3 py-1.5 text-sm text-ink outline-none focus:ring-1 focus:ring-ac">
+                  <option value="">(Auditor Default)</option>
+                </select>
+              </div>
+            </div>
             <div>
               <label class="text-[11px] text-ink3/50 block mb-1">Focus (optional)</label>
               <textarea name="focus" rows="2" placeholder="e.g. Why does the backend agent keep getting rejected?" class="w-full px-3 py-1.5 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac"></textarea>
@@ -137,6 +154,19 @@
           <div class="space-y-1.5">
             {{range .AuditRuns}}
             <div class="bg-card border border-bd rounded-lg px-3 py-2.5">
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-ink">{{.CreatedAt.Format "Jan 02, 15:04"}}</span>
+                  {{if .Runner}}<span class="px-1.5 py-0.5 bg-sf text-ink3/50 rounded text-[10px] font-mono">{{.Runner}} / {{.Model}}</span>{{end}}
+                </div>
+                {{if eq .Status "running"}}
+                <span class="w-2 h-2 bg-blue-400 rounded-full animate-pulse shrink-0"></span>
+                {{else if eq .Status "completed"}}
+                <span class="w-2 h-2 bg-emerald-500 rounded-full shrink-0"></span>
+                {{else}}
+                <span class="w-2 h-2 bg-rose-500 rounded-full shrink-0"></span>
+                {{end}}
+              </div>
               <div class="flex items-center gap-2">
                 {{if eq .Status "running"}}
                 <span class="w-2 h-2 bg-blue-400 rounded-full animate-pulse shrink-0"></span>

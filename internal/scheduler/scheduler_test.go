@@ -102,6 +102,63 @@ func TestProvisionAPIKey(t *testing.T) {
 	}
 }
 
+func TestRunAudit(t *testing.T) {
+	d := testDB(t)
+	s := New(d, 9001)
+
+	// Create auditor agent
+	auditor := &models.Agent{
+		Name: "Auditor", Slug: "auditor", ArchetypeSlug: "auditor",
+		Runner: "claude_code", Model: "sonnet", Active: true,
+	}
+	d.CreateAgent(auditor)
+
+	// 1. Default (uses auditor agent settings)
+	runID, err := s.RunAudit(1, 1, "", "", "")
+	if err != nil {
+		t.Fatalf("RunAudit default: %v", err)
+	}
+	ar, _ := d.GetAuditRun(runID)
+	if ar.Runner != "claude_code" || ar.Model != "sonnet" {
+		t.Errorf("expected default runner/model, got %s/%s", ar.Runner, ar.Model)
+	}
+
+	// 2. Explicit runner/model from UI
+	runID2, err := s.RunAudit(1, 1, "", "gemini", "gemini-1.5-pro")
+	if err != nil {
+		t.Fatalf("RunAudit explicit: %v", err)
+	}
+	ar2, _ := d.GetAuditRun(runID2)
+	if ar2.Runner != "gemini" || ar2.Model != "gemini-1.5-pro" {
+		t.Errorf("expected explicit runner/model, got %s/%s", ar2.Runner, ar2.Model)
+	}
+
+	// 3. Configuration file support
+	configPath := ".secondorder.yml"
+	configContent := `{"audit": {"runner": "codex", "model": "gpt-4o"}}`
+	os.WriteFile(configPath, []byte(configContent), 0644)
+	t.Cleanup(func() { os.Remove(configPath) })
+
+	runID3, err := s.RunAudit(1, 1, "", "", "")
+	if err != nil {
+		t.Fatalf("RunAudit config: %v", err)
+	}
+	ar3, _ := d.GetAuditRun(runID3)
+	if ar3.Runner != "codex" || ar3.Model != "gpt-4o" {
+		t.Errorf("expected config runner/model, got %s/%s", ar3.Runner, ar3.Model)
+	}
+
+	// 4. UI overrides configuration file
+	runID4, err := s.RunAudit(1, 1, "", "gemini", "gemini-1.5-flash")
+	if err != nil {
+		t.Fatalf("RunAudit override: %v", err)
+	}
+	ar4, _ := d.GetAuditRun(runID4)
+	if ar4.Runner != "gemini" || ar4.Model != "gemini-1.5-flash" {
+		t.Errorf("expected UI override runner/model, got %s/%s", ar4.Runner, ar4.Model)
+	}
+}
+
 // --- parseTokenUsage ---
 
 func TestParseTokenUsage(t *testing.T) {

@@ -25,14 +25,14 @@ type UI struct {
 	wake  func(agent *models.Agent, issue *models.Issue)
 	sched interface {
 		WakeAgentHeartbeat(agent *models.Agent)
-		RunAudit(maxBlocks, maxIssues int, focus string) (string, error)
+		RunAudit(maxBlocks, maxIssues int, focus, runner, model string) (string, error)
 		CancelAudit(auditRunID string) error
 	}
 }
 
 func NewUI(database *db.DB, sse *SSEHub, tmpl *template.Template, wake func(*models.Agent, *models.Issue), sched interface {
 	WakeAgentHeartbeat(*models.Agent)
-	RunAudit(int, int, string) (string, error)
+	RunAudit(int, int, string, string, string) (string, error)
 	CancelAudit(string) error
 }) *UI {
 	return &UI{db: database, sse: sse, tmpl: tmpl, wake: wake, sched: sched}
@@ -109,11 +109,12 @@ func (u *UI) createIssueUI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	issue := &models.Issue{
-		ID:          uuid.New().String(),
-		Key:         key,
-		Title:       title,
-		Description: r.FormValue("description"),
-		Status:      models.StatusTodo,
+		ID:             uuid.New().String(),
+		Key:            key,
+		Title:          title,
+		Description:    r.FormValue("description"),
+		Status:         models.StatusTodo,
+		ParentIssueKey: ptrStrOrNil(r.FormValue("parent_issue_key")),
 	}
 
 	if p, err := strconv.Atoi(r.FormValue("priority")); err == nil {
@@ -154,7 +155,19 @@ func (u *UI) createIssueUI(w http.ResponseWriter, r *http.Request) {
 		go u.wake(assignee, issue)
 	}
 
+	if issue.ParentIssueKey != nil {
+		http.Redirect(w, r, "/issues/"+*issue.ParentIssueKey, http.StatusSeeOther)
+		return
+	}
+
 	http.Redirect(w, r, "/issues", http.StatusSeeOther)
+}
+
+func ptrStrOrNil(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 func (u *UI) submitBacklog(w http.ResponseWriter, r *http.Request) {
@@ -385,6 +398,16 @@ func (u *UI) createAgentUI(w http.ResponseWriter, r *http.Request) {
 	agent.ChromeEnabled = r.FormValue("chrome_enabled") == "on"
 
 	u.db.CreateAgent(agent)
+
+	// SSE broadcast
+	agentData, _ := json.Marshal(map[string]any{
+		"id":     agent.ID,
+		"slug":   agent.Slug,
+		"name":   agent.Name,
+		"active": agent.Active,
+	})
+	u.sse.Broadcast("agent_created", string(agentData))
+
 	http.Redirect(w, r, "/agents/"+slug, http.StatusSeeOther)
 }
 
@@ -403,16 +426,18 @@ func (u *UI) AgentDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	runs, _ := u.db.ListRunsForAgent(agent.ID, 20)
 	issues, _ := u.db.GetAgentInbox(agent.ID)
+	availableIssues, _ := u.db.ListIssues("todo,in_progress,in_review", 100)
 	todayTokens, todayCost, totalTokens, totalCost, _ := u.db.GetAgentUsage(agent.ID)
 
 	u.render(w, "agent_detail", map[string]any{
-		"Agent":       agent,
-		"Runs":        runs,
-		"Issues":      issues,
-		"TodayTokens": todayTokens,
-		"TodayCost":   todayCost,
-		"TotalTokens": totalTokens,
-		"TotalCost":   totalCost,
+		"Agent":           agent,
+		"Runs":            runs,
+		"Issues":          issues,
+		"AvailableIssues": availableIssues,
+		"TodayTokens":     todayTokens,
+		"TodayCost":       todayCost,
+		"TotalTokens":     totalTokens,
+		"TotalCost":       totalCost,
 	})
 }
 
@@ -455,6 +480,15 @@ func (u *UI) updateAgentUI(w http.ResponseWriter, r *http.Request, slug string) 
 	agent.Active = r.FormValue("active") != "off"
 
 	u.db.UpdateAgent(agent)
+
+	// SSE broadcast
+	agentData, _ := json.Marshal(map[string]any{
+		"id":     agent.ID,
+		"slug":   agent.Slug,
+		"active": agent.Active,
+	})
+	u.sse.Broadcast("agent_updated", string(agentData))
+
 	http.Redirect(w, r, "/agents/"+slug, http.StatusSeeOther)
 }
 
@@ -511,9 +545,19 @@ func (u *UI) RunDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	agent, _ := u.db.GetAgent(run.AgentID)
+
+	var parentIssueKey string
+	if run.IssueKey != nil {
+		issue, err := u.db.GetIssue(*run.IssueKey)
+		if err == nil && issue.ParentIssueKey != nil {
+			parentIssueKey = *issue.ParentIssueKey
+		}
+	}
+
 	u.render(w, "run_detail", map[string]any{
 		"Run":             run,
 		"Agent":           agent,
+		"ParentIssueKey":  parentIssueKey,
 		"FormattedStdout": template.HTML(formatStreamJSON(run.Stdout, run.Status)),
 	})
 }
@@ -761,7 +805,9 @@ func (u *UI) handlePoliciesAction(w http.ResponseWriter, r *http.Request) {
 			maxIssues = v
 		}
 		focus := r.FormValue("focus")
-		if _, err := u.sched.RunAudit(maxBlocks, maxIssues, focus); err != nil {
+		runner := r.FormValue("runner")
+		model := r.FormValue("model")
+		if _, err := u.sched.RunAudit(maxBlocks, maxIssues, focus, runner, model); err != nil {
 			http.Redirect(w, r, "/policies?error="+err.Error(), http.StatusSeeOther)
 			return
 		}
