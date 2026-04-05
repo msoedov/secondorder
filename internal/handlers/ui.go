@@ -202,6 +202,8 @@ func (u *UI) submitBacklog(w http.ResponseWriter, r *http.Request) {
 		go u.sched.WakeAgentHeartbeat(ceo)
 	}
 
+	LogActivityAndBroadcast(u.db, u.sse, u.tmpl, "backlog", "issue", "backlog", nil, text)
+
 	http.Redirect(w, r, "/issues?success=Submitted+to+backlog+for+triage", http.StatusSeeOther)
 }
 
@@ -692,6 +694,7 @@ func (u *UI) updateWorkBlockUI(w http.ResponseWriter, r *http.Request, id string
 		issueKey := r.FormValue("issue_key")
 		if issueKey != "" {
 			u.db.AssignIssueToWorkBlock(issueKey, id)
+			LogActivityAndBroadcast(u.db, u.sse, u.tmpl, "assign_to_block", "issue", issueKey, nil, id)
 			if issue, err := u.db.GetIssue(issueKey); err == nil {
 				updateData, _ := json.Marshal(map[string]string{
 					"key":    issueKey,

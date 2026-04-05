@@ -1152,6 +1152,49 @@ func TestUpdateIssue_Reassign(t *testing.T) {
 	}
 }
 
+func TestUpdateIssue_CEOReassignStuckIssue(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+
+	owner, _ := createAgentWithKey(t, d, "Owner", "owner", "backend")
+	newAssignee, _ := createAgentWithKey(t, d, "NewAssignee", "new-assignee", "frontend")
+	_, ceoKey := createAgentWithKey(t, d, "CEO", "ceo", "ceo")
+
+	issue := &models.Issue{Key: "SO-55", Title: "Test Issue", Status: "blocked", AssigneeAgentID: &owner.ID}
+	d.CreateIssue(issue)
+
+	// Add 7 runs to make it "stuck"
+	for i := 0; i < 7; i++ {
+		d.CreateRun(&models.Run{ID: uuid.NewString(), AgentID: owner.ID, IssueKey: ptr("SO-55"), Status: "failed"})
+	}
+
+	// CEO reassigns and sets to in_progress
+	body := fmt.Sprintf(`{"assignee_slug":"%s", "status":"in_progress"}`, newAssignee.Slug)
+	req := httptest.NewRequest("PATCH", "/api/v1/issues/SO-55", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+ceoKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("key", "SO-55")
+	w := httptest.NewRecorder()
+	api.Auth(api.UpdateIssue)(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200. Body: %s", w.Code, w.Body.String())
+	}
+
+	updatedIssue, _ := d.GetIssue("SO-55")
+	if updatedIssue.Status != models.StatusInProgress {
+		t.Errorf("status = %s, want in_progress (should NOT be blocked)", updatedIssue.Status)
+	}
+	if updatedIssue.AssigneeAgentID == nil || *updatedIssue.AssigneeAgentID != newAssignee.ID {
+		t.Errorf("assignee = %v, want %s", updatedIssue.AssigneeAgentID, newAssignee.ID)
+	}
+	if updatedIssue.AssigneeSlug != newAssignee.Slug {
+		t.Errorf("assignee_slug = %s, want %s", updatedIssue.AssigneeSlug, newAssignee.Slug)
+	}
+}
+
 func TestUpdateIssue_ForbiddenIfUnassigned(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()

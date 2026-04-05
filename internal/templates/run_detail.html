@@ -6,6 +6,14 @@
     <div class="flex items-center gap-1.5 mb-5 text-xs">
       {{if .Agent}}<a href="/agents/{{.Agent.Slug}}" class="text-ink3/50 hover:text-ink2 transition-colors">{{.Agent.Name}}</a>
       <span class="text-ink3/30">/</span>{{end}}
+      {{if .ParentIssueKey}}
+      <a href="/issues/{{.ParentIssueKey}}" class="text-ink3/50 hover:text-ink2 transition-colors">{{.ParentIssueKey}}</a>
+      <span class="text-ink3/30">/</span>
+      {{end}}
+      {{if .Run.IssueKey}}
+      <a href="/issues/{{deref .Run.IssueKey}}" class="text-ink3/50 hover:text-ink2 transition-colors">{{deref .Run.IssueKey}}</a>
+      <span class="text-ink3/30">/</span>
+      {{end}}
       <span class="text-ink3">Run</span>
       <span class="text-ink3/30">/</span>
       <span class="text-ink3 font-mono">{{truncate .Run.ID 8}}</span>

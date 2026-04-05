@@ -41,7 +41,7 @@ var RunnerModels = map[string][]string{
 		"haiku",
 	},
 	RunnerGemini:      {"gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.5-flash"},
-	RunnerCodex:       {"o3", "o4-mini", "gpt-4o"},
+	RunnerCodex:       {"gpt-4o", "o4-mini"},
 	RunnerAntigravity: {"default"},
 }
 
@@ -99,6 +99,7 @@ type Issue struct {
 	ParentIssueKey  *string    `json:"parent_issue_key"`
 	WorkBlockID     *string    `json:"work_block_id"`
 	AssigneeName    string     `json:"assignee_name,omitempty"`
+	AssigneeSlug    string     `json:"assignee_slug,omitempty"`
 	StartedAt       *time.Time `json:"started_at"`
 	CompletedAt     *time.Time `json:"completed_at"`
 	CreatedAt       time.Time  `json:"created_at"`
@@ -301,10 +302,14 @@ type DashboardStats struct {
 }
 
 type DailyStat struct {
-	Date      string `json:"date"`
-	Label     string `json:"label"`
-	Updates   int    `json:"updates"`
-	Creations int    `json:"creations"`
-	Checkouts int    `json:"checkouts"`
+	Date          string `json:"date"`
+	Label         string `json:"label"`
+	Updates       int    `json:"updates"`
+	Creations     int    `json:"creations"`
+	Checkouts     int    `json:"checkouts"`
+	AssignToBlock int    `json:"assign_to_block"`
+	Deletions     int    `json:"deletions"`
+	Backlog       int    `json:"backlog"`
+	Recovery      int    `json:"recovery"`
 }
 

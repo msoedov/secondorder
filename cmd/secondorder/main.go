@@ -26,7 +26,7 @@ import (
 //go:embed templates/*.json
 var startupTemplatesFS embed.FS
 
-//go:embed static
+//go:embed all:static
 var staticFS embed.FS
 
 func main() {
@@ -197,14 +197,19 @@ func main() {
 		log.WithError(err).Fatal("failed to create static sub-FS")
 	}
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticSub))))
+
+	// Favicon handlers for various browsers/clients
 	mux.HandleFunc("GET /favicon.svg", func(w http.ResponseWriter, r *http.Request) {
-		data, err := staticFS.ReadFile("static/favicon.svg")
+		data, err := fs.ReadFile(staticSub, "favicon.svg")
 		if err != nil {
 			http.NotFound(w, r)
 			return
 		}
 		w.Header().Set("Content-Type", "image/svg+xml")
 		w.Write(data)
+	})
+	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/static/favicon.svg", http.StatusMovedPermanently)
 	})
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {

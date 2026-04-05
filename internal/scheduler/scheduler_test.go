@@ -133,29 +133,66 @@ func TestRunAudit(t *testing.T) {
 		t.Errorf("expected explicit runner/model, got %s/%s", ar2.Runner, ar2.Model)
 	}
 
-	// 3. Configuration file support
-	configPath := ".secondorder.yml"
-	configContent := `{"audit": {"runner": "codex", "model": "gpt-4o"}}`
-	os.WriteFile(configPath, []byte(configContent), 0644)
-	t.Cleanup(func() { os.Remove(configPath) })
+	// 3. Configuration file support (.secondorder.json)
+	jsonPath := ".secondorder.json"
+	jsonContent := `{"audit": {"runner": "codex", "model": "gpt-4o"}}`
+	os.WriteFile(jsonPath, []byte(jsonContent), 0644)
+	t.Cleanup(func() { os.Remove(jsonPath) })
 
 	runID3, err := s.RunAudit(1, 1, "", "", "")
 	if err != nil {
-		t.Fatalf("RunAudit config: %v", err)
+		t.Fatalf("RunAudit json config: %v", err)
 	}
 	ar3, _ := d.GetAuditRun(runID3)
 	if ar3.Runner != "codex" || ar3.Model != "gpt-4o" {
-		t.Errorf("expected config runner/model, got %s/%s", ar3.Runner, ar3.Model)
+		t.Errorf("expected json config runner/model, got %s/%s", ar3.Runner, ar3.Model)
 	}
+	os.Remove(jsonPath) // Remove to test yaml fallback
+
+	// 3b. Configuration file support (.secondorder.yml fallback)
+	ymlPath := ".secondorder.yml"
+	ymlContent := `{"audit": {"runner": "gemini", "model": "gemini-1.5-pro"}}`
+	os.WriteFile(ymlPath, []byte(ymlContent), 0644)
+	t.Cleanup(func() { os.Remove(ymlPath) })
+
+	runID3b, err := s.RunAudit(1, 1, "", "", "")
+	if err != nil {
+		t.Fatalf("RunAudit yml config: %v", err)
+	}
+	ar3b, _ := d.GetAuditRun(runID3b)
+	if ar3b.Runner != "gemini" || ar3b.Model != "gemini-1.5-pro" {
+		t.Errorf("expected yml config runner/model, got %s/%s", ar3b.Runner, ar3b.Model)
+	}
+	os.Remove(ymlPath)
 
 	// 4. UI overrides configuration file
-	runID4, err := s.RunAudit(1, 1, "", "gemini", "gemini-1.5-flash")
+	runID4, err := s.RunAudit(1, 1, "", "codex", "gpt-4o")
 	if err != nil {
 		t.Fatalf("RunAudit override: %v", err)
 	}
 	ar4, _ := d.GetAuditRun(runID4)
-	if ar4.Runner != "gemini" || ar4.Model != "gemini-1.5-flash" {
+	if ar4.Runner != "codex" || ar4.Model != "gpt-4o" {
 		t.Errorf("expected UI override runner/model, got %s/%s", ar4.Runner, ar4.Model)
+	}
+
+	// 5. Runner provided but model empty (should pick first valid model)
+	runID5, err := s.RunAudit(1, 1, "", "gemini", "")
+	if err != nil {
+		t.Fatalf("RunAudit runner only: %v", err)
+	}
+	ar5, _ := d.GetAuditRun(runID5)
+	if ar5.Runner != "gemini" || ar5.Model != "gemini-2.0-flash" {
+		t.Errorf("expected first valid gemini model, got %s/%s", ar5.Runner, ar5.Model)
+	}
+
+	// 6. Invalid runner/model fallback
+	runID6, err := s.RunAudit(1, 1, "", "gemini", "sonnet")
+	if err != nil {
+		t.Fatalf("RunAudit invalid fallback: %v", err)
+	}
+	ar6, _ := d.GetAuditRun(runID6)
+	if ar6.Runner != auditor.Runner || ar6.Model != auditor.Model {
+		t.Errorf("expected fallback to auditor defaults, got %s/%s", ar6.Runner, ar6.Model)
 	}
 }
 

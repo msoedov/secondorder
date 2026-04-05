@@ -1357,6 +1357,10 @@ func TestGetDailyActivityStats(t *testing.T) {
 	d.LogActivity("create", "issue", "SO-1", nil, "T1")
 	d.LogActivity("update", "issue", "SO-1", nil, "in_progress")
 	d.LogActivity("checkout", "issue", "SO-1", nil, "")
+	d.LogActivity("assign_to_block", "issue", "SO-1", nil, "wb1")
+	d.LogActivity("delete", "issue", "SO-DELETED", nil, "")
+	d.LogActivity("backlog", "issue", "SO-BACKLOG", nil, "")
+	d.LogActivity("recovery", "system", "startup", nil, "")
 	
 	// Yesterday
 	yesterday := time.Now().Add(-24 * time.Hour).UTC().Format("2006-01-02 15:04:05")
@@ -1364,11 +1368,15 @@ func TestGetDailyActivityStats(t *testing.T) {
 		VALUES (?, 'create', 'issue', 'SO-2', NULL, 'T2', ?)`, uuid.NewString(), yesterday)
 	d.Exec(`INSERT INTO activity_log (id, action, entity_type, entity_id, agent_id, details, created_at)
 		VALUES (?, 'update', 'issue', 'SO-2', NULL, 'done', ?)`, uuid.NewString(), yesterday)
+	d.Exec(`INSERT INTO activity_log (id, action, entity_type, entity_id, agent_id, details, created_at)
+		VALUES (?, 'assign_to_block', 'issue', 'SO-2', NULL, 'wb1', ?)`, uuid.NewString(), yesterday)
 
 	// 2 days ago
 	twoDaysAgo := time.Now().Add(-48 * time.Hour).UTC().Format("2006-01-02 15:04:05")
 	d.Exec(`INSERT INTO activity_log (id, action, entity_type, entity_id, agent_id, details, created_at)
 		VALUES (?, 'checkout', 'issue', 'SO-3', NULL, '', ?)`, uuid.NewString(), twoDaysAgo)
+	d.Exec(`INSERT INTO activity_log (id, action, entity_type, entity_id, agent_id, details, created_at)
+		VALUES (?, 'delete', 'issue', 'SO-4', NULL, '', ?)`, uuid.NewString(), twoDaysAgo)
 
 	stats, err := d.GetDailyActivityStats(7)
 	if err != nil {
@@ -1380,17 +1388,18 @@ func TestGetDailyActivityStats(t *testing.T) {
 	}
 
 	// Today is at index 6
-	if stats[6].Creations != 1 || stats[6].Updates != 1 || stats[6].Checkouts != 1 {
-		t.Errorf("expected 1 creation, 1 update, 1 checkout today, got C:%d, U:%d, CK:%d", 
-			stats[6].Creations, stats[6].Updates, stats[6].Checkouts)
+	if stats[6].Creations != 1 || stats[6].Updates != 1 || stats[6].Checkouts != 1 || 
+	   stats[6].AssignToBlock != 1 || stats[6].Deletions != 1 || stats[6].Backlog != 1 || stats[6].Recovery != 1 {
+		t.Errorf("expected all stats to be 1 today, got C:%d, U:%d, CK:%d, A:%d, D:%d, B:%d, R:%d", 
+			stats[6].Creations, stats[6].Updates, stats[6].Checkouts, stats[6].AssignToBlock, stats[6].Deletions, stats[6].Backlog, stats[6].Recovery)
 	}
 	// Yesterday at index 5
-	if stats[5].Creations != 1 || stats[5].Updates != 1 {
-		t.Errorf("expected 1 creation and 1 update yesterday, got C:%d, U:%d", stats[5].Creations, stats[5].Updates)
+	if stats[5].Creations != 1 || stats[5].Updates != 1 || stats[5].AssignToBlock != 1 {
+		t.Errorf("expected 1 creation, 1 update, 1 assign yesterday, got C:%d, U:%d, A:%d", stats[5].Creations, stats[5].Updates, stats[5].AssignToBlock)
 	}
 	// 2 days ago at index 4
-	if stats[4].Checkouts != 1 {
-		t.Errorf("expected 1 checkout 2 days ago, got %d", stats[4].Checkouts)
+	if stats[4].Checkouts != 1 || stats[4].Deletions != 1 {
+		t.Errorf("expected 1 checkout and 1 deletion 2 days ago, got CK:%d, D:%d", stats[4].Checkouts, stats[4].Deletions)
 	}
 }
 

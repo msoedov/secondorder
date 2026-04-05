@@ -135,11 +135,14 @@ func (d *DB) CountAgents() (int, int, error) {
 
 func (d *DB) GetIssueByTitle(title string) (*models.Issue, error) {
 	i := &models.Issue{}
-	err := d.QueryRow(`SELECT id, key, title, description, status, priority, assignee_agent_id,
-		parent_issue_key, work_block_id, started_at, completed_at, created_at, updated_at
-		FROM issues WHERE LOWER(title) = LOWER(?)`, title).Scan(
+	err := d.QueryRow(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
+		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
+		COALESCE(a.name, ''), COALESCE(a.slug, '')
+		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
+		WHERE LOWER(i.title) = LOWER(?)`, title).Scan(
 		&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-		&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt)
+		&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
+		&i.AssigneeName, &i.AssigneeSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -165,12 +168,12 @@ func (d *DB) GetIssue(key string) (*models.Issue, error) {
 	i := &models.Issue{}
 	err := d.QueryRow(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
 		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, '')
+		COALESCE(a.name, ''), COALESCE(a.slug, '')
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
 		WHERE i.key = ?`, key).Scan(
 		&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
 		&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-		&i.AssigneeName)
+		&i.AssigneeName, &i.AssigneeSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +188,7 @@ func (d *DB) DeleteIssue(key string) error {
 func (d *DB) ListIssues(status string, limit int) ([]models.Issue, error) {
 	query := `SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
 		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, '')
+		COALESCE(a.name, ''), COALESCE(a.slug, '')
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id`
 
 	var args []any
@@ -215,7 +218,7 @@ func (d *DB) ListIssues(status string, limit int) ([]models.Issue, error) {
 		var i models.Issue
 		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
 			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName); err != nil {
+			&i.AssigneeName, &i.AssigneeSlug); err != nil {
 			return nil, err
 		}
 		issues = append(issues, i)
@@ -226,7 +229,7 @@ func (d *DB) ListIssues(status string, limit int) ([]models.Issue, error) {
 func (d *DB) GetRecentIssues(limit int) ([]models.Issue, error) {
 	query := `SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
 		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, '')
+		COALESCE(a.name, ''), COALESCE(a.slug, '')
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
 		ORDER BY i.updated_at DESC`
 
@@ -247,7 +250,7 @@ func (d *DB) GetRecentIssues(limit int) ([]models.Issue, error) {
 		var i models.Issue
 		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
 			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName); err != nil {
+			&i.AssigneeName, &i.AssigneeSlug); err != nil {
 			return nil, err
 		}
 		issues = append(issues, i)
@@ -293,10 +296,12 @@ func (d *DB) CheckoutIssue(key, agentID string, expectedStatuses []string) error
 }
 
 func (d *DB) GetAgentInbox(agentID string) ([]models.Issue, error) {
-	rows, err := d.Query(`SELECT id, key, title, description, status, priority, assignee_agent_id,
-		parent_issue_key, work_block_id, started_at, completed_at, created_at, updated_at
-		FROM issues WHERE assignee_agent_id=? AND status NOT IN ('done','cancelled','wont_do')
-		ORDER BY priority DESC, created_at`, agentID)
+	rows, err := d.Query(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
+		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
+		COALESCE(a.name, ''), COALESCE(a.slug, '')
+		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
+		WHERE i.assignee_agent_id=? AND i.status NOT IN ('done','cancelled','wont_do')
+		ORDER BY i.priority DESC, i.created_at`, agentID)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +311,8 @@ func (d *DB) GetAgentInbox(agentID string) ([]models.Issue, error) {
 	for rows.Next() {
 		var i models.Issue
 		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt); err != nil {
+			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
+			&i.AssigneeName, &i.AssigneeSlug); err != nil {
 			return nil, err
 		}
 		issues = append(issues, i)
@@ -321,9 +327,11 @@ func (d *DB) CountIssues() (int, int, error) {
 }
 
 func (d *DB) GetChildIssues(parentKey string) ([]models.Issue, error) {
-	rows, err := d.Query(`SELECT id, key, title, description, status, priority, assignee_agent_id,
-		parent_issue_key, work_block_id, started_at, completed_at, created_at, updated_at
-		FROM issues WHERE parent_issue_key=? ORDER BY created_at`, parentKey)
+	rows, err := d.Query(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
+		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
+		COALESCE(a.name, ''), COALESCE(a.slug, '')
+		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
+		WHERE i.parent_issue_key=? ORDER BY i.created_at`, parentKey)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +341,8 @@ func (d *DB) GetChildIssues(parentKey string) ([]models.Issue, error) {
 	for rows.Next() {
 		var i models.Issue
 		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt); err != nil {
+			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
+			&i.AssigneeName, &i.AssigneeSlug); err != nil {
 			return nil, err
 		}
 		issues = append(issues, i)
@@ -444,8 +453,9 @@ func (d *DB) CountRunningRuns() (int, error) {
 // GetStuckIssues returns issues in in_progress or todo state that have an assigned agent.
 func (d *DB) GetStuckIssues() ([]models.Issue, error) {
 	rows, err := d.Query(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
-		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at
-		FROM issues i
+		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
+		COALESCE(a.name, ''), COALESCE(a.slug, '')
+		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
 		WHERE i.status IN ('in_progress', 'todo')
 		AND i.assignee_agent_id IS NOT NULL
 		ORDER BY i.priority DESC, i.created_at`)
@@ -458,7 +468,8 @@ func (d *DB) GetStuckIssues() ([]models.Issue, error) {
 	for rows.Next() {
 		var i models.Issue
 		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt); err != nil {
+			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
+			&i.AssigneeName, &i.AssigneeSlug); err != nil {
 			return nil, err
 		}
 		issues = append(issues, i)
@@ -746,7 +757,11 @@ func (d *DB) GetDailyActivityStats(days int) ([]models.DailyStat, error) {
 			d.date,
 			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'update') as updates,
 			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'create') as creations,
-			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'checkout') as checkouts
+			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'checkout') as checkouts,
+			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'assign_to_block') as assign_to_blocks,
+			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'delete') as deletions,
+			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'backlog') as backlogs,
+			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'recovery') as recoveries
 		FROM dates d
 		ORDER BY d.date ASC
 	`
@@ -760,7 +775,7 @@ func (d *DB) GetDailyActivityStats(days int) ([]models.DailyStat, error) {
 	for rows.Next() {
 		var s models.DailyStat
 		var dateStr string
-		if err := rows.Scan(&dateStr, &s.Updates, &s.Creations, &s.Checkouts); err != nil {
+		if err := rows.Scan(&dateStr, &s.Updates, &s.Creations, &s.Checkouts, &s.AssignToBlock, &s.Deletions, &s.Backlog, &s.Recovery); err != nil {
 			return nil, err
 		}
 
@@ -967,7 +982,7 @@ func (d *DB) UnassignIssueFromWorkBlock(issueKey string) error {
 func (d *DB) ListWorkBlockIssues(blockID string) ([]models.Issue, error) {
 	rows, err := d.Query(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
 		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, '')
+		COALESCE(a.name, ''), COALESCE(a.slug, '')
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
 		WHERE i.work_block_id=? ORDER BY i.priority DESC, i.created_at`, blockID)
 	if err != nil {
@@ -980,7 +995,7 @@ func (d *DB) ListWorkBlockIssues(blockID string) ([]models.Issue, error) {
 		var i models.Issue
 		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
 			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName); err != nil {
+			&i.AssigneeName, &i.AssigneeSlug); err != nil {
 			return nil, err
 		}
 		issues = append(issues, i)
@@ -1192,7 +1207,7 @@ func (d *DB) GetActiveBoardPolicies() ([]models.BoardPolicy, error) {
 func (d *DB) GetRecentCompletedIssues(limit int) ([]models.Issue, error) {
 	rows, err := d.Query(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
 		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, '')
+		COALESCE(a.name, ''), COALESCE(a.slug, '')
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
 		WHERE i.status IN ('done','cancelled','wont_do')
 		ORDER BY i.completed_at DESC LIMIT ?`, limit)
@@ -1206,7 +1221,7 @@ func (d *DB) GetRecentCompletedIssues(limit int) ([]models.Issue, error) {
 		var i models.Issue
 		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
 			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName); err != nil {
+			&i.AssigneeName, &i.AssigneeSlug); err != nil {
 			return nil, err
 		}
 		issues = append(issues, i)

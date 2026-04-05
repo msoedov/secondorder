@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{if .PageTitle}}{{.PageTitle}} - Second Order{{else}}Second
       Order{{end}}</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -55,10 +55,20 @@
         const modelSelect = document.getElementById(modelSelectId);
         if (!modelSelect) return;
         const currentModel = modelSelect.dataset.current;
+        const defaultLabel = modelSelect.dataset.defaultLabel;
         modelSelect.innerHTML = '';
+
+        if (defaultLabel) {
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = defaultLabel;
+            if (!currentModel) defaultOpt.selected = true;
+            modelSelect.appendChild(defaultOpt);
+        }
 
         let models = [];
         if (runner === 'claude_code') {
+
             models = [
                 {val: 'sonnet', label: 'Sonnet'},
                 {val: 'opus', label: 'Opus'},
@@ -66,9 +76,8 @@
             ];
         } else if (runner === 'codex') {
             models = [
-                {val: 'o3', label: 'o3'},
-                {val: 'o4-mini', label: 'o4-mini'},
-                {val: 'gpt-4o', label: 'gpt-4o'}
+                {val: 'gpt-4o', label: 'gpt-4o'},
+                {val: 'o4-mini', label: 'o4-mini'}
             ];
         } else if (runner === 'antigravity') {
             models = [

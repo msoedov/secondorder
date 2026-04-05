@@ -12,7 +12,7 @@ The mapping between runners and models is defined in `internal/models/models.go`
 |--------|------------------|
 | `claude_code` | `sonnet`, `opus`, `haiku` |
 | `gemini` | `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `gemini-1.5-pro`, `gemini-1.5-flash` |
-| `codex` | `o3`, `o4-mini`, `gpt-4o` |
+| `codex` | `gpt-4o`, `o4-mini` |
 | `antigravity` | `default` |
 
 ### Validation Logic

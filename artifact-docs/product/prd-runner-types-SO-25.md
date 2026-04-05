@@ -69,7 +69,7 @@ codex exec --full-auto --json <prompt>
 ```
 
 - **API key**: `OPENAI_API_KEY` — set per-agent via the `api_key_env` field (see below) or inherited from process env
-- **Model field**: maps to OpenAI model names (e.g. `o3`, `o4-mini`, `gpt-4o`). Dropdown options differ from Claude models.
+- **Model field**: maps to OpenAI model names (e.g. `gpt-4o`, `o4-mini`). Dropdown options differ from Claude models.
 - **Working dir**: same `cmd.Dir = agent.WorkingDir` behavior
 - **Archetype**: injected as `CODEX_SYSTEM_PROMPT` env var (Codex supports system prompt via env)
 - **Max turns**: not directly supported by Codex CLI; omit or map to `--max-steps` if available
@@ -123,7 +123,7 @@ The scheduler's run record, token counting, and diff capture remain runner-agnos
 - Add **Runner** dropdown: `Claude Code`, `Codex`, `Antigravity`
 - Model dropdown options change dynamically based on runner selection:
   - `claude_code`: Sonnet / Opus / Haiku (existing)
-  - `codex`: o3 / o4-mini / gpt-4o
+  - `codex`: gpt-4o / o4-mini
   - `antigravity`: default / (runner-specific options TBD)
 - Add **API Key Env Var** text input (optional). Helper text: "Name of the environment variable containing the API key for this runner."
 
@@ -147,7 +147,7 @@ Add optional `runner` field to agent objects. Omitting defaults to `claude_code`
   "name": "Backend Engineer",
   "slug": "backend-engineer",
   "archetype_slug": "backend",
-  "model": "o3",
+  "model": "gpt-4o",
   "runner": "codex"
 }
 ```

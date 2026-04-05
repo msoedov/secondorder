@@ -341,7 +341,7 @@ Uses `github.com/sirupsen/logrus` with structured fields. Log lines include:
 | GET | /api/v1/inbox | Agent's assigned issues |
 | GET | /api/v1/issues/{key} | Issue + comments |
 | POST | /api/v1/issues/{key}/checkout | Atomic claim (worker agents) |
-| PATCH | /api/v1/issues/{key} | Update status + comment (triggers wake chain) |
+| PATCH | /api/v1/issues/{key} | Update status, comment, or reassignment (`assignee_slug`) |
 | POST | /api/v1/issues/{key}/comments | Add comment (triggers SSE toast) |
 | POST | /api/v1/issues | Create issue with `assignee_slug` + `parent_issue_key` |
 | GET | /api/v1/agents | List all agents (id, slug, name, archetype) |

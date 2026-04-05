@@ -186,12 +186,17 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Re-fetch to get joined fields (AssigneeName, AssigneeSlug)
+	if updated, err := a.db.GetIssue(key); err == nil {
+		issue = updated
+	}
+
 	// SSE broadcast
 	updateData, _ := json.Marshal(map[string]string{
 		"key":           key,
 		"status":        issue.Status,
 		"title":         issue.Title,
-		"assignee_slug": ptrStrOrEmpty(body.AssigneeSlug),
+		"assignee_slug": issue.AssigneeSlug,
 	})
 	a.sse.Broadcast("issue_updated", string(updateData))
 
@@ -251,7 +256,9 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	if (body.Status == models.StatusInProgress || isReassignedInProgress) && agent != nil && issue.AssigneeAgentID != nil && *issue.AssigneeAgentID != agent.ID {
 		// Check retry limit
 		runCount, _ := a.db.CountRunsForIssue(key)
-		if runCount > 6 {
+		// Bypass retry limit if reassigned OR if updated by CEO
+		isCEO := agent.ArchetypeSlug == "ceo"
+		if runCount > 6 && !isReassignedInProgress && !isCEO {
 			issue.Status = models.StatusBlocked
 			a.db.UpdateIssue(issue)
 			a.db.CreateComment(&models.Comment{

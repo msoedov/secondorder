@@ -668,16 +668,22 @@ func (s *Scheduler) RunAudit(maxBlocks, maxIssues int, focus, runner, model stri
 		return "", fmt.Errorf("no auditor agent found -- create one with archetype 'auditor'")
 	}
 
-	// Configuration file support (.secondorder.yml)
+	// Configuration file support (.secondorder.json or .secondorder.yml)
 	if runner == "" || model == "" {
-		if data, err := os.ReadFile(".secondorder.yml"); err == nil {
+		var data []byte
+		var err error
+		if data, err = os.ReadFile(".secondorder.json"); err != nil {
+			data, err = os.ReadFile(".secondorder.yml")
+		}
+
+		if err == nil {
 			var config struct {
 				Audit struct {
 					Runner string `json:"runner"`
 					Model  string `json:"model"`
 				} `json:"audit"`
 			}
-			// Try as JSON first (simple for now, could use YAML if needed)
+			// Try as JSON (common for both .json and often used in .yml in this project)
 			if err := json.Unmarshal(data, &config); err == nil {
 				if runner == "" && config.Audit.Runner != "" {
 					runner = config.Audit.Runner
@@ -696,7 +702,24 @@ func (s *Scheduler) RunAudit(maxBlocks, maxIssues int, focus, runner, model stri
 	if ar.Runner == "" {
 		ar.Runner = auditor.Runner
 	}
+	// If runner was specified (via UI or config) but model was not,
+	// we must ensure the model is valid for THAT runner.
+	// If we just use auditor.Model, it might be incompatible.
 	if ar.Model == "" {
+		if ar.Runner == auditor.Runner {
+			ar.Model = auditor.Model
+		} else {
+			// Pick first valid model for the runner
+			if m, ok := models.RunnerModels[ar.Runner]; ok && len(m) > 0 {
+				ar.Model = m[0]
+			}
+		}
+	}
+
+	// Final validation
+	if !models.IsValidModelForRunner(ar.Runner, ar.Model) {
+		// Fallback to auditor defaults if invalid
+		ar.Runner = auditor.Runner
 		ar.Model = auditor.Model
 	}
 
@@ -960,7 +983,7 @@ const workerAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
   GET    $SECONDORDER_API_URL/api/v1/issues/{key}                       - issue detail + comments
   POST   $SECONDORDER_API_URL/api/v1/issues/{key}/checkout              - claim issue
-  PATCH  $SECONDORDER_API_URL/api/v1/issues/{key}                       - update status + comment
+  PATCH  $SECONDORDER_API_URL/api/v1/issues/{key}                       - update status, comment, or reassignment ({"status":"...","comment":"...","assignee_slug":"..."})
   POST   $SECONDORDER_API_URL/api/v1/issues/{key}/comments              - add comment
   POST   $SECONDORDER_API_URL/api/v1/issues                             - create sub-issue
   GET    $SECONDORDER_API_URL/api/v1/usage                              - your token/cost usage`
@@ -980,7 +1003,7 @@ const ceoRules = `RULES:
 const ceoAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
   GET    $SECONDORDER_API_URL/api/v1/issues/{key}                       - issue detail + comments
-  PATCH  $SECONDORDER_API_URL/api/v1/issues/{key}                       - update status + comment
+  PATCH  $SECONDORDER_API_URL/api/v1/issues/{key}                       - update status, comment, or reassignment ({"status":"...","comment":"...","assignee_slug":"..."})
   POST   $SECONDORDER_API_URL/api/v1/issues/{key}/comments              - add comment
   POST   $SECONDORDER_API_URL/api/v1/issues                             - create & assign: {"title":"...","assignee_slug":"...","parent_issue_key":"..."}
   GET    $SECONDORDER_API_URL/api/v1/agents                             - list team (slug, name, archetype)

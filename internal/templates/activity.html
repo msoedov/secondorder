@@ -19,6 +19,10 @@
     .legend-swatch.creations { background: rgb(var(--c-sf)); border: 1px solid rgb(var(--c-bd)); }
     .legend-swatch.updates   { background: #60a5fa; }
     .legend-swatch.checkouts { background: rgb(var(--c-ac)); }
+    .legend-swatch.assigns   { background: #f59e0b; }
+    .legend-swatch.deletions { background: #ef4444; }
+    .legend-swatch.backlog   { background: #8b5cf6; }
+    .legend-swatch.recovery  { background: #10b981; }
     .chart-area { display: flex; gap: 8px; }
     .y-ticks { display: flex; flex-direction: column; justify-content: space-between; height: 120px; padding-bottom: 0; }
     .y-tick { font-size: 9px; color: rgb(var(--c-ink3) / 0.4); line-height: 1; text-align: right; width: 18px; }
@@ -32,6 +36,10 @@
     .bar.creations { background: rgb(var(--c-sf)); border: 1px solid rgb(var(--c-bd)); border-bottom: none; }
     .bar.updates   { background: #60a5fa; }
     .bar.checkouts { background: rgb(var(--c-ac)); }
+    .bar.assigns   { background: #f59e0b; }
+    .bar.deletions { background: #ef4444; }
+    .bar.backlog   { background: #8b5cf6; }
+    .bar.recovery  { background: #10b981; }
     .bar:hover { filter: brightness(0.9); }
     .bar-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgb(var(--c-ink)); color: rgb(var(--c-pg)); font-size: 10px; padding: 3px 7px; border-radius: 4px; z-index: 10; pointer-events: none; line-height: 1.5; }
     .bar-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: rgb(var(--c-ink)); }
@@ -50,10 +58,14 @@
     <div class="chart-card fade-in overflow-x-auto">
       <div class="chart-header">
         <span class="chart-title">Activity per day — last 14 days</span>
-        <div class="chart-legend">
+        <div class="chart-legend flex-wrap justify-end">
           <div class="legend-item"><div class="legend-swatch creations"></div>Creation</div>
           <div class="legend-item"><div class="legend-swatch updates"></div>Updates</div>
           <div class="legend-item"><div class="legend-swatch checkouts"></div>Checkout</div>
+          <div class="legend-item"><div class="legend-swatch assigns"></div>Assign</div>
+          <div class="legend-item"><div class="legend-swatch deletions"></div>Delete</div>
+          <div class="legend-item"><div class="legend-swatch backlog"></div>Backlog</div>
+          <div class="legend-item"><div class="legend-swatch recovery"></div>Recovery</div>
         </div>
       </div>
 
@@ -61,13 +73,25 @@
       {{$totalCreations := 0}}
       {{$totalUpdates := 0}}
       {{$totalCheckouts := 0}}
+      {{$totalAssigns := 0}}
+      {{$totalDeletions := 0}}
+      {{$totalBacklog := 0}}
+      {{$totalRecovery := 0}}
       {{range .DailyStats}}
         {{$maxVal = max $maxVal .Creations}}
         {{$maxVal = max $maxVal .Updates}}
         {{$maxVal = max $maxVal .Checkouts}}
+        {{$maxVal = max $maxVal .AssignToBlock}}
+        {{$maxVal = max $maxVal .Deletions}}
+        {{$maxVal = max $maxVal .Backlog}}
+        {{$maxVal = max $maxVal .Recovery}}
         {{$totalCreations = add $totalCreations .Creations}}
         {{$totalUpdates = add $totalUpdates .Updates}}
         {{$totalCheckouts = add $totalCheckouts .Checkouts}}
+        {{$totalAssigns = add $totalAssigns .AssignToBlock}}
+        {{$totalDeletions = add $totalDeletions .Deletions}}
+        {{$totalBacklog = add $totalBacklog .Backlog}}
+        {{$totalRecovery = add $totalRecovery .Recovery}}
       {{end}}
       {{$niceMax := mult (ceil (div $maxVal 4)) 4}}
 
@@ -88,12 +112,24 @@
             {{if and (gt $d.Updates 0) (lt $uH 2)}}{{$uH = 2}}{{end}}
             {{$ckH := mult (div $d.Checkouts $niceMax) 120 | ceil}}
             {{if and (gt $d.Checkouts 0) (lt $ckH 2)}}{{$ckH = 2}}{{end}}
+            {{$aH := mult (div $d.AssignToBlock $niceMax) 120 | ceil}}
+            {{if and (gt $d.AssignToBlock 0) (lt $aH 2)}}{{$aH = 2}}{{end}}
+            {{$dH := mult (div $d.Deletions $niceMax) 120 | ceil}}
+            {{if and (gt $d.Deletions 0) (lt $dH 2)}}{{$dH = 2}}{{end}}
+            {{$bH := mult (div $d.Backlog $niceMax) 120 | ceil}}
+            {{if and (gt $d.Backlog 0) (lt $bH 2)}}{{$bH = 2}}{{end}}
+            {{$rH := mult (div $d.Recovery $niceMax) 120 | ceil}}
+            {{if and (gt $d.Recovery 0) (lt $rH 2)}}{{$rH = 2}}{{end}}
             <div class="day-col">
               <div class="day-highlight"></div>
               <div class="bar-pair">
                 <div class="bar creations" style="height:{{$cH}}px"><div class="bar-tooltip">Creation: {{$d.Creations}}</div></div>
                 <div class="bar updates" style="height:{{$uH}}px"><div class="bar-tooltip">Updates: {{$d.Updates}}</div></div>
                 <div class="bar checkouts" style="height:{{$ckH}}px"><div class="bar-tooltip">Checkout: {{$d.Checkouts}}</div></div>
+                <div class="bar assigns" style="height:{{$aH}}px"><div class="bar-tooltip">Assign: {{$d.AssignToBlock}}</div></div>
+                <div class="bar deletions" style="height:{{$dH}}px"><div class="bar-tooltip">Delete: {{$d.Deletions}}</div></div>
+                <div class="bar backlog" style="height:{{$bH}}px"><div class="bar-tooltip">Backlog: {{$d.Backlog}}</div></div>
+                <div class="bar recovery" style="height:{{$rH}}px"><div class="bar-tooltip">Recovery: {{$d.Recovery}}</div></div>
               </div>
             </div>
             {{end}}
@@ -106,12 +142,20 @@
         </div>
       </div>
 
-      <div class="summary-row">
+      <div class="summary-row overflow-x-auto pb-2">
         <div class="summary-stat"><span class="summary-value">{{$totalCreations}}</span><span class="summary-label">creation</span></div>
         <div class="summary-divider"></div>
         <div class="summary-stat"><span class="summary-value">{{$totalUpdates}}</span><span class="summary-label">updates</span></div>
         <div class="summary-divider"></div>
         <div class="summary-stat"><span class="summary-value">{{$totalCheckouts}}</span><span class="summary-label">checkout</span></div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat"><span class="summary-value">{{$totalAssigns}}</span><span class="summary-label">assign</span></div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat"><span class="summary-value">{{$totalDeletions}}</span><span class="summary-label">delete</span></div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat"><span class="summary-value">{{$totalBacklog}}</span><span class="summary-label">backlog</span></div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat"><span class="summary-value">{{$totalRecovery}}</span><span class="summary-label">recovery</span></div>
       </div>
     </div>
     {{end}}
