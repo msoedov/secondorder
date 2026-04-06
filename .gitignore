@@ -45,3 +45,4 @@ artifact-docs/backlog.md
 .gocache/
 .gomodcache/
 *.db
+bin/

@@ -376,11 +376,17 @@ function connectSSE() {
   sse.addEventListener('issue_created', e => {
     const d = JSON.parse(e.data);
     showToast('Issue Created', d.key + ': ' + d.title, '/issues/' + d.key);
+    if (d.warnings && d.warnings.length > 0) {
+      d.warnings.forEach(w => showToast('Warning', w, '/issues/' + d.key));
+    }
     document.body.dispatchEvent(new CustomEvent('issue-changed', {detail: {key: d.key}}));
   });
   sse.addEventListener('issue_updated', e => {
     const d = JSON.parse(e.data);
     showToast('Issue Updated', d.key + ' is now ' + d.status, '/issues/' + d.key);
+    if (d.warnings && d.warnings.length > 0) {
+      d.warnings.forEach(w => showToast('Warning', w, '/issues/' + d.key));
+    }
     document.body.dispatchEvent(new CustomEvent('issue-changed', {detail: {key: d.key}}));
   });
   sse.addEventListener('issue_deleted', e => {
@@ -388,9 +394,23 @@ function connectSSE() {
     showToast('Issue Deleted', d.key);
     document.body.dispatchEvent(new CustomEvent('issue-changed', {detail: {key: d.key}}));
   });
+  sse.addEventListener('agent_created', e => {
+    const d = JSON.parse(e.data);
+    showToast('Agent Created', d.name, '/agents/' + d.slug);
+    document.body.dispatchEvent(new CustomEvent('agent-changed', {detail: d}));
+  });
+  sse.addEventListener('agent_updated', e => {
+    const d = JSON.parse(e.data);
+    document.body.dispatchEvent(new CustomEvent('agent-changed', {detail: d}));
+  });
   sse.addEventListener('run_complete', e => {
     const d = JSON.parse(e.data);
     showToast('Run ' + d.status, 'Run ' + d.run_id.substring(0, 8) + ' ' + d.status, '/runs/' + d.run_id);
+    document.body.dispatchEvent(new CustomEvent('run-complete', {detail: d}));
+  });
+  sse.addEventListener('run_started', e => {
+    const d = JSON.parse(e.data);
+    document.body.dispatchEvent(new CustomEvent('run-started', {detail: d}));
   });
   sse.onerror = () => { sse.close(); setTimeout(connectSSE, 3000); };
 }

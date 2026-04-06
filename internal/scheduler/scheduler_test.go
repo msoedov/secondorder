@@ -47,6 +47,13 @@ func TestSetCallbacks(t *testing.T) {
 	d := testDB(t)
 	s := New(d, 9001)
 
+	startCalled := false
+	s.SetOnRunStart(func(r *models.Run) { startCalled = true })
+	s.onRunStart(&models.Run{})
+	if !startCalled {
+		t.Error("onRunStart not called")
+	}
+
 	called := false
 	s.SetOnRunComplete(func(r *models.Run) { called = true })
 	s.onRunComplete(&models.Run{})

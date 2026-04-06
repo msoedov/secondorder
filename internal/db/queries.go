@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -125,6 +126,24 @@ func (d *DB) GetReviewer(agentID string) (*models.Agent, error) {
 	return d.GetCEOAgent()
 }
 
+func (d *DB) GetRunningAgentIDs() (map[string]bool, error) {
+	rows, err := d.Query(`SELECT DISTINCT agent_id FROM runs WHERE status = 'running'`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	running := make(map[string]bool)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		running[id] = true
+	}
+	return running, nil
+}
+
 func (d *DB) CountAgents() (int, int, error) {
 	var total, active int
 	err := d.QueryRow(`SELECT COUNT(*), COALESCE(SUM(CASE WHEN active=1 THEN 1 ELSE 0 END), 0) FROM agents`).Scan(&total, &active)
@@ -133,51 +152,62 @@ func (d *DB) CountAgents() (int, int, error) {
 
 // --- Issues ---
 
-func (d *DB) GetIssueByTitle(title string) (*models.Issue, error) {
+const issueCols = `i.id, i.key, i.title, i.description, i.status, i.type, i.priority, i.assignee_agent_id,
+	i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
+	COALESCE(a.name, ''), COALESCE(a.slug, ''), i.stages, i.current_stage_id`
+
+func scanIssue(scanner interface {
+	Scan(dest ...any) error
+}) (*models.Issue, error) {
 	i := &models.Issue{}
-	err := d.QueryRow(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
-		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, ''), COALESCE(a.slug, '')
-		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
-		WHERE LOWER(i.title) = LOWER(?)`, title).Scan(
-		&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
+	var stagesJSON string
+	err := scanner.Scan(
+		&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Type, &i.Priority, &i.AssigneeAgentID,
 		&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-		&i.AssigneeName, &i.AssigneeSlug)
+		&i.AssigneeName, &i.AssigneeSlug, &stagesJSON, &i.CurrentStageID)
 	if err != nil {
 		return nil, err
 	}
+	if stagesJSON != "" {
+		json.Unmarshal([]byte(stagesJSON), &i.Stages)
+	}
+	if i.Stages == nil {
+		i.Stages = []models.IssueStage{}
+	}
 	return i, nil
+}
+
+func (d *DB) GetIssueByTitle(title string) (*models.Issue, error) {
+	row := d.QueryRow(fmt.Sprintf(`SELECT %s
+		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
+		WHERE LOWER(i.title) = LOWER(?)`, issueCols), title)
+	return scanIssue(row)
 }
 
 func (d *DB) CreateIssue(i *models.Issue) error {
 	if i.ID == "" {
 		i.ID = uuid.NewString()
 	}
+	if i.Type == "" {
+		i.Type = "task"
+	}
 	now := time.Now().UTC()
 	i.CreatedAt = now
 	i.UpdatedAt = now
-	_, err := d.Exec(`INSERT INTO issues (id, key, title, description, status, priority, assignee_agent_id,
-		parent_issue_key, work_block_id, started_at, completed_at, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		i.ID, i.Key, i.Title, i.Description, i.Status, i.Priority, i.AssigneeAgentID,
-		i.ParentIssueKey, i.WorkBlockID, i.StartedAt, i.CompletedAt, i.CreatedAt, i.UpdatedAt)
+	stagesJSON, _ := json.Marshal(i.Stages)
+	_, err := d.Exec(`INSERT INTO issues (id, key, title, description, status, type, priority, assignee_agent_id,
+		parent_issue_key, work_block_id, started_at, completed_at, created_at, updated_at, stages, current_stage_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		i.ID, i.Key, i.Title, i.Description, i.Status, i.Type, i.Priority, i.AssigneeAgentID,
+		i.ParentIssueKey, i.WorkBlockID, i.StartedAt, i.CompletedAt, i.CreatedAt, i.UpdatedAt, string(stagesJSON), i.CurrentStageID)
 	return err
 }
 
 func (d *DB) GetIssue(key string) (*models.Issue, error) {
-	i := &models.Issue{}
-	err := d.QueryRow(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
-		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, ''), COALESCE(a.slug, '')
+	row := d.QueryRow(fmt.Sprintf(`SELECT %s
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
-		WHERE i.key = ?`, key).Scan(
-		&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-		&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-		&i.AssigneeName, &i.AssigneeSlug)
-	if err != nil {
-		return nil, err
-	}
-	return i, nil
+		WHERE i.key = ?`, issueCols), key)
+	return scanIssue(row)
 }
 
 func (d *DB) DeleteIssue(key string) error {
@@ -186,10 +216,8 @@ func (d *DB) DeleteIssue(key string) error {
 }
 
 func (d *DB) ListIssues(status string, limit int) ([]models.Issue, error) {
-	query := `SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
-		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, ''), COALESCE(a.slug, '')
-		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id`
+	query := fmt.Sprintf(`SELECT %s
+		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id`, issueCols)
 
 	var args []any
 	if status != "" {
@@ -215,23 +243,19 @@ func (d *DB) ListIssues(status string, limit int) ([]models.Issue, error) {
 
 	var issues []models.Issue
 	for rows.Next() {
-		var i models.Issue
-		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName, &i.AssigneeSlug); err != nil {
+		i, err := scanIssue(rows)
+		if err != nil {
 			return nil, err
 		}
-		issues = append(issues, i)
+		issues = append(issues, *i)
 	}
 	return issues, rows.Err()
 }
 
 func (d *DB) GetRecentIssues(limit int) ([]models.Issue, error) {
-	query := `SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
-		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, ''), COALESCE(a.slug, '')
+	query := fmt.Sprintf(`SELECT %s
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
-		ORDER BY i.updated_at DESC`
+		ORDER BY i.updated_at DESC`, issueCols)
 
 	var args []any
 	if limit > 0 {
@@ -247,24 +271,23 @@ func (d *DB) GetRecentIssues(limit int) ([]models.Issue, error) {
 
 	var issues []models.Issue
 	for rows.Next() {
-		var i models.Issue
-		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName, &i.AssigneeSlug); err != nil {
+		i, err := scanIssue(rows)
+		if err != nil {
 			return nil, err
 		}
-		issues = append(issues, i)
+		issues = append(issues, *i)
 	}
 	return issues, rows.Err()
 }
 
 func (d *DB) UpdateIssue(i *models.Issue) error {
 	i.UpdatedAt = time.Now().UTC()
-	_, err := d.Exec(`UPDATE issues SET title=?, description=?, status=?, priority=?, assignee_agent_id=?,
-		parent_issue_key=?, work_block_id=?, started_at=?, completed_at=?, updated_at=?
+	stagesJSON, _ := json.Marshal(i.Stages)
+	_, err := d.Exec(`UPDATE issues SET title=?, description=?, status=?, type=?, priority=?, assignee_agent_id=?,
+		parent_issue_key=?, work_block_id=?, started_at=?, completed_at=?, updated_at=?, stages=?, current_stage_id=?
 		WHERE key=?`,
-		i.Title, i.Description, i.Status, i.Priority, i.AssigneeAgentID,
-		i.ParentIssueKey, i.WorkBlockID, i.StartedAt, i.CompletedAt, i.UpdatedAt, i.Key)
+		i.Title, i.Description, i.Status, i.Type, i.Priority, i.AssigneeAgentID,
+		i.ParentIssueKey, i.WorkBlockID, i.StartedAt, i.CompletedAt, i.UpdatedAt, string(stagesJSON), i.CurrentStageID, i.Key)
 	return err
 }
 
@@ -296,12 +319,10 @@ func (d *DB) CheckoutIssue(key, agentID string, expectedStatuses []string) error
 }
 
 func (d *DB) GetAgentInbox(agentID string) ([]models.Issue, error) {
-	rows, err := d.Query(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
-		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, ''), COALESCE(a.slug, '')
+	rows, err := d.Query(fmt.Sprintf(`SELECT %s
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
 		WHERE i.assignee_agent_id=? AND i.status NOT IN ('done','cancelled','wont_do')
-		ORDER BY i.priority DESC, i.created_at`, agentID)
+		ORDER BY i.priority DESC, i.created_at`, issueCols), agentID)
 	if err != nil {
 		return nil, err
 	}
@@ -309,13 +330,11 @@ func (d *DB) GetAgentInbox(agentID string) ([]models.Issue, error) {
 
 	var issues []models.Issue
 	for rows.Next() {
-		var i models.Issue
-		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName, &i.AssigneeSlug); err != nil {
+		i, err := scanIssue(rows)
+		if err != nil {
 			return nil, err
 		}
-		issues = append(issues, i)
+		issues = append(issues, *i)
 	}
 	return issues, rows.Err()
 }
@@ -327,11 +346,9 @@ func (d *DB) CountIssues() (int, int, error) {
 }
 
 func (d *DB) GetChildIssues(parentKey string) ([]models.Issue, error) {
-	rows, err := d.Query(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
-		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, ''), COALESCE(a.slug, '')
+	rows, err := d.Query(fmt.Sprintf(`SELECT %s
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
-		WHERE i.parent_issue_key=? ORDER BY i.created_at`, parentKey)
+		WHERE i.parent_issue_key=? ORDER BY i.created_at`, issueCols), parentKey)
 	if err != nil {
 		return nil, err
 	}
@@ -339,13 +356,11 @@ func (d *DB) GetChildIssues(parentKey string) ([]models.Issue, error) {
 
 	var issues []models.Issue
 	for rows.Next() {
-		var i models.Issue
-		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName, &i.AssigneeSlug); err != nil {
+		i, err := scanIssue(rows)
+		if err != nil {
 			return nil, err
 		}
-		issues = append(issues, i)
+		issues = append(issues, *i)
 	}
 	return issues, rows.Err()
 }
@@ -452,13 +467,11 @@ func (d *DB) CountRunningRuns() (int, error) {
 
 // GetStuckIssues returns issues in in_progress or todo state that have an assigned agent.
 func (d *DB) GetStuckIssues() ([]models.Issue, error) {
-	rows, err := d.Query(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
-		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, ''), COALESCE(a.slug, '')
+	rows, err := d.Query(fmt.Sprintf(`SELECT %s
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
 		WHERE i.status IN ('in_progress', 'todo')
 		AND i.assignee_agent_id IS NOT NULL
-		ORDER BY i.priority DESC, i.created_at`)
+		ORDER BY i.priority DESC, i.created_at`, issueCols))
 	if err != nil {
 		return nil, err
 	}
@@ -466,13 +479,11 @@ func (d *DB) GetStuckIssues() ([]models.Issue, error) {
 
 	var issues []models.Issue
 	for rows.Next() {
-		var i models.Issue
-		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName, &i.AssigneeSlug); err != nil {
+		i, err := scanIssue(rows)
+		if err != nil {
 			return nil, err
 		}
-		issues = append(issues, i)
+		issues = append(issues, *i)
 	}
 	return issues, rows.Err()
 }
@@ -980,11 +991,9 @@ func (d *DB) UnassignIssueFromWorkBlock(issueKey string) error {
 }
 
 func (d *DB) ListWorkBlockIssues(blockID string) ([]models.Issue, error) {
-	rows, err := d.Query(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
-		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, ''), COALESCE(a.slug, '')
+	rows, err := d.Query(fmt.Sprintf(`SELECT %s
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
-		WHERE i.work_block_id=? ORDER BY i.priority DESC, i.created_at`, blockID)
+		WHERE i.work_block_id=? ORDER BY i.priority DESC, i.created_at`, issueCols), blockID)
 	if err != nil {
 		return nil, err
 	}
@@ -992,13 +1001,11 @@ func (d *DB) ListWorkBlockIssues(blockID string) ([]models.Issue, error) {
 
 	var issues []models.Issue
 	for rows.Next() {
-		var i models.Issue
-		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName, &i.AssigneeSlug); err != nil {
+		i, err := scanIssue(rows)
+		if err != nil {
 			return nil, err
 		}
-		issues = append(issues, i)
+		issues = append(issues, *i)
 	}
 	return issues, rows.Err()
 }
@@ -1205,12 +1212,10 @@ func (d *DB) GetActiveBoardPolicies() ([]models.BoardPolicy, error) {
 }
 
 func (d *DB) GetRecentCompletedIssues(limit int) ([]models.Issue, error) {
-	rows, err := d.Query(`SELECT i.id, i.key, i.title, i.description, i.status, i.priority, i.assignee_agent_id,
-		i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-		COALESCE(a.name, ''), COALESCE(a.slug, '')
+	rows, err := d.Query(fmt.Sprintf(`SELECT %s
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id
 		WHERE i.status IN ('done','cancelled','wont_do')
-		ORDER BY i.completed_at DESC LIMIT ?`, limit)
+		ORDER BY i.completed_at DESC LIMIT ?`, issueCols), limit)
 	if err != nil {
 		return nil, err
 	}
@@ -1218,13 +1223,11 @@ func (d *DB) GetRecentCompletedIssues(limit int) ([]models.Issue, error) {
 
 	var issues []models.Issue
 	for rows.Next() {
-		var i models.Issue
-		if err := rows.Scan(&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Priority, &i.AssigneeAgentID,
-			&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
-			&i.AssigneeName, &i.AssigneeSlug); err != nil {
+		i, err := scanIssue(rows)
+		if err != nil {
 			return nil, err
 		}
-		issues = append(issues, i)
+		issues = append(issues, *i)
 	}
 	return issues, rows.Err()
 }

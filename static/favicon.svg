@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Warm dark background -->
-  <rect width="32" height="32" rx="6" fill="#0c0a09"/>
-  <!-- T-mark: crossbar doubled (two stacked lines) -->
-  <rect x="7" y="9" width="18" height="2" rx="1" fill="#fbbf24"/>
-  <rect x="7" y="13" width="12" height="2" rx="1" fill="#fbbf24" opacity=".5"/>
-  <!-- Vertical stem -->
-  <rect x="14" y="11" width="4" height="12" rx="1" fill="#fbbf24"/>
+  <rect width="32" height="32" rx="8" fill="#0b1215"/>
+  <path
+    d="M9 7h11c3.314 0 6 2.686 6 6v1h-6v-1H9V7Zm14 18H12c-3.314 0-6-2.686-6-6v-1h6v1h11v6Z"
+    fill="#34d399"/>
+  <rect x="13" y="11" width="6" height="10" rx="3" fill="#34d399"/>
+  <rect x="17" y="9" width="5" height="3" rx="1.5" fill="#0b1215"/>
+  <rect x="10" y="20" width="5" height="3" rx="1.5" fill="#0b1215"/>
 </svg>

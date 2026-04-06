@@ -9,6 +9,24 @@
       <span class="text-ink3 font-mono">{{.Issue.Key}}</span>
     </div>
 
+    {{if .Error}}
+    <div class="mb-4 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
+      <span class="text-sm text-red-400">{{.Error}}</span>
+    </div>
+    {{end}}
+
+    {{if .Success}}
+    <div class="mb-4 bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3">
+      <span class="text-sm text-green-400">{{.Success}}</span>
+    </div>
+    {{end}}
+
+    {{if .Warning}}
+    <div class="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3">
+      <span class="text-sm text-amber-400">{{.Warning}}</span>
+    </div>
+    {{end}}
+
     <div class="flex gap-6">
       <!-- Main -->
       <div class="flex-1 min-w-0 space-y-6 slide-up">
@@ -96,6 +114,20 @@
       <!-- Sidebar -->
       <div class="w-56 shrink-0 space-y-3">
         <div class="bg-card border border-bd rounded-lg p-3">
+          <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Type</div>
+          <form method="POST" action="/issues/{{.Issue.Key}}">
+            <select name="type" onchange="this.form.submit()" class="w-full bg-sf border border-bd rounded-md px-2.5 py-1.5 text-xs text-ink outline-none focus:ring-1 focus:ring-ac cursor-pointer">
+              <option value="task" {{if eq .Issue.Type "task"}}selected{{end}}>Task</option>
+              <option value="api" {{if eq .Issue.Type "api"}}selected{{end}}>API</option>
+              <option value="backend" {{if eq .Issue.Type "backend"}}selected{{end}}>Backend</option>
+              <option value="frontend" {{if eq .Issue.Type "frontend"}}selected{{end}}>Frontend</option>
+              <option value="bug" {{if eq .Issue.Type "bug"}}selected{{end}}>Bug</option>
+              <option value="feature" {{if eq .Issue.Type "feature"}}selected{{end}}>Feature</option>
+            </select>
+          </form>
+        </div>
+
+        <div class="bg-card border border-bd rounded-lg p-3">
           <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Status</div>
           <form method="POST" action="/issues/{{.Issue.Key}}">
             <select name="status" class="w-full bg-sf border border-bd rounded-md px-2.5 py-1.5 text-xs text-ink outline-none focus:ring-1 focus:ring-ac cursor-pointer">
@@ -125,6 +157,20 @@
             <select name="assignee_slug" onchange="this.form.submit()" class="w-full bg-sf border border-bd rounded-md px-2.5 py-1.5 text-xs text-ink outline-none focus:ring-1 focus:ring-ac cursor-pointer">
               <option value="">Reassign...</option>
               {{range .Agents}}<option value="{{.Slug}}">{{.Name}}</option>{{end}}
+            </select>
+          </form>
+        </div>
+
+        <div class="bg-card border border-bd rounded-lg p-3">
+          <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Type</div>
+          <form method="POST" action="/issues/{{.Issue.Key}}">
+            <select name="type" onchange="this.form.submit()" class="w-full bg-sf border border-bd rounded-md px-2.5 py-1.5 text-xs text-ink outline-none focus:ring-1 focus:ring-ac cursor-pointer">
+              <option value="task" {{if eq .Issue.Type "task"}}selected{{end}}>Task</option>
+              <option value="api" {{if eq .Issue.Type "api"}}selected{{end}}>API</option>
+              <option value="backend" {{if eq .Issue.Type "backend"}}selected{{end}}>Backend</option>
+              <option value="frontend" {{if eq .Issue.Type "frontend"}}selected{{end}}>Frontend</option>
+              <option value="bug" {{if eq .Issue.Type "bug"}}selected{{end}}>Bug</option>
+              <option value="feature" {{if eq .Issue.Type "feature"}}selected{{end}}>Feature</option>
             </select>
           </form>
         </div>

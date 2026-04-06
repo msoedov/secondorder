@@ -23,6 +23,12 @@
     </div>
     {{end}}
 
+    {{if .Warning}}
+    <div class="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3">
+      <span class="text-sm text-amber-400">{{.Warning}}</span>
+    </div>
+    {{end}}
+
     <!-- Backlog Input -->
     <div class="mb-5">
       <form method="POST" action="/issues" class="relative">
@@ -56,13 +62,24 @@
         </div>
         <div class="flex items-end gap-3">
           <div class="flex-1">
+            <label for="issue-type" class="block text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Type</label>
+            <select id="issue-type" name="type" class="w-full bg-sf border border-bd rounded-md px-3 py-2 text-sm text-ink outline-none focus:ring-1 focus:ring-ac">
+              <option value="task">Task</option>
+              <option value="api">API</option>
+              <option value="backend">Backend</option>
+              <option value="frontend">Frontend</option>
+              <option value="bug">Bug</option>
+              <option value="feature">Feature</option>
+            </select>
+          </div>
+          <div class="flex-1">
             <label for="issue-assignee" class="block text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Assignee</label>
             <select id="issue-assignee" name="assignee_slug" class="w-full bg-sf border border-bd rounded-md px-3 py-2 text-sm text-ink outline-none focus:ring-1 focus:ring-ac">
               <option value="">Auto (CEO)</option>
               {{range .Agents}}<option value="{{.Slug}}">{{.Name}}</option>{{end}}
             </select>
           </div>
-          <div class="w-36">
+          <div class="w-24">
             <label for="issue-priority" class="block text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Priority</label>
             <select id="issue-priority" name="priority" class="w-full bg-sf border border-bd rounded-md px-3 py-2 text-sm text-ink outline-none focus:ring-1 focus:ring-ac">
               <option value="0">None</option>
@@ -105,6 +122,7 @@
     <span class="{{statusColor .Status}} inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0">{{statusIcon .Status}}</span>
     <span class="font-mono text-xs text-ink3/50 w-14 shrink-0 group-hover:text-ac-t transition-colors">{{.Key}}</span>
     {{if gt .Priority 0}}<span class="text-[11px] {{priorityColor .Priority}} shrink-0">{{priorityLabel .Priority}}</span>{{end}}
+    <span class="text-[10px] bg-sf border border-bd text-ink3/70 px-1.5 py-0.5 rounded-sm shrink-0 uppercase tracking-tighter">{{.Type}}</span>
     <span class="text-[13px] text-ink flex-1 truncate" title="{{.Title}}">{{.Title}}</span>
     {{if .ParentIssueKey}}<span class="text-[11px] text-ink3/50 font-mono shrink-0">^{{deref .ParentIssueKey}}</span>{{end}}
     {{if .AssigneeName}}<span class="text-[11px] text-ink3/50 bg-sf px-2 py-0.5 rounded shrink-0">{{.AssigneeName}}</span>{{end}}

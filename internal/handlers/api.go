@@ -8,11 +8,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/msoedov/secondorder/internal/db"
 	"github.com/msoedov/secondorder/internal/models"
+	acvalidator "github.com/msoedov/secondorder/internal/validator"
 	"html/template"
 )
 
@@ -134,12 +137,15 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		Status       string  `json:"status"`
-		Comment      string  `json:"comment"`
-		Title        string  `json:"title"`
-		Description  string  `json:"description"`
-		Priority     *int    `json:"priority"`
-		AssigneeSlug *string `json:"assignee_slug"`
+		Status         string              `json:"status"`
+		Type           string              `json:"type"`
+		Comment        string              `json:"comment"`
+		Title          string              `json:"title"`
+		Description    string              `json:"description"`
+		Priority       *int                `json:"priority"`
+		AssigneeSlug   *string             `json:"assignee_slug"`
+		Stages         *[]models.IssueStage `json:"stages"`
+		CurrentStageID *int                `json:"current_stage_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		jsonError(w, "invalid body", http.StatusBadRequest)
@@ -159,6 +165,9 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	if body.Status != "" {
 		issue.Status = body.Status
 	}
+	if body.Type != "" {
+		issue.Type = body.Type
+	}
 	if body.Title != "" {
 		issue.Title = body.Title
 	}
@@ -167,6 +176,12 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.Priority != nil {
 		issue.Priority = *body.Priority
+	}
+	if body.Stages != nil {
+		issue.Stages = *body.Stages
+	}
+	if body.CurrentStageID != nil {
+		issue.CurrentStageID = *body.CurrentStageID
 	}
 	if body.AssigneeSlug != nil {
 		if *body.AssigneeSlug == "" {
@@ -191,12 +206,19 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 		issue = updated
 	}
 
+	// Validate AC and add warnings to response
+	issue.Warnings = acvalidator.ValidateAC(issue.Type, issue.Description)
+
 	// SSE broadcast
-	updateData, _ := json.Marshal(map[string]string{
-		"key":           key,
-		"status":        issue.Status,
-		"title":         issue.Title,
-		"assignee_slug": issue.AssigneeSlug,
+	updateData, _ := json.Marshal(map[string]any{
+		"key":              key,
+		"status":           issue.Status,
+		"type":             issue.Type,
+		"title":            issue.Title,
+		"assignee_slug":    issue.AssigneeSlug,
+		"stages":           issue.Stages,
+		"current_stage_id": issue.CurrentStageID,
+		"warnings":         issue.Warnings,
 	})
 	a.sse.Broadcast("issue_updated", string(updateData))
 
@@ -361,6 +383,78 @@ func (a *API) CreateComment(w http.ResponseWriter, r *http.Request) {
 	})
 	a.sse.Broadcast("comment", string(data))
 
+	// Stage parsing logic
+	stagesRegex := regexp.MustCompile(`Stages: (\[.*\](?:, \s*\[.*\])*)`)
+	completeRegex := regexp.MustCompile(`Stage (\d+): .* - Complete`)
+	updated := false
+
+	if matches := stagesRegex.FindStringSubmatch(body.Body); len(matches) > 1 {
+		rawStages := matches[1]
+		stageTitles := regexp.MustCompile(`\[([^\]]+)\]`).FindAllStringSubmatch(rawStages, -1)
+		
+		var newStages []models.IssueStage
+		for i, titleMatch := range stageTitles {
+			newStages = append(newStages, models.IssueStage{
+				ID:     i + 1,
+				Title:  titleMatch[1],
+				Status: "todo",
+			})
+		}
+		if len(newStages) > 0 {
+			issue.Stages = newStages
+			issue.CurrentStageID = 1
+			updated = true
+		}
+	}
+
+	if matches := completeRegex.FindStringSubmatch(body.Body); len(matches) > 1 {
+		stageID, _ := strconv.Atoi(matches[1])
+		if stageID > 0 && stageID <= len(issue.Stages) {
+			// Mark current and all previous stages as done
+			for j := 0; j < stageID; j++ {
+				issue.Stages[j].Status = "done"
+			}
+			
+			if stageID < len(issue.Stages) {
+				issue.CurrentStageID = stageID + 1
+			} else {
+				// last stage completed
+				issue.CurrentStageID = stageID
+			}
+			updated = true
+
+			// System acknowledgment comment
+			progress := int(float64(stageID) / float64(len(issue.Stages)) * 100)
+			ackBody := fmt.Sprintf("Stage %d acknowledged. Progress: %d%%", stageID, progress)
+			ackComment := &models.Comment{
+				ID:       uuid.New().String(),
+				IssueKey: key,
+				Author:   "System",
+				Body:     ackBody,
+			}
+			a.db.CreateComment(ackComment)
+			
+			ackData, _ := json.Marshal(map[string]string{
+				"issue_key": key,
+				"author":    "System",
+				"body":      ackBody,
+			})
+			a.sse.Broadcast("comment", string(ackData))
+		}
+	}
+
+	if updated {
+		a.db.UpdateIssue(issue)
+		// Broadcast issue_updated
+		updateData, _ := json.Marshal(map[string]any{
+			"key":              key,
+			"status":           issue.Status,
+			"stages":           issue.Stages,
+			"current_stage_id": issue.CurrentStageID,
+		})
+		a.sse.Broadcast("issue_updated", string(updateData))
+	}
+
 	jsonOK(w, comment)
 }
 
@@ -368,6 +462,7 @@ func (a *API) CreateIssue(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Title          string `json:"title"`
 		Description    string `json:"description"`
+		Type           string `json:"type"`
 		AssigneeSlug   string `json:"assignee_slug"`
 		ParentIssueKey string `json:"parent_issue_key"`
 		Priority       int    `json:"priority"`
@@ -375,6 +470,10 @@ func (a *API) CreateIssue(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
 		jsonError(w, "title required", http.StatusBadRequest)
 		return
+	}
+
+	if body.Type == "" {
+		body.Type = "task"
 	}
 
 	if existing, err := a.db.GetIssueByTitle(body.Title); err == nil {
@@ -399,6 +498,7 @@ func (a *API) CreateIssue(w http.ResponseWriter, r *http.Request) {
 		Title:       body.Title,
 		Description: body.Description,
 		Status:      models.StatusTodo,
+		Type:        body.Type,
 		Priority:    body.Priority,
 	}
 
@@ -429,11 +529,18 @@ func (a *API) CreateIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate AC and add warnings to response
+	issue.Warnings = acvalidator.ValidateAC(issue.Type, issue.Description)
+
 	// SSE broadcast
-	createData, _ := json.Marshal(map[string]string{
-		"key":    key,
-		"title":  issue.Title,
-		"status": issue.Status,
+	createData, _ := json.Marshal(map[string]any{
+		"key":              key,
+		"title":            issue.Title,
+		"status":           issue.Status,
+		"type":             issue.Type,
+		"warnings":         issue.Warnings,
+		"stages":           issue.Stages,
+		"current_stage_id": issue.CurrentStageID,
 	})
 	a.sse.Broadcast("issue_created", string(createData))
 

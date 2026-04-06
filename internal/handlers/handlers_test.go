@@ -379,8 +379,8 @@ func TestCreateIssueUI_Success(t *testing.T) {
 		t.Fatalf("status = %d, want 303", w.Code)
 	}
 	loc := w.Header().Get("Location")
-	if loc != "/issues" {
-		t.Fatalf("redirect = %q, want /issues", loc)
+	if loc != "/issues?success=Created" {
+		t.Fatalf("redirect = %q, want /issues?success=Created", loc)
 	}
 
 	// Verify the issue exists in DB
@@ -461,8 +461,8 @@ func TestCreateSubIssueUI_Success(t *testing.T) {
 		t.Fatalf("status = %d, want 303", w.Code)
 	}
 	loc := w.Header().Get("Location")
-	if loc != "/issues/SO-1" {
-		t.Fatalf("redirect = %q, want /issues/SO-1", loc)
+	if loc != "/issues/SO-1?success=Created" {
+		t.Fatalf("redirect = %q, want /issues/SO-1?success=Created", loc)
 	}
 
 	// Verify the sub-issue exists in DB and has parent key
@@ -1359,4 +1359,3 @@ func TestCheckoutIssue_CEOCanCheckoutAssignedToOther(t *testing.T) {
 		t.Errorf("status = %d, want 200", w.Code)
 	}
 }
-

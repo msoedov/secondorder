@@ -46,31 +46,33 @@
           </div>
         </div>
 
-        <!-- Inbox -->
-        {{if .Issues}}
-        <div>
-          <h3 class="text-[13px] font-medium text-ink2 mb-2">Inbox</h3>
-          <div class="bg-card border border-bd rounded-lg divide-y divide-sf overflow-hidden">
-            {{range .Issues}}
-            <a href="/issues/{{.Key}}" class="flex items-center gap-3 px-4 py-2.5 hover:bg-sf transition-colors">
-              <span class="{{statusColor .Status}} inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0">{{statusIcon .Status}}</span>
-              <span class="font-mono text-xs text-ink3/50 w-14 shrink-0">{{.Key}}</span>
-              <span class="text-[13px] text-ink flex-1 truncate">{{.Title}}</span>
-              <span class="text-[11px] {{priorityColor .Priority}} shrink-0">{{priorityLabel .Priority}}</span>
-            </a>
-            {{end}}
-          </div>
-        </div>
-        {{end}}
-
         <!-- Assign -->
         <form method="POST" action="/agents/{{.Agent.Slug}}/assign" class="flex items-center gap-2">
           <select name="issue_key" required class="flex-1 bg-sf border border-bd rounded-md px-3 py-1.5 text-xs text-ink outline-none focus:ring-1 focus:ring-ac">
             <option value="">Assign an issue...</option>
-            {{range .Issues}}<option value="{{.Key}}">{{.Key}}: {{.Title}}</option>{{end}}
+            {{range .AvailableIssues}}<option value="{{.Key}}">{{.Key}}: {{.Title}} {{if .AssigneeName}}(assigned to {{.AssigneeName}}){{end}}</option>{{end}}
           </select>
           <button type="submit" class="px-3 py-1.5 rounded-md text-xs font-medium bg-ac text-ink hover:bg-ac-h transition-colors">Assign</button>
         </form>
+
+        <!-- Inbox -->
+        <div>
+          <h3 class="text-[13px] font-medium text-ink2 mb-2">Inbox</h3>
+          <div class="bg-card border border-bd rounded-lg divide-y divide-sf overflow-hidden">
+            {{if .Issues}}
+              {{range .Issues}}
+              <a href="/issues/{{.Key}}" class="flex items-center gap-3 px-4 py-2.5 hover:bg-sf transition-colors">
+                <span class="{{statusColor .Status}} inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0">{{statusIcon .Status}}</span>
+                <span class="font-mono text-xs text-ink3/50 w-14 shrink-0">{{.Key}}</span>
+                <span class="text-[13px] text-ink flex-1 truncate">{{.Title}}</span>
+                <span class="text-[11px] {{priorityColor .Priority}} shrink-0">{{priorityLabel .Priority}}</span>
+              </a>
+              {{end}}
+            {{else}}
+              <div class="px-4 py-8 text-center text-ink3/50 text-xs italic">No issues assigned to this agent's inbox.</div>
+            {{end}}
+          </div>
+        </div>
 
         <!-- Runs -->
         {{if .Runs}}

@@ -14,6 +14,13 @@ const (
 	StatusBoardReview = "board_review"
 )
 
+// Issue types
+const (
+	TypeTask    = "task"
+	TypeBug     = "bug"
+	TypeFeature = "feature"
+)
+
 // Run statuses
 const (
 	RunStatusRunning   = "running"
@@ -89,23 +96,32 @@ type Agent struct {
 }
 
 type Issue struct {
-	ID              string     `json:"id"`
-	Key             string     `json:"key"`
-	Title           string     `json:"title"`
-	Description     string     `json:"description"`
-	Status          string     `json:"status"`
-	Priority        int        `json:"priority"`
-	AssigneeAgentID *string    `json:"assignee_agent_id"`
-	ParentIssueKey  *string    `json:"parent_issue_key"`
-	WorkBlockID     *string    `json:"work_block_id"`
-	AssigneeName    string     `json:"assignee_name,omitempty"`
-	AssigneeSlug    string     `json:"assignee_slug,omitempty"`
-	StartedAt       *time.Time `json:"started_at"`
-	CompletedAt     *time.Time `json:"completed_at"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	ID              string       `json:"id"`
+	Key             string       `json:"key"`
+	Title           string       `json:"title"`
+	Description     string       `json:"description"`
+	Type            string       `json:"type"`
+	Status          string       `json:"status"`
+	Priority        int          `json:"priority"`
+	AssigneeAgentID *string      `json:"assignee_agent_id"`
+	ParentIssueKey  *string      `json:"parent_issue_key"`
+	WorkBlockID     *string      `json:"work_block_id"`
+	AssigneeName    string       `json:"assignee_name,omitempty"`
+	AssigneeSlug    string       `json:"assignee_slug,omitempty"`
+	StartedAt       *time.Time   `json:"started_at"`
+	CompletedAt     *time.Time   `json:"completed_at"`
+	CreatedAt       time.Time    `json:"created_at"`
+	UpdatedAt       time.Time    `json:"updated_at"`
+	Warnings        []string     `json:"warnings,omitempty"`
+	Stages          []IssueStage `json:"stages"`
+	CurrentStageID  int          `json:"current_stage_id"`
 }
 
+type IssueStage struct {
+	ID     int    `json:"id"`
+	Title  string `json:"title"`
+	Status string `json:"status"` // "todo", "done"
+}
 type Run struct {
 	ID                string     `json:"id"`
 	AgentID           string     `json:"agent_id"`

@@ -16,6 +16,7 @@ import (
 	"github.com/msoedov/secondorder/internal/archetypes"
 	"github.com/msoedov/secondorder/internal/db"
 	"github.com/msoedov/secondorder/internal/models"
+	acvalidator "github.com/msoedov/secondorder/internal/validator"
 )
 
 type UI struct {
@@ -42,11 +43,13 @@ func (u *UI) Dashboard(w http.ResponseWriter, r *http.Request) {
 	stats, _ := u.db.GetDashboardStats()
 	issues, _ := u.db.GetRecentIssues(20)
 	agents, _ := u.db.ListAgents()
+	runningAgents, _ := u.db.GetRunningAgentIDs()
 
 	data := map[string]any{
-		"Stats":  stats,
-		"Issues": issues,
-		"Agents": agents,
+		"Stats":         stats,
+		"Issues":        issues,
+		"Agents":        agents,
+		"RunningAgents": runningAgents,
 	}
 
 	if activeBlock, err := u.db.GetActiveWorkBlock(); err == nil {
@@ -113,8 +116,13 @@ func (u *UI) createIssueUI(w http.ResponseWriter, r *http.Request) {
 		Key:            key,
 		Title:          title,
 		Description:    r.FormValue("description"),
+		Type:           r.FormValue("type"),
 		Status:         models.StatusTodo,
 		ParentIssueKey: ptrStrOrNil(r.FormValue("parent_issue_key")),
+	}
+
+	if issue.Type == "" {
+		issue.Type = "task"
 	}
 
 	if p, err := strconv.Atoi(r.FormValue("priority")); err == nil {
@@ -141,11 +149,20 @@ func (u *UI) createIssueUI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate AC
+	warnings := acvalidator.ValidateAC(issue.Type, issue.Description)
+	warningParam := ""
+	if len(warnings) > 0 {
+		warningParam = "&warning=Heads+up:+This+" + issue.Type + "+issue+seems+to+be+missing+some+standard+acceptance+criteria.+This+might+block+your+agents."
+	}
+
 	// SSE broadcast
-	createData, _ := json.Marshal(map[string]string{
+	createData, _ := json.Marshal(map[string]any{
 		"key":    key,
 		"title":  issue.Title,
 		"status": issue.Status,
+		"type":   issue.Type,
+		"warnings": warnings,
 	})
 	u.sse.Broadcast("issue_created", string(createData))
 
@@ -156,11 +173,11 @@ func (u *UI) createIssueUI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if issue.ParentIssueKey != nil {
-		http.Redirect(w, r, "/issues/"+*issue.ParentIssueKey, http.StatusSeeOther)
+		http.Redirect(w, r, "/issues/"+*issue.ParentIssueKey+"?success=Created"+warningParam, http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, "/issues", http.StatusSeeOther)
+	http.Redirect(w, r, "/issues?success=Created"+warningParam, http.StatusSeeOther)
 }
 
 func ptrStrOrNil(s string) *string {
@@ -242,6 +259,9 @@ func (u *UI) IssueDetail(w http.ResponseWriter, r *http.Request) {
 		"Children": children,
 		"Runs":     runs,
 		"Agents":   agents,
+		"Error":    r.URL.Query().Get("error"),
+		"Success":  r.URL.Query().Get("success"),
+		"Warning":  r.URL.Query().Get("warning"),
 	})
 }
 
@@ -304,6 +324,9 @@ func (u *UI) updateIssueUI(w http.ResponseWriter, r *http.Request, key string) {
 		if s := r.FormValue("status"); s != "" {
 			issue.Status = s
 		}
+		if t := r.FormValue("type"); t != "" {
+			issue.Type = t
+		}
 		if t := r.FormValue("title"); t != "" {
 			issue.Title = t
 		}
@@ -314,7 +337,26 @@ func (u *UI) updateIssueUI(w http.ResponseWriter, r *http.Request, key string) {
 			issue.Priority = p
 		}
 		u.db.UpdateIssue(issue)
+	case "toggle_stage":
+		stageID, _ := strconv.Atoi(r.FormValue("stage_id"))
+		status := r.FormValue("status")
+		if stageID > 0 && stageID <= len(issue.Stages) {
+			issue.Stages[stageID-1].Status = status
+			if status == "done" {
+				if stageID < len(issue.Stages) {
+					issue.CurrentStageID = stageID + 1
+				} else {
+					issue.CurrentStageID = stageID
+				}
+			} else {
+				issue.CurrentStageID = stageID
+			}
+			u.db.UpdateIssue(issue)
+		}
 	}
+
+	// Validate AC for UI warning
+	warnings := acvalidator.ValidateAC(issue.Type, issue.Description)
 
 	// SSE broadcast
 	var assigneeSlug string
@@ -323,16 +365,25 @@ func (u *UI) updateIssueUI(w http.ResponseWriter, r *http.Request, key string) {
 			assigneeSlug = a.Slug
 		}
 	}
-	updateData, _ := json.Marshal(map[string]string{
-		"key":           key,
-		"status":        issue.Status,
-		"title":         issue.Title,
-		"assignee_slug": assigneeSlug,
+	updateData, _ := json.Marshal(map[string]any{
+		"key":              key,
+		"status":           issue.Status,
+		"type":             issue.Type,
+		"title":            issue.Title,
+		"assignee_slug":    assigneeSlug,
+		"stages":           issue.Stages,
+		"current_stage_id": issue.CurrentStageID,
+		"warnings":         warnings,
 	})
 	u.sse.Broadcast("issue_updated", string(updateData))
 
-	http.Redirect(w, r, "/issues/"+key, http.StatusSeeOther)
-}
+	warningParam := ""
+	if len(warnings) > 0 {
+		warningParam = "&flash=warning&msg=Heads+up:+This+" + issue.Type + "+issue+seems+to+be+missing+some+standard+acceptance+criteria.+This+might+block+your+agents."
+	}
+
+	http.Redirect(w, r, "/issues/"+key+"?success=Issue+created"+warningParam, http.StatusSeeOther)
+	}
 
 func (u *UI) ListAgents(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {

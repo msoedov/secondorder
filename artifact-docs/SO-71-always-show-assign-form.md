@@ -5,9 +5,9 @@
 - Modified `internal/handlers/ui.go` in `AgentDetail` to fetch all open issues (`AvailableIssues`) and pass them to the template.
 - Modified `internal/templates/agent_detail.html` to:
     - Move the "Assign" form above the inbox list (per audit recommendation).
-    - Use the new `.AvailableIssues` for the assignment dropdown, ensuring it is useful even when the agent's inbox is empty.
+    - Use the `.AvailableIssues` for the assignment dropdown, ensuring it is useful even when the agent's inbox is empty.
     - Ensure the "Inbox" section header is always visible regardless of whether the agent has assigned issues.
-    - Show a "No issues assigned to this agent." message when the inbox is empty.
+    - Show a "No issues assigned to this agent's inbox." message when the inbox is empty.
 
 ## Verification
 

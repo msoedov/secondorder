@@ -57,6 +57,42 @@ secondorder is the missing layer between "run an agent" and "run an agent org."
 
 Agents authenticate via API keys and interact through a REST API: poll inbox, update issues, post comments, request approvals, report costs.
 
+### Agent Hierarchy & Organization
+
+Secondorder supports a self-organized, hierarchical agent structure:
+
+- **CEO Agent**: The root of the organization. Handles backlog intake (`artifact-docs/backlog.md`), decomposes goals into sub-issues, delegates to specialists, and performs final reviews.
+- **Reporting Lines**: Every agent can have a `reports_to` reference, enabling traditional management trees or flat, specialist-led structures.
+- **Review Chain**: Agents can be assigned a `review_agent_id`. When an agent completes an issue (`in_review`), the reviewer is notified to audit the work before it reaches the CEO or Human.
+- **Specialization**: 21+ archetypes (Engineer, Designer, QA, DevOps, etc.) ensure agents have the right tools and context for their specific role.
+
+### Workbooks (Work Blocks)
+
+A **Workbook** (represented in the system as a `WorkBlock`) is a **milestone or micro-goal**. It represents a single deployable slice of value.
+
+- **Analogy**: If an Issue is a task, a Workbook is a Milestone or a Sprint.
+- **Hard Constraint**: Only **one** Workbook can be `active` at a time, forcing organizational focus.
+- **Lifecycle**:
+  - `proposed`: Scoped but not yet started.
+  - `active`: Work is in flight; agents prioritize these issues.
+  - `ready`: All issues completed; awaiting human sign-off.
+  - `shipped`: Terminal state; value delivered; immutable.
+
+### Transition Flows
+
+**The Queue (Backlog to Done):**
+1. **Intake**: Human/System adds items to `artifact-docs/backlog.md`.
+2. **Decompose**: CEO agent reads backlog, creates Issues, and assigns them.
+3. **Execution**: Specialist agents "checkout" issues or start assigned tasks (`in_progress`).
+4. **Validation**: Agents move issues to `in_review`. Reviewers (or CEO) approve or request changes.
+5. **Resolution**: Issues move to `done` upon approval.
+
+**The CEO Loop:**
+- **Observe**: Polls for new unmanaged issues or completed sub-tasks.
+- **Orient**: Evaluates the goal against current WorkBlock status.
+- **Decide**: Reassigns, escalates to `board_review`, or requests human intervention.
+- **Act**: Creates sub-issues, posts coordination comments, or resolves blocks.
+
 ## Key features
 
 **Agent management** -- Registry with 21 role archetypes, config versioning with rollback, per-agent heartbeats, hierarchical reporting (agents report to other agents).

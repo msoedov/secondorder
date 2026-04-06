@@ -102,6 +102,16 @@ func main() {
 	wake := sched.WakeAgent
 
 	// Callbacks
+	sched.SetOnRunStart(func(run *models.Run) {
+		data, _ := json.Marshal(map[string]string{
+			"run_id":   run.ID,
+			"agent_id": run.AgentID,
+			"status":   run.Status,
+			"mode":     run.Mode,
+		})
+		sse.Broadcast("run_started", string(data))
+	})
+
 	sched.SetOnRunComplete(func(run *models.Run) {
 		data, _ := json.Marshal(map[string]string{
 			"run_id":   run.ID,

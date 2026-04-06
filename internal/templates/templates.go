@@ -80,21 +80,59 @@ var funcMap = template.FuncMap{
 		return s
 	},
 	"seq": seq,
-	"add": func(a, b int) int { return a + b },
-	"sub": func(a, b int) int { return a - b },
+	"add": func(a, b any) int {
+		var av, bv int64
+		switch v := a.(type) {
+		case int: av = int64(v)
+		case int64: av = v
+		}
+		switch v := b.(type) {
+		case int: bv = int64(v)
+		case int64: bv = v
+		}
+		return int(av + bv)
+	},
+	"sub": func(a, b any) int {
+		var av, bv int64
+		switch v := a.(type) {
+		case int: av = int64(v)
+		case int64: av = v
+		}
+		switch v := b.(type) {
+		case int: bv = int64(v)
+		case int64: bv = v
+		}
+		return int(av - bv)
+	},
 	"mult": func(a, b any) float64 {
 	        var av, bv float64
 	        switch v := a.(type) {
 	        case int: av = float64(v)
+	        case int64: av = float64(v)
 	        case float64: av = v
 	        }
 	        switch v := b.(type) {
 	        case int: bv = float64(v)
+	        case int64: bv = float64(v)
 	        case float64: bv = v
 	        }
 	        return av * bv
 	},
-	"mod": func(a, b int) int { return a % b },
+	"mod": func(a, b any) int {
+		var av, bv int64
+		switch v := a.(type) {
+		case int: av = int64(v)
+		case int64: av = v
+		}
+		switch v := b.(type) {
+		case int: bv = int64(v)
+		case int64: bv = v
+		}
+		if bv == 0 {
+			return 0
+		}
+		return int(av % bv)
+	},
 	"wbStatusColor": wbStatusColor,
 	"derefTime": func(t *time.Time) time.Time {
 	        if t == nil {
@@ -102,11 +140,20 @@ var funcMap = template.FuncMap{
 	        }
 	        return *t
 	},
-	"max": func(a, b int) int {
-	        if a > b {
-	                return a
+	"max": func(a, b any) int {
+		var av, bv int64
+		switch v := a.(type) {
+		case int: av = int64(v)
+		case int64: av = v
+		}
+		switch v := b.(type) {
+		case int: bv = int64(v)
+		case int64: bv = v
+		}
+	        if av > bv {
+	                return int(av)
 	        }
-	        return b
+	        return int(bv)
 	},
 	"ceil": func(f any) int {
 	        switch v := f.(type) {
@@ -114,6 +161,8 @@ var funcMap = template.FuncMap{
 	                return int(math.Ceil(v))
 	        case int:
 	                return v
+	        case int64:
+	                return int(v)
 	        default:
 	                return 0
 	        }
@@ -122,10 +171,12 @@ var funcMap = template.FuncMap{
 	        var av, bv float64
 	        switch v := a.(type) {
 	        case int: av = float64(v)
+	        case int64: av = float64(v)
 	        case float64: av = v
 	        }
 	        switch v := b.(type) {
 	        case int: bv = float64(v)
+	        case int64: bv = float64(v)
 	        case float64: bv = v
 	        }
 	        if bv == 0 {

@@ -9,7 +9,9 @@
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 stagger">
+    <div id="dashboard-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 stagger"
+         hx-get="/dashboard" hx-select="#dashboard-stats" hx-target="#dashboard-stats" hx-swap="outerHTML"
+         hx-trigger="run-started from:body,run-complete from:body,issue-changed from:body">
       <div class="bg-card border border-bd rounded-lg p-4 hover:border-bd transition-colors">
         <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider">Agents</div>
         <div class="mt-2 flex items-baseline gap-1.5">
@@ -75,18 +77,19 @@
           {{end}}
         </div>
       </div>
-
-      <!-- Agents -->
-      <div>
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-[13px] font-medium text-ink2">Agents</h2>
-          <a href="/agents" class="text-xs text-ink3/50 hover:text-ink2 transition-colors">Manage</a>
-        </div>
-        <div class="space-y-1.5 stagger">
-          {{range .Agents}}
-          <a href="/agents/{{.Slug}}" class="flex items-center gap-3 bg-card border border-bd rounded-lg px-4 py-3 hover:border-bd transition-all hover:translate-x-0.5 group">
-            <div class="w-2 h-2 rounded-full shrink-0 {{if .Active}}bg-emerald-400{{else}}bg-ink3/40{{end}}" role="img" aria-label="{{if .Active}}Active{{else}}Inactive{{end}}"></div>
-            <div class="flex-1 min-w-0">
+<!-- Agents -->
+<div id="dashboard-agents"
+     hx-get="/dashboard" hx-select="#dashboard-agents" hx-target="#dashboard-agents" hx-swap="outerHTML"
+     hx-trigger="run-started from:body,run-complete from:body,agent-changed from:body">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-[13px] font-medium text-ink2">Agents</h2>
+    <a href="/agents" class="text-xs text-ink3/50 hover:text-ink2 transition-colors">Manage</a>
+  </div>
+  <div class="space-y-1.5 stagger">
+    {{range .Agents}}
+<a href="/agents/{{.Slug}}" class="flex items-center gap-3 bg-card border border-bd rounded-lg px-4 py-3 hover:border-bd transition-all hover:translate-x-0.5 group">
+  <div class="w-2 h-2 rounded-full shrink-0 {{if index $.RunningAgents .ID}}bg-blue-400 animate-pulse{{else if .Active}}bg-emerald-400{{else}}bg-ink3/40{{end}}" role="img" aria-label="{{if index $.RunningAgents .ID}}Running{{else if .Active}}Active{{else}}Inactive{{end}}"></div>
+  <div class="flex-1 min-w-0">
               <div class="text-[13px] font-medium text-ink truncate group-hover:text-ink">{{.Name}}</div>
               <div class="text-[11px] text-ink3/50 flex items-center gap-1.5 mt-0.5">
                 <span>{{.ArchetypeSlug}}</span>
