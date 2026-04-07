@@ -23,6 +23,7 @@
     .legend-swatch.deletions { background: #ef4444; }
     .legend-swatch.backlog   { background: #8b5cf6; }
     .legend-swatch.recovery  { background: #10b981; }
+    .legend-swatch.completed { background: #6366f1; }
     .chart-area { display: flex; gap: 8px; }
     .y-ticks { display: flex; flex-direction: column; justify-content: space-between; height: 120px; padding-bottom: 0; }
     .y-tick { font-size: 9px; color: rgb(var(--c-ink3) / 0.4); line-height: 1; text-align: right; width: 18px; }
@@ -40,6 +41,7 @@
     .bar.deletions { background: #ef4444; }
     .bar.backlog   { background: #8b5cf6; }
     .bar.recovery  { background: #10b981; }
+    .bar.completed { background: #6366f1; }
     .bar:hover { filter: brightness(0.9); }
     .bar-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgb(var(--c-ink)); color: rgb(var(--c-pg)); font-size: 10px; padding: 3px 7px; border-radius: 4px; z-index: 10; pointer-events: none; line-height: 1.5; }
     .bar-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: rgb(var(--c-ink)); }
@@ -66,6 +68,7 @@
           <div class="legend-item"><div class="legend-swatch deletions"></div>Delete</div>
           <div class="legend-item"><div class="legend-swatch backlog"></div>Backlog</div>
           <div class="legend-item"><div class="legend-swatch recovery"></div>Recovery</div>
+          <div class="legend-item"><div class="legend-swatch completed"></div>Completed</div>
         </div>
       </div>
 
@@ -77,6 +80,7 @@
       {{$totalDeletions := 0}}
       {{$totalBacklog := 0}}
       {{$totalRecovery := 0}}
+      {{$totalCompleted := 0}}
       {{range .DailyStats}}
         {{$maxVal = max $maxVal .Creations}}
         {{$maxVal = max $maxVal .Updates}}
@@ -85,6 +89,7 @@
         {{$maxVal = max $maxVal .Deletions}}
         {{$maxVal = max $maxVal .Backlog}}
         {{$maxVal = max $maxVal .Recovery}}
+        {{$maxVal = max $maxVal .Completed}}
         {{$totalCreations = add $totalCreations .Creations}}
         {{$totalUpdates = add $totalUpdates .Updates}}
         {{$totalCheckouts = add $totalCheckouts .Checkouts}}
@@ -92,6 +97,7 @@
         {{$totalDeletions = add $totalDeletions .Deletions}}
         {{$totalBacklog = add $totalBacklog .Backlog}}
         {{$totalRecovery = add $totalRecovery .Recovery}}
+        {{$totalCompleted = add $totalCompleted .Completed}}
       {{end}}
       {{$niceMax := mult (ceil (div $maxVal 4)) 4}}
 
@@ -120,6 +126,8 @@
             {{if and (gt $d.Backlog 0) (lt $bH 2)}}{{$bH = 2}}{{end}}
             {{$rH := mult (div $d.Recovery $niceMax) 120 | ceil}}
             {{if and (gt $d.Recovery 0) (lt $rH 2)}}{{$rH = 2}}{{end}}
+            {{$compH := mult (div $d.Completed $niceMax) 120 | ceil}}
+            {{if and (gt $d.Completed 0) (lt $compH 2)}}{{$compH = 2}}{{end}}
             <div class="day-col">
               <div class="day-highlight"></div>
               <div class="bar-pair">
@@ -130,6 +138,7 @@
                 <div class="bar deletions" style="height:{{$dH}}px"><div class="bar-tooltip">Delete: {{$d.Deletions}}</div></div>
                 <div class="bar backlog" style="height:{{$bH}}px"><div class="bar-tooltip">Backlog: {{$d.Backlog}}</div></div>
                 <div class="bar recovery" style="height:{{$rH}}px"><div class="bar-tooltip">Recovery: {{$d.Recovery}}</div></div>
+                <div class="bar completed" style="height:{{$compH}}px"><div class="bar-tooltip">Completed: {{$d.Completed}}</div></div>
               </div>
             </div>
             {{end}}
@@ -156,6 +165,8 @@
         <div class="summary-stat"><span class="summary-value">{{$totalBacklog}}</span><span class="summary-label">backlog</span></div>
         <div class="summary-divider"></div>
         <div class="summary-stat"><span class="summary-value">{{$totalRecovery}}</span><span class="summary-label">recovery</span></div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat"><span class="summary-value">{{$totalCompleted}}</span><span class="summary-label">completed</span></div>
       </div>
     </div>
     {{end}}

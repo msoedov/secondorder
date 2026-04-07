@@ -716,6 +716,8 @@ func (u *UI) createWorkBlockUI(w http.ResponseWriter, r *http.Request) {
 		Title:              title,
 		Goal:               r.FormValue("goal"),
 		AcceptanceCriteria: r.FormValue("acceptance_criteria"),
+		NorthStarMetric:    r.FormValue("north_star_metric"),
+		NorthStarTarget:    r.FormValue("north_star_target"),
 		Status:             models.WBStatusProposed,
 		ApexBlockID:        ptrStrOrNil(r.FormValue("apex_block_id")),
 	}
@@ -775,6 +777,8 @@ func (u *UI) updateWorkBlockUI(w http.ResponseWriter, r *http.Request, id string
 		if ac := r.FormValue("acceptance_criteria"); ac != "" {
 			wb.AcceptanceCriteria = ac
 		}
+		wb.NorthStarMetric = r.FormValue("north_star_metric")
+		wb.NorthStarTarget = r.FormValue("north_star_target")
 		wb.ApexBlockID = ptrStrOrNil(r.FormValue("apex_block_id"))
 		u.db.UpdateWorkBlock(wb)
 	case "assign_issue":

@@ -36,6 +36,15 @@
           </div>
           {{end}}
 
+          {{if .Block.NorthStarMetric}}
+          <div class="mb-4 flex items-center gap-2">
+            <span class="text-[11px] font-bold text-ink3/50 uppercase tracking-wider">North Star:</span>
+            <span class="text-[11px] font-medium text-ink2">{{.Block.NorthStarMetric}}</span>
+            <span class="text-[11px] text-ink3/50">→</span>
+            <span class="text-[11px] font-medium text-ink2">{{.Block.NorthStarTarget}}</span>
+          </div>
+          {{end}}
+
           {{if .Block.Goal}}<p class="text-[13px] text-ink3 mt-2 leading-relaxed">{{.Block.Goal}}</p>{{end}}
           {{if .Block.AcceptanceCriteria}}
           <div class="mt-4 pt-4 border-t border-bd">
@@ -70,6 +79,18 @@
           <option value="{{.ID}}" {{if $.Block.ApexBlockID}}{{if eq .ID (deref $.Block.ApexBlockID)}}selected{{end}}{{end}}>{{.Title}}</option>
           {{end}}
         </select>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-ink3/50 uppercase tracking-wider mb-1.5">North Star Metric</label>
+          <input type="text" name="north_star_metric" value="{{.Block.NorthStarMetric}}" placeholder="e.g. Avg runs"
+            class="w-full bg-sf border border-bd rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-ac transition-colors">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-ink3/50 uppercase tracking-wider mb-1.5">North Star Target</label>
+          <input type="text" name="north_star_target" value="{{.Block.NorthStarTarget}}" placeholder="e.g. < 8"
+            class="w-full bg-sf border border-bd rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-ac transition-colors">
+        </div>
       </div>
       <div>
         <label class="block text-xs font-bold text-ink3/50 uppercase tracking-wider mb-1.5">Goal</label>
@@ -141,9 +162,9 @@
           {{end}}
 
           {{if eq .Block.Status "ready"}}
-          <form method="POST" action="/work-blocks/{{.Block.ID}}" onsubmit="return confirm('Are you sure you want to ship this work block?')">
+          <form method="POST" action="/work-blocks/{{.Block.ID}}">
             <input type="hidden" name="action" value="ship">
-            <button type="submit" class="w-full px-3 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded transition-colors">Ship</button>
+            <button type="submit" onclick="return confirm('Are you sure you want to ship this work block?')" class="w-full px-3 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded transition-colors">Ship</button>
           </form>
           <form method="POST" action="/work-blocks/{{.Block.ID}}">
             <input type="hidden" name="action" value="reactivate">
@@ -152,9 +173,9 @@
           {{end}}
 
           {{if ne .Block.Status "shipped"}}{{if ne .Block.Status "cancelled"}}
-          <form method="POST" action="/work-blocks/{{.Block.ID}}" onsubmit="return confirm('Are you sure you want to cancel this work block?')">
+          <form method="POST" action="/work-blocks/{{.Block.ID}}">
             <input type="hidden" name="action" value="cancel">
-            <button type="submit" class="w-full px-3 py-1.5 text-sm text-red-400 hover:text-red-300 border border-bd hover:border-red-800 rounded transition-colors">Cancel</button>
+            <button type="submit" onclick="return confirm('Are you sure you want to cancel this work block?')" class="w-full px-3 py-1.5 text-sm text-red-400 hover:text-red-300 border border-bd hover:border-red-800 rounded transition-colors">Cancel</button>
           </form>
           {{end}}{{end}}
         </div>

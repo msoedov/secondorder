@@ -822,7 +822,7 @@ func TestAgentUI_Validation(t *testing.T) {
 	}{
 		{"Valid Claude Code", "claude_code", "sonnet", http.StatusSeeOther},
 		{"Invalid Claude Code", "claude_code", "gpt-4o", http.StatusBadRequest},
-		{"Valid Codex", "codex", "gpt-4o", http.StatusSeeOther},
+		{"Valid Codex", "codex", "gpt-5.4-thinking", http.StatusSeeOther},
 		{"Invalid Codex", "codex", "sonnet", http.StatusBadRequest},
 		{"Valid Antigravity", "antigravity", "default", http.StatusSeeOther},
 		{"Invalid Antigravity", "antigravity", "sonnet", http.StatusBadRequest},

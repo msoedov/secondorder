@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{if .PageTitle}}{{.PageTitle}} - Second Order{{else}}Second
       Order{{end}}</title>
-    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon-v2.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -76,7 +76,10 @@
             ];
         } else if (runner === 'codex') {
             models = [
-                {val: 'gpt-4o', label: 'gpt-4o'},
+                {val: 'gpt-5.4-thinking', label: 'GPT-5.4 Thinking'},
+                {val: 'gpt-5.4-pro', label: 'GPT-5.4 Pro'},
+                {val: 'gpt-5.4-instant', label: 'GPT-5.4 Instant'},
+                {val: 'gpt-4o', label: 'GPT-4o'},
                 {val: 'o4-mini', label: 'o4-mini'}
             ];
         } else if (runner === 'antigravity') {
@@ -85,6 +88,13 @@
             ];
         } else if (runner === 'gemini') {
             models = [
+                {val: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro'},
+                {val: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite'},
+                {val: 'gemini-3.1-flash-live', label: 'Gemini 3.1 Flash-Live'},
+                {val: 'gemini-3-deep-think', label: 'Gemini 3 Deep Think'},
+                {val: 'gemini-3-flash', label: 'Gemini 3 Flash'},
+                {val: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)'},
+                {val: 'gemini-3-pro', label: 'Gemini 3 Pro'},
                 {val: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash'},
                 {val: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite'},
                 {val: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro'},

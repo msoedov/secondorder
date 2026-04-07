@@ -78,6 +78,16 @@
           {{end}}
         </select>
       </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="wb-metric" class="text-xs text-ink3 block mb-1">North Star Metric</label>
+          <input id="wb-metric" name="north_star_metric" type="text" class="w-full px-3 py-2 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac" placeholder="e.g. Avg runs per issue">
+        </div>
+        <div>
+          <label for="wb-target" class="text-xs text-ink3 block mb-1">North Star Target</label>
+          <input id="wb-target" name="north_star_target" type="text" class="w-full px-3 py-2 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac" placeholder="e.g. < 8">
+        </div>
+      </div>
       <button type="submit" class="px-3 py-1.5 text-sm bg-ac hover:bg-ac-h text-white rounded-md transition-colors">Create</button>
     </form>
 

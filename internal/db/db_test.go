@@ -1356,6 +1356,7 @@ func TestGetDailyActivityStats(t *testing.T) {
 	// Today
 	d.LogActivity("create", "issue", "SO-1", nil, "T1")
 	d.LogActivity("update", "issue", "SO-1", nil, "in_progress")
+	d.LogActivity("update", "issue", "SO-1", nil, "done")
 	d.LogActivity("checkout", "issue", "SO-1", nil, "")
 	d.LogActivity("assign_to_block", "issue", "SO-1", nil, "wb1")
 	d.LogActivity("delete", "issue", "SO-DELETED", nil, "")
@@ -1383,16 +1384,22 @@ func TestGetDailyActivityStats(t *testing.T) {
 		t.Fatalf("failed to get stats: %v", err)
 	}
 
+	for _, s := range stats {
+		t.Logf("Date: %s, Label: %s, C: %d, U: %d, CK: %d, A: %d, D: %d, B: %d, R: %d",
+			s.Date, s.Label, s.Creations, s.Updates, s.Checkouts, s.AssignToBlock, s.Deletions, s.Backlog, s.Recovery)
+	}
+
 	if len(stats) != 7 {
 		t.Errorf("expected 7 days of stats, got %d", len(stats))
 	}
 
-	// Today is at index 6
-	if stats[6].Creations != 1 || stats[6].Updates != 1 || stats[6].Checkouts != 1 || 
-	   stats[6].AssignToBlock != 1 || stats[6].Deletions != 1 || stats[6].Backlog != 1 || stats[6].Recovery != 1 {
-		t.Errorf("expected all stats to be 1 today, got C:%d, U:%d, CK:%d, A:%d, D:%d, B:%d, R:%d", 
-			stats[6].Creations, stats[6].Updates, stats[6].Checkouts, stats[6].AssignToBlock, stats[6].Deletions, stats[6].Backlog, stats[6].Recovery)
+	// Today at index 6
+	if stats[6].Creations != 1 || stats[6].Updates != 2 || stats[6].Checkouts != 1 ||
+	   stats[6].AssignToBlock != 1 || stats[6].Deletions != 1 || stats[6].Backlog != 1 || stats[6].Recovery != 1 || stats[6].Completed != 1 {
+		t.Errorf("expected today stats to be C:1, U:2, CK:1, A:1, D:1, B:1, R:1, COMP:1, got C:%d, U:%d, CK:%d, A:%d, D:%d, B:%d, R:%d, COMP:%d",
+			stats[6].Creations, stats[6].Updates, stats[6].Checkouts, stats[6].AssignToBlock, stats[6].Deletions, stats[6].Backlog, stats[6].Recovery, stats[6].Completed)
 	}
+
 	// Yesterday at index 5
 	if stats[5].Creations != 1 || stats[5].Updates != 1 || stats[5].AssignToBlock != 1 {
 		t.Errorf("expected 1 creation, 1 update, 1 assign yesterday, got C:%d, U:%d, A:%d", stats[5].Creations, stats[5].Updates, stats[5].AssignToBlock)

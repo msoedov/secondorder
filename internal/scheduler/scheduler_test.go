@@ -142,7 +142,7 @@ func TestRunAudit(t *testing.T) {
 
 	// 3. Configuration file support (.secondorder.json)
 	jsonPath := ".secondorder.json"
-	jsonContent := `{"audit": {"runner": "codex", "model": "gpt-4o"}}`
+	jsonContent := `{"audit": {"runner": "codex", "model": "gpt-5.4-thinking"}}`
 	os.WriteFile(jsonPath, []byte(jsonContent), 0644)
 	t.Cleanup(func() { os.Remove(jsonPath) })
 
@@ -151,14 +151,14 @@ func TestRunAudit(t *testing.T) {
 		t.Fatalf("RunAudit json config: %v", err)
 	}
 	ar3, _ := d.GetAuditRun(runID3)
-	if ar3.Runner != "codex" || ar3.Model != "gpt-4o" {
+	if ar3.Runner != "codex" || ar3.Model != "gpt-5.4-thinking" {
 		t.Errorf("expected json config runner/model, got %s/%s", ar3.Runner, ar3.Model)
 	}
 	os.Remove(jsonPath) // Remove to test yaml fallback
 
 	// 3b. Configuration file support (.secondorder.yml fallback)
 	ymlPath := ".secondorder.yml"
-	ymlContent := `{"audit": {"runner": "gemini", "model": "gemini-1.5-pro"}}`
+	ymlContent := `{"audit": {"runner": "gemini", "model": "gemini-3.1-pro"}}`
 	os.WriteFile(ymlPath, []byte(ymlContent), 0644)
 	t.Cleanup(func() { os.Remove(ymlPath) })
 
@@ -167,18 +167,18 @@ func TestRunAudit(t *testing.T) {
 		t.Fatalf("RunAudit yml config: %v", err)
 	}
 	ar3b, _ := d.GetAuditRun(runID3b)
-	if ar3b.Runner != "gemini" || ar3b.Model != "gemini-1.5-pro" {
+	if ar3b.Runner != "gemini" || ar3b.Model != "gemini-3.1-pro" {
 		t.Errorf("expected yml config runner/model, got %s/%s", ar3b.Runner, ar3b.Model)
 	}
 	os.Remove(ymlPath)
 
 	// 4. UI overrides configuration file
-	runID4, err := s.RunAudit(1, 1, "", "codex", "gpt-4o")
+	runID4, err := s.RunAudit(1, 1, "", "codex", "gpt-5.4-thinking")
 	if err != nil {
 		t.Fatalf("RunAudit override: %v", err)
 	}
 	ar4, _ := d.GetAuditRun(runID4)
-	if ar4.Runner != "codex" || ar4.Model != "gpt-4o" {
+	if ar4.Runner != "codex" || ar4.Model != "gpt-5.4-thinking" {
 		t.Errorf("expected UI override runner/model, got %s/%s", ar4.Runner, ar4.Model)
 	}
 
@@ -188,7 +188,7 @@ func TestRunAudit(t *testing.T) {
 		t.Fatalf("RunAudit runner only: %v", err)
 	}
 	ar5, _ := d.GetAuditRun(runID5)
-	if ar5.Runner != "gemini" || ar5.Model != "gemini-2.0-flash" {
+	if ar5.Runner != "gemini" || ar5.Model != "gemini-3.1-pro" {
 		t.Errorf("expected first valid gemini model, got %s/%s", ar5.Runner, ar5.Model)
 	}
 

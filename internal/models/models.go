@@ -47,8 +47,26 @@ var RunnerModels = map[string][]string{
 		"opus",
 		"haiku",
 	},
-	RunnerGemini:      {"gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.5-flash"},
-	RunnerCodex:       {"gpt-4o", "o4-mini"},
+	RunnerGemini: {
+		"gemini-3.1-pro",
+		"gemini-3.1-flash-lite",
+		"gemini-3.1-flash-live",
+		"gemini-3-deep-think",
+		"gemini-3-flash",
+		"gemini-3-flash-preview",
+		"gemini-3-pro",
+		"gemini-2.0-flash",
+		"gemini-2.0-flash-lite",
+		"gemini-1.5-pro",
+		"gemini-1.5-flash",
+	},
+	RunnerCodex: {
+		"gpt-5.4-thinking",
+		"gpt-5.4-pro",
+		"gpt-5.4-instant",
+		"gpt-4o",
+		"o4-mini",
+	},
 	RunnerAntigravity: {"default"},
 }
 
@@ -340,5 +358,6 @@ type DailyStat struct {
 	Deletions     int    `json:"deletions"`
 	Backlog       int    `json:"backlog"`
 	Recovery      int    `json:"recovery"`
+	Completed     int    `json:"completed"`
 }
 

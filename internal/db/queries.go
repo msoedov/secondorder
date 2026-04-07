@@ -758,25 +758,29 @@ func (d *DB) ActivityTimeline48h() ([]TimelineEntry, error) {
 }
 
 func (d *DB) GetDailyActivityStats(days int) ([]models.DailyStat, error) {
+	today := time.Now().UTC().Format("2006-01-02")
 	query := `
 		WITH RECURSIVE dates(date) AS (
-			SELECT DATE('now', '-' || (? - 1) || ' days')
+			SELECT DATE(?, '-' || (? - 1) || ' days')
 			UNION ALL
-			SELECT DATE(date, '+1 day') FROM dates WHERE date < DATE('now')
+			SELECT DATE(date, '+1 day') FROM dates WHERE date < ?
 		)
 		SELECT 
 			d.date,
-			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'update') as updates,
-			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'create') as creations,
-			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'checkout') as checkouts,
-			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'assign_to_block') as assign_to_blocks,
-			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'delete') as deletions,
-			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'backlog') as backlogs,
-			(SELECT COUNT(*) FROM activity_log WHERE DATE(created_at) = d.date AND action = 'recovery') as recoveries
+			COALESCE(SUM(CASE WHEN a.action = 'update' THEN 1 ELSE 0 END), 0) as updates,
+			COALESCE(SUM(CASE WHEN a.action = 'create' THEN 1 ELSE 0 END), 0) as creations,
+			COALESCE(SUM(CASE WHEN a.action = 'checkout' THEN 1 ELSE 0 END), 0) as checkouts,
+			COALESCE(SUM(CASE WHEN a.action = 'assign_to_block' THEN 1 ELSE 0 END), 0) as assign_to_blocks,
+			COALESCE(SUM(CASE WHEN a.action = 'delete' THEN 1 ELSE 0 END), 0) as deletions,
+			COALESCE(SUM(CASE WHEN a.action = 'backlog' THEN 1 ELSE 0 END), 0) as backlogs,
+			COALESCE(SUM(CASE WHEN a.action = 'recovery' THEN 1 ELSE 0 END), 0) as recoveries,
+			COALESCE(SUM(CASE WHEN a.action = 'update' AND a.details = 'done' THEN 1 ELSE 0 END), 0) as completed
 		FROM dates d
+		LEFT JOIN activity_log a ON DATE(a.created_at) = d.date
+		GROUP BY d.date
 		ORDER BY d.date ASC
 	`
-	rows, err := d.Query(query, days)
+	rows, err := d.Query(query, today, days, today)
 	if err != nil {
 		return nil, err
 	}
@@ -786,7 +790,7 @@ func (d *DB) GetDailyActivityStats(days int) ([]models.DailyStat, error) {
 	for rows.Next() {
 		var s models.DailyStat
 		var dateStr string
-		if err := rows.Scan(&dateStr, &s.Updates, &s.Creations, &s.Checkouts, &s.AssignToBlock, &s.Deletions, &s.Backlog, &s.Recovery); err != nil {
+		if err := rows.Scan(&dateStr, &s.Updates, &s.Creations, &s.Checkouts, &s.AssignToBlock, &s.Deletions, &s.Backlog, &s.Recovery, &s.Completed); err != nil {
 			return nil, err
 		}
 
