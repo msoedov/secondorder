@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"math"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -41,55 +42,76 @@ func retryOnBusy(op string, fn func() error) error {
 		}
 
 		slog.Warn("db: SQLITE_BUSY, retrying with backoff", "op", op, "delay", delay.Round(time.Millisecond), "attempt", attempt+1)
-
 		time.Sleep(delay)
 		elapsed += delay
 	}
 }
 
 func (d *DB) Exec(query string, args ...any) (sql.Result, error) {
+	d.wmu.Lock()
+	defer d.wmu.Unlock()
 	var result sql.Result
 	err := retryOnBusy("Exec", func() error {
-		var e error
-		result, e = d.DB.Exec(query, args...)
-		return e
+		var execErr error
+		result, execErr = d.DB.Exec(query, args...)
+		return execErr
 	})
 	return result, err
 }
 
 func (d *DB) QueryRow(query string, args ...any) *Row {
-	return &Row{db: d.DB, query: query, args: args}
+	return &Row{db: d, query: query, args: args}
 }
 
-// Row wraps sql.Row to add SQLITE_BUSY retry on Scan.
 type Row struct {
-	db    *sql.DB
+	db    *DB
 	query string
 	args  []any
 }
 
 func (r *Row) Scan(dest ...any) error {
 	return retryOnBusy("QueryRow", func() error {
-		return r.db.QueryRow(r.query, r.args...).Scan(dest...)
+		return r.db.DB.QueryRow(r.query, r.args...).Scan(dest...)
 	})
 }
 
 func (d *DB) Query(query string, args ...any) (*sql.Rows, error) {
 	var rows *sql.Rows
 	err := retryOnBusy("Query", func() error {
-		var e error
-		rows, e = d.DB.Query(query, args...)
-		return e
+		var queryErr error
+		rows, queryErr = d.DB.Query(query, args...)
+		return queryErr
 	})
 	return rows, err
 }
 
-func (d *DB) Begin() (*sql.Tx, error) {
+func (d *DB) Begin() (*Tx, error) {
+	d.wmu.Lock()
 	var tx *sql.Tx
 	err := retryOnBusy("Begin", func() error {
-		var e error
-		tx, e = d.DB.Begin()
-		return e
+		var beginErr error
+		tx, beginErr = d.DB.Begin()
+		return beginErr
 	})
-	return tx, err
+	if err != nil {
+		d.wmu.Unlock()
+		return nil, err
+	}
+	return &Tx{Tx: tx, mu: &d.wmu}, nil
+}
+
+// Tx wraps sql.Tx and holds the write mutex until commit/rollback.
+type Tx struct {
+	*sql.Tx
+	mu *sync.Mutex
+}
+
+func (t *Tx) Commit() error {
+	defer t.mu.Unlock()
+	return retryOnBusy("Commit", t.Tx.Commit)
+}
+
+func (t *Tx) Rollback() error {
+	defer t.mu.Unlock()
+	return retryOnBusy("Rollback", t.Tx.Rollback)
 }

@@ -124,6 +124,16 @@ func main() {
 	}
 	sched := scheduler.New(database, portInt)
 
+	if modelProvided {
+		runner := resolveRunner(defaultModel)
+		model := "default"
+		if m, ok := models.RunnerModels[runner]; ok && len(m) > 0 {
+			model = m[0]
+		}
+		sched.SetOverrideModel(runner, model)
+		slog.Warn("session override: all agents will use", "runner", runner, "model", model)
+	}
+
 	// Set activity callback
 	sched.SetOnActivity(func(action, entityType, entityID string, agentID *string, details string) {
 	        handlers.LogActivityAndBroadcast(database, sse, tmpl, action, entityType, entityID, agentID, details)

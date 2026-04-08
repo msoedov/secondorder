@@ -23,16 +23,18 @@ import (
 )
 
 type Scheduler struct {
-	db           *db.DB
-	port         int
-	mu           sync.Mutex
-	running      map[string]context.CancelFunc // runID -> cancel
-	wg           sync.WaitGroup
-	stopped      bool
-	onRunStart    func(run *models.Run)
-	onRunComplete func(run *models.Run)
-	onComment     func(issueKey, author, body string)
-	onActivity    func(action, entityType, entityID string, agentID *string, details string)
+	db             *db.DB
+	port           int
+	mu             sync.Mutex
+	running        map[string]context.CancelFunc // runID -> cancel
+	wg             sync.WaitGroup
+	stopped        bool
+	runnerOverride string // if set, override all agents' runner for this session
+	modelOverride  string // if set, override all agents' model for this session
+	onRunStart     func(run *models.Run)
+	onRunComplete  func(run *models.Run)
+	onComment      func(issueKey, author, body string)
+	onActivity     func(action, entityType, entityID string, agentID *string, details string)
 }
 
 func New(database *db.DB, port int) *Scheduler {
@@ -41,6 +43,11 @@ func New(database *db.DB, port int) *Scheduler {
 		port:    port,
 		running: make(map[string]context.CancelFunc),
 	}
+}
+
+func (s *Scheduler) SetOverrideModel(runner, model string) {
+	s.runnerOverride = runner
+	s.modelOverride = model
 }
 
 func (s *Scheduler) SetOnRunStart(fn func(run *models.Run)) {
@@ -124,6 +131,12 @@ func (s *Scheduler) WakeReviewer(agentID, issueKey string) {
 }
 
 func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt string) string {
+	// Apply session-level runner/model override (-m flag)
+	if s.runnerOverride != "" {
+		agent.Runner = s.runnerOverride
+		agent.Model = s.modelOverride
+	}
+
 	runID := uuid.New().String()
 
 	run := &models.Run{

@@ -153,3 +153,71 @@ func TestDBQueryRetry(t *testing.T) {
 		t.Fatal("expected row")
 	}
 }
+
+func TestTxCommitReleasesWriteLock(t *testing.T) {
+	d := testDB(t)
+
+	tx, err := d.Begin()
+	if err != nil {
+		t.Fatalf("Begin: %v", err)
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := d.Exec("SELECT 1")
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		t.Fatalf("Exec completed before Commit released the lock: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Exec after Commit: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Exec stayed blocked after Commit")
+	}
+}
+
+func TestTxRollbackReleasesWriteLock(t *testing.T) {
+	d := testDB(t)
+
+	tx, err := d.Begin()
+	if err != nil {
+		t.Fatalf("Begin: %v", err)
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := d.Exec("SELECT 1")
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		t.Fatalf("Exec completed before Rollback released the lock: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	if err := tx.Rollback(); err != nil {
+		t.Fatalf("Rollback: %v", err)
+	}
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Exec after Rollback: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Exec stayed blocked after Rollback")
+	}
+}

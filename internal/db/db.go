@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	_ "modernc.org/sqlite"
 )
@@ -17,6 +18,7 @@ var migrationsFS embed.FS
 
 type DB struct {
 	*sql.DB
+	wmu sync.Mutex // serializes writes to avoid SQLITE_BUSY
 }
 
 func Open(path string) (*DB, error) {
@@ -27,7 +29,7 @@ func Open(path string) (*DB, error) {
 	}
 	sqlDB.SetMaxOpenConns(4)
 
-	d := &DB{sqlDB}
+	d := &DB{DB: sqlDB}
 	if err := d.RunMigrations(); err != nil {
 		sqlDB.Close()
 		return nil, fmt.Errorf("run migrations: %w", err)
