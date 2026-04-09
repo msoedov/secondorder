@@ -1586,6 +1586,41 @@ func formatStreamJSON(stdout, runStatus string) string {
 				dur, _ := result["duration_ms"].(float64)
 				b.WriteString(fmt.Sprintf(`<div class="mt-4 pt-3 border-t border-zinc-700 text-xs text-zinc-500 flex gap-4"><span>Cost: $%.4f</span><span>In: %.0f</span><span>Out: %.0f</span><span>Duration: %.1fs</span></div>`, cost, inputT, outputT, dur/1000))
 			}
+		// OpenCode event types
+		case "text":
+			if part, ok := msg["part"].(map[string]any); ok {
+				text, _ := part["text"].(string)
+				if text != "" {
+					b.WriteString(fmt.Sprintf(`<div class="border-l-2 border-indigo-500 pl-3 py-1 text-zinc-200 whitespace-pre-wrap">%s</div>`, template.HTMLEscapeString(text)))
+				}
+			}
+		case "tool_use":
+			if part, ok := msg["part"].(map[string]any); ok {
+				name, _ := part["name"].(string)
+				input, _ := json.MarshalIndent(part["input"], "", "  ")
+				b.WriteString(fmt.Sprintf(`<details class="border border-zinc-700 rounded p-2"><summary class="cursor-pointer text-blue-400 font-medium">Tool: %s</summary><pre class="mt-2 text-xs text-zinc-400 overflow-x-auto">%s</pre></details>`, template.HTMLEscapeString(name), template.HTMLEscapeString(string(input))))
+			}
+		case "step_finish":
+			if part, ok := msg["part"].(map[string]any); ok {
+				cost, _ := part["cost"].(float64)
+				if tokens, ok := part["tokens"].(map[string]any); ok {
+					inputT, _ := tokens["input"].(float64)
+					outputT, _ := tokens["output"].(float64)
+					b.WriteString(fmt.Sprintf(`<div class="mt-4 pt-3 border-t border-zinc-700 text-xs text-zinc-500 flex gap-4"><span>Cost: $%.4f</span><span>In: %.0f</span><span>Out: %.0f</span></div>`, cost, inputT, outputT))
+				}
+			}
+		case "error":
+			if part, ok := msg["part"].(map[string]any); ok {
+				errText, _ := part["error"].(string)
+				if errText == "" {
+					errText, _ = part["text"].(string)
+				}
+				if errText != "" {
+					b.WriteString(fmt.Sprintf(`<div class="border-l-2 border-red-500 pl-3 py-1 text-red-300 whitespace-pre-wrap">Error: %s</div>`, template.HTMLEscapeString(errText)))
+				}
+			}
+		case "step_start", "reasoning":
+			// skip verbose events
 		}
 	}
 

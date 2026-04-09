@@ -38,19 +38,19 @@
       </div>
       <div class="bg-card border border-bd rounded-lg p-3 hover:border-bd transition-colors">
         <div class="text-[11px] text-ink3/50 uppercase tracking-wider">Input</div>
-        <div class="text-sm font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex")}}{{formatTokens .Run.InputTokens}}{{else}}N/A{{end}}</div>
+        <div class="text-sm font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex") (eq .Agent.Runner "opencode")}}{{formatTokens .Run.InputTokens}}{{else}}N/A{{end}}</div>
       </div>
       <div class="bg-card border border-bd rounded-lg p-3 hover:border-bd transition-colors">
         <div class="text-[11px] text-ink3/50 uppercase tracking-wider">Output</div>
-        <div class="text-sm font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex")}}{{formatTokens .Run.OutputTokens}}{{else}}N/A{{end}}</div>
+        <div class="text-sm font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex") (eq .Agent.Runner "opencode")}}{{formatTokens .Run.OutputTokens}}{{else}}N/A{{end}}</div>
       </div>
       <div class="bg-card border border-bd rounded-lg p-3 hover:border-bd transition-colors">
         <div class="text-[11px] text-ink3/50 uppercase tracking-wider">Cache Read</div>
-        <div class="text-sm font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex")}}{{formatTokens .Run.CacheReadTokens}}{{else}}N/A{{end}}</div>
+        <div class="text-sm font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex") (eq .Agent.Runner "opencode")}}{{formatTokens .Run.CacheReadTokens}}{{else}}N/A{{end}}</div>
       </div>
       <div class="bg-card border border-bd rounded-lg p-3 hover:border-bd transition-colors">
         <div class="text-[11px] text-ink3/50 uppercase tracking-wider">Cache Write</div>
-        <div class="text-sm font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex")}}{{formatTokens .Run.CacheCreateTokens}}{{else}}N/A{{end}}</div>
+        <div class="text-sm font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex") (eq .Agent.Runner "opencode")}}{{formatTokens .Run.CacheCreateTokens}}{{else}}N/A{{end}}</div>
       </div>
     </div>
 
