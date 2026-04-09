@@ -313,6 +313,11 @@ func main() {
 	mux.HandleFunc("PATCH /api/v1/apex-blocks/{id}", api.Auth(api.UpdateApexBlock))
 	mux.HandleFunc("POST /api/v1/archetype-patches", api.Auth(api.CreateArchetypePatch))
 
+	// Webhook routes (no auth required, uses HMAC signature)
+	webhookAPI := handlers.NewWebhookAPI(database, sse)
+	mux.HandleFunc("POST /api/v1/webhooks/{source}/issues", webhookAPI.WebhookAuth(webhookAPI.HandleIssues))
+	mux.HandleFunc("POST /api/v1/webhooks/{source}/comments", webhookAPI.WebhookAuth(webhookAPI.HandleComments))
+
 	// Apply org template on first run
 	templateName, defaultModel = promptFirstRun(database, templateName, defaultModel, templateProvided, modelProvided)
 	applyStartupTemplate(database, templateName, defaultModel)
