@@ -1020,9 +1020,10 @@ func (s *Scheduler) runHeartbeats() {
 const workerRules = `RULES:
 - You are fully autonomous. Do NOT ask questions interactively. Do NOT wait for human input.
 - If you have a question or need clarification, post it as a comment on the ticket and mark the issue "blocked".
-- Do NOT request approvals. Just do the work and mark done.
 - Always checkout the issue first, then do the work, then update status.
-- Write any documentation to the artifact-docs/ folder.`
+- Write any documentation to the artifact-docs/ folder.
+- When your work is ready for review: create a PR (gh pr create --fill), then mark the issue "done" with the PR URL in your comment.
+- Do NOT merge PRs yourself. The QA agent will run gates and merge when approved.`
 
 const workerAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
