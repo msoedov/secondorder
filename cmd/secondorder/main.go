@@ -225,6 +225,7 @@ func main() {
 	mux.HandleFunc("POST /issues", ui.ListIssues)
 	mux.HandleFunc("GET /issues/{key}", ui.IssueDetail)
 	mux.HandleFunc("POST /issues/{key}", ui.IssueDetail)
+	mux.HandleFunc("GET /issues/{key}/pr-status", ui.IssuePRStatus)
 	mux.HandleFunc("GET /agents", ui.ListAgents)
 	mux.HandleFunc("POST /agents", ui.ListAgents)
 	mux.HandleFunc("GET /agents/{slug}", ui.AgentDetail)
