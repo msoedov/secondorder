@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,6 +29,37 @@ func TestOpen(t *testing.T) {
 	d := testDB(t)
 	if err := d.Ping(); err != nil {
 		t.Fatalf("ping: %v", err)
+	}
+}
+
+func TestOpenSQLiteConnectionPoolIsSingleConnection(t *testing.T) {
+	d := testDB(t)
+	if got := d.DB.Stats().MaxOpenConnections; got != sqliteMaxOpenConns {
+		t.Fatalf("max open connections = %d, want %d", got, sqliteMaxOpenConns)
+	}
+}
+
+func TestOpenConfiguresBusyTimeoutPragma(t *testing.T) {
+	d := testDB(t)
+
+	var timeout int
+	if err := d.DB.QueryRow("PRAGMA busy_timeout").Scan(&timeout); err != nil {
+		t.Fatalf("query busy_timeout pragma: %v", err)
+	}
+	if timeout != sqliteBusyTimeout {
+		t.Fatalf("busy_timeout = %d, want %d", timeout, sqliteBusyTimeout)
+	}
+}
+
+func TestOpenConfiguresJournalModeWAL(t *testing.T) {
+	d := testDB(t)
+
+	var mode string
+	if err := d.DB.QueryRow("PRAGMA journal_mode").Scan(&mode); err != nil {
+		t.Fatalf("query journal_mode pragma: %v", err)
+	}
+	if strings.ToLower(mode) != "wal" {
+		t.Fatalf("journal_mode = %q, want WAL", mode)
 	}
 }
 
