@@ -246,6 +246,8 @@ func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt strin
 			stdout, err = s.execClaudeCode(ctx, agent, rawKey, runID, issueKey, prompt)
 		case "copilot":
 			stdout, err = s.execCopilot(ctx, agent, rawKey, runID, issueKey, prompt)
+		case "opencode":
+			stdout, err = s.execOpenCode(ctx, agent, rawKey, runID, issueKey, prompt)
 		default:
 			err = fmt.Errorf("unsupported runner: %s", runner)
 		}
@@ -281,7 +283,7 @@ func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt strin
 
 		// Parse token usage from stream-json output
 		tokens := parseTokenUsage(stdout)
-		if agent.Runner != "claude_code" && agent.Runner != "gemini" && agent.Runner != "codex" && agent.Runner != "" {
+		if agent.Runner != "claude_code" && agent.Runner != "gemini" && agent.Runner != "codex" && agent.Runner != "opencode" && agent.Runner != "" {
 			tokens = tokenUsage{}
 		}
 
@@ -508,7 +510,6 @@ func (s *Scheduler) execGemini(ctx context.Context, agent *models.Agent, apiKey,
 	lw.Flush()
 	return lw.String(), err
 }
-
 
 func (s *Scheduler) provisionAPIKey(agentID, runID string) (string, error) {
 	// Revoke existing key for this run

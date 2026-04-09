@@ -98,6 +98,27 @@
                 {val: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro'},
                 {val: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash'}
             ];
+        } else if (runner === 'copilot') {
+            models = [
+                {val: 'claude-sonnet-4.6', label: 'Claude Sonnet 4.6'},
+                {val: 'claude-opus-4.6', label: 'Claude Opus 4.6'},
+                {val: 'claude-haiku-4.5', label: 'Claude Haiku 4.5'},
+                {val: 'gpt-5.4', label: 'GPT-5.4'},
+                {val: 'gpt-5.1', label: 'GPT-5.1'},
+                {val: 'gpt-5-mini', label: 'GPT-5 Mini'},
+                {val: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro'}
+            ];
+        } else if (runner === 'opencode') {
+            models = [
+                {val: 'github-copilot/claude-opus-4.6', label: 'github-copilot / claude-opus-4.6'},
+                {val: 'github-copilot/claude-sonnet-4.5', label: 'github-copilot / claude-sonnet-4.5'},
+                {val: 'github-copilot/gpt-5.4', label: 'github-copilot / gpt-5.4'},
+                {val: 'anthropic/claude-sonnet-4-5', label: 'anthropic / claude-sonnet-4-5'},
+                {val: 'anthropic/claude-opus-4', label: 'anthropic / claude-opus-4'},
+                {val: 'openai/gpt-4o', label: 'openai / gpt-4o'},
+                {val: 'google/gemini-2.5-pro', label: 'google / gemini-2.5-pro'},
+                {val: 'openrouter/auto', label: 'openrouter / auto'}
+            ];
         }
 
         models.forEach(m => {

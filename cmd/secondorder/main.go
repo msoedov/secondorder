@@ -60,7 +60,7 @@ func main() {
 		if arg == "-h" || arg == "--help" {
 			fmt.Println("Usage: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [port]")
 			fmt.Println("  -t, --template  Team template: startup, dev-team, enterprise, saas, agency (default: startup)")
-			fmt.Println("  -m, --model     Default agent runner: claude, gemini, codex (default: claude)")
+			fmt.Println("  -m, --model     Default agent runner: claude, gemini, codex, opencode (default: claude)")
 			fmt.Println("  -v              Verbosity: -v info, -vv debug, -vvv debug+cmd")
 			fmt.Println("  port            HTTP port (default: 3001, or PORT env)")
 			os.Exit(0)
@@ -350,6 +350,8 @@ func resolveRunner(model string) string {
 		return "claude_code"
 	case "copilot":
 		return "copilot"
+	case "opencode":
+		return "opencode"
 	case "gemini", "codex":
 		return model
 	default:
@@ -521,9 +523,10 @@ func promptFirstRun(database *db.DB, templateName, defaultModel string, template
 
 	if !modelProvided {
 		fmt.Println("\nSelect default agent runner:")
-		fmt.Println("  1. claude  - Claude Code (default)")
-		fmt.Println("  2. gemini  - Google Gemini")
-		fmt.Println("  3. codex   - OpenAI Codex")
+		fmt.Println("  1. claude    - Claude Code (default)")
+		fmt.Println("  2. gemini    - Google Gemini")
+		fmt.Println("  3. codex     - OpenAI Codex")
+		fmt.Println("  4. opencode  - OpenCode")
 
 		prompt := func() string {
 			fmt.Print("\nEnter choice [1]: ")
@@ -539,6 +542,8 @@ func promptFirstRun(database *db.DB, templateName, defaultModel string, template
 				return "gemini"
 			case "3", "codex":
 				return "codex"
+			case "4", "opencode":
+				return "opencode"
 			default:
 				return ""
 			}
