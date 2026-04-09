@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 	"github.com/msoedov/secondorder/internal/models"
 	"github.com/msoedov/secondorder/internal/templates"
 )
@@ -27,7 +28,7 @@ func TestApexBlockHandlers(t *testing.T) {
 	}
 	d.CreateAgent(agent)
 	token := "test-token"
-	d.CreateAPIKey(agent.ID, hashToken(token), "test")
+	d.CreateAPIKey(agent.ID, "run-apex", hashToken(token), "test", 60*time.Minute)
 
 	// 1. Create Apex Block
 	body := map[string]string{
@@ -95,7 +96,7 @@ func TestWorkBlockWithApexHandlers(t *testing.T) {
 	agent := &models.Agent{ID: "a1", Name: "Alice", Slug: "alice"}
 	d.CreateAgent(agent)
 	token := "test-token"
-	d.CreateAPIKey(agent.ID, hashToken(token), "test")
+	d.CreateAPIKey(agent.ID, "run-apex", hashToken(token), "test", 60*time.Minute)
 
 	ab := &models.ApexBlock{Title: "Apex", Goal: "Goal"}
 	d.CreateApexBlock(ab)

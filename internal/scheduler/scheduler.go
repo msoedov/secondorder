@@ -194,7 +194,7 @@ func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt strin
 	}
 
 	// Provision API key
-	rawKey, err := s.provisionAPIKey(agent.ID)
+	rawKey, err := s.provisionAPIKey(agent.ID, runID)
 	if err != nil {
 		slog.Error("scheduler: failed to provision API key", "error", err)
 		return ""
@@ -568,9 +568,9 @@ func (s *Scheduler) execAntigravity(ctx context.Context, agent *models.Agent, ap
 	return lw.String(), err
 }
 
-func (s *Scheduler) provisionAPIKey(agentID string) (string, error) {
-	// Revoke existing keys
-	s.db.RevokeAPIKeys(agentID)
+func (s *Scheduler) provisionAPIKey(agentID, runID string) (string, error) {
+	// Revoke existing key for this run
+	s.db.RevokeRunAPIKey(runID)
 
 	// Generate new key
 	raw := make([]byte, 32)
@@ -583,7 +583,7 @@ func (s *Scheduler) provisionAPIKey(agentID string) (string, error) {
 	keyHash := hex.EncodeToString(hash[:])
 	prefix := rawKey[:12]
 
-	if err := s.db.CreateAPIKey(agentID, keyHash, prefix); err != nil {
+	if err := s.db.CreateAPIKey(agentID, runID, keyHash, prefix, 60*time.Minute); err != nil {
 		return "", err
 	}
 

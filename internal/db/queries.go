@@ -545,18 +545,30 @@ func (d *DB) ListComments(issueKey string) ([]models.Comment, error) {
 
 // --- API Keys ---
 
-func (d *DB) CreateAPIKey(agentID, keyHash, prefix string) error {
-	_, err := d.Exec(`INSERT INTO api_keys (id, agent_id, key_hash, prefix, created_at) VALUES (?, ?, ?, ?, ?)`,
-		uuid.NewString(), agentID, keyHash, prefix, time.Now().UTC())
+// CreateAPIKey provisions a session-scoped API key bound to a specific run.
+// runID must be the ID of the run that is being started; the key is valid
+// until it is explicitly revoked (via RevokeRunAPIKey) or until it expires
+// via idle timeout (idleTimeout, recommended ≥ 30 min per AC#3).
+func (d *DB) CreateAPIKey(agentID, runID, keyHash, prefix string, idleTimeout time.Duration) error {
+	now := time.Now().UTC()
+	expiresAt := now.Add(idleTimeout)
+	_, err := d.Exec(
+		`INSERT INTO api_keys (id, agent_id, run_id, key_hash, prefix, created_at, expires_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		uuid.NewString(), agentID, runID, keyHash, prefix, now, expiresAt)
 	return err
 }
 
 func (d *DB) GetAgentByAPIKey(keyHash string) (*models.Agent, error) {
 	a := &models.Agent{}
+	// Key is valid only when: not revoked AND (no expiry set OR expiry is in the future).
+	// Session-scoped keys always have expires_at set; legacy keys without it remain valid.
 	err := d.QueryRow(`SELECT a.id, a.name, a.slug, a.archetype_slug, a.model, a.runner, a.api_key_env, a.working_dir, a.max_turns, a.timeout_sec,
 		a.heartbeat_enabled, a.heartbeat_cron, a.chrome_enabled, a.reports_to, a.review_agent_id, a.active, a.created_at, a.updated_at
 		FROM api_keys k JOIN agents a ON k.agent_id = a.id
-		WHERE k.key_hash=? AND k.revoked_at IS NULL`, keyHash).Scan(
+		WHERE k.key_hash=?
+		  AND k.revoked_at IS NULL
+		  AND (k.expires_at IS NULL OR k.expires_at > datetime('now'))`, keyHash).Scan(
 		&a.ID, &a.Name, &a.Slug, &a.ArchetypeSlug, &a.Model, &a.Runner, &a.ApiKeyEnv, &a.WorkingDir, &a.MaxTurns, &a.TimeoutSec,
 		&a.HeartbeatEnabled, &a.HeartbeatCron, &a.ChromeEnabled, &a.ReportsTo, &a.ReviewAgentID, &a.Active, &a.CreatedAt, &a.UpdatedAt)
 	if err != nil {
@@ -565,9 +577,28 @@ func (d *DB) GetAgentByAPIKey(keyHash string) (*models.Agent, error) {
 	return a, nil
 }
 
-func (d *DB) RevokeAPIKeys(agentID string) error {
-	_, err := d.Exec(`UPDATE api_keys SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL`, time.Now().UTC(), agentID)
+// RevokeRunAPIKey revokes the API key issued to a specific run.
+// This replaces the old agent-wide RevokeAPIKeys to avoid cancelling concurrent
+// run sessions for the same agent (AC#1 fix).
+func (d *DB) RevokeRunAPIKey(runID string) error {
+	_, err := d.Exec(
+		`UPDATE api_keys SET revoked_at=? WHERE run_id=? AND revoked_at IS NULL`,
+		time.Now().UTC(), runID)
 	return err
+}
+
+// ExpireStaleAPIKeys marks keys past their expires_at as revoked.
+// Should be called periodically (e.g. every minute) to enforce idle timeout (AC#3).
+func (d *DB) ExpireStaleAPIKeys() (int64, error) {
+	res, err := d.Exec(
+		`UPDATE api_keys SET revoked_at=datetime('now')
+		 WHERE expires_at IS NOT NULL
+		   AND expires_at <= datetime('now')
+		   AND revoked_at IS NULL`)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 // --- Approvals ---

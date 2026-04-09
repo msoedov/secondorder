@@ -98,6 +98,8 @@ func TestRunMigrationsUpdatesLegacyDefaultTimeoutAgents(t *testing.T) {
 	stmts := []string{
 		`CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
 		`CREATE TABLE agents (id TEXT PRIMARY KEY, timeout_sec INTEGER NOT NULL DEFAULT 600)`,
+		`CREATE TABLE runs (id TEXT PRIMARY KEY)`,
+		`CREATE TABLE api_keys (id TEXT PRIMARY KEY, agent_id TEXT, key_hash TEXT, prefix TEXT, revoked_at DATETIME, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
 		`INSERT INTO agents (id, timeout_sec) VALUES ('legacy-default', 600), ('custom-timeout', 900)`,
 	}
 	for i := 1; i <= 15; i++ {
@@ -709,7 +711,7 @@ func TestAPIKeyLifecycle(t *testing.T) {
 	a := makeAgent("api-key-agent")
 	d.CreateAgent(a)
 
-	if err := d.CreateAPIKey(a.ID, "hash123", "so_abc"); err != nil {
+	if err := d.CreateAPIKey(a.ID, "run-test", "hash123", "so_abc", 60*time.Minute); err != nil {
 		t.Fatalf("create key: %v", err)
 	}
 
@@ -722,7 +724,7 @@ func TestAPIKeyLifecycle(t *testing.T) {
 	}
 
 	// Revoke
-	if err := d.RevokeAPIKeys(a.ID); err != nil {
+	if err := d.RevokeRunAPIKey("run-test"); err != nil {
 		t.Fatalf("revoke: %v", err)
 	}
 
