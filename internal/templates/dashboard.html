@@ -150,6 +150,84 @@
       </div>
     </div>
 
+    <!-- Supermemory Stats Panel -->
+    <div id="supermemory-panel" class="mt-8"
+         hx-get="/dashboard" hx-select="#supermemory-panel"
+         hx-target="#supermemory-panel" hx-swap="outerHTML"
+         hx-trigger="run-complete from:body">
+
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-[13px] font-medium text-ink2">Supermemory</h2>
+        <span class="text-xs text-ink3/50">Copilot runner only · recall hit = ≥1 result returned</span>
+      </div>
+
+      {{if .SupermemoryStats}}
+      <!-- Per-agent cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4 stagger">
+        {{range .SupermemoryStats}}
+        <a href="/agents/{{.AgentSlug}}" class="bg-card border border-bd rounded-lg p-4 hover:border-bd transition-colors">
+          <div class="text-[11px] font-medium text-ink3/50 truncate mb-2">{{.AgentName}}</div>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <div class="text-xl font-semibold text-ink tabular-nums">{{.Stores}}</div>
+              <div class="text-[10px] text-ink3/50 uppercase tracking-wider">Stored</div>
+            </div>
+            <div>
+              <div class="text-xl font-semibold text-ink tabular-nums">{{.Recalls}}</div>
+              <div class="text-[10px] text-ink3/50 uppercase tracking-wider">Recalled</div>
+            </div>
+            <div>
+              {{if lt .HitRatePct 0.0}}
+              <div class="text-xl font-semibold text-ink3/40 tabular-nums">—</div>
+              {{else if ge .HitRatePct 70.0}}
+              <div class="text-xl font-semibold text-emerald-400 tabular-nums">{{printf "%.0f" .HitRatePct}}%</div>
+              {{else if ge .HitRatePct 40.0}}
+              <div class="text-xl font-semibold text-amber-400 tabular-nums">{{printf "%.0f" .HitRatePct}}%</div>
+              {{else}}
+              <div class="text-xl font-semibold text-red-400 tabular-nums">{{printf "%.0f" .HitRatePct}}%</div>
+              {{end}}
+              <div class="text-[10px] text-ink3/50 uppercase tracking-wider">Hit Rate</div>
+            </div>
+          </div>
+        </a>
+        {{end}}
+      </div>
+
+      <!-- 7-day trend bar chart -->
+      {{if .SupermemoryTrend}}
+      <div class="bg-card border border-bd rounded-lg p-4">
+        <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-3">7-Day Trend</div>
+        <div class="flex items-end gap-1.5 h-16">
+          {{$maxVal := 1}}
+          {{range .SupermemoryTrend}}{{if gt (add .Stores .Recalls) $maxVal}}{{$maxVal = add .Stores .Recalls}}{{end}}{{end}}
+          {{range .SupermemoryTrend}}
+          <div class="flex-1 flex flex-col items-center gap-0.5" title="{{.Label}}: {{.Stores}} stored, {{.Recalls}} recalled">
+            <div class="w-full flex flex-col justify-end gap-px" style="height:48px">
+              {{if gt .Recalls 0}}
+              <div class="w-full rounded-sm bg-ac/70" style="height:{{percent .Recalls $maxVal 48}}px"></div>
+              {{end}}
+              {{if gt .Stores 0}}
+              <div class="w-full rounded-sm bg-ac/30" style="height:{{percent .Stores $maxVal 48}}px"></div>
+              {{end}}
+            </div>
+            <div class="text-[9px] text-ink3/40 truncate w-full text-center">{{shortDate .Label}}</div>
+          </div>
+          {{end}}
+        </div>
+        <div class="flex gap-3 mt-2">
+          <span class="flex items-center gap-1 text-[10px] text-ink3/50"><span class="w-2 h-2 rounded-sm bg-ac/70 inline-block"></span>Recalls</span>
+          <span class="flex items-center gap-1 text-[10px] text-ink3/50"><span class="w-2 h-2 rounded-sm bg-ac/30 inline-block"></span>Stores</span>
+        </div>
+      </div>
+      {{end}}
+
+      {{else}}
+      <div class="bg-card border border-bd rounded-lg p-6 text-center text-sm text-ink3/50">
+        No supermemory activity recorded yet. Stats appear when Copilot-runner agents use supermemory_store or supermemory_recall.
+      </div>
+      {{end}}
+    </div>
+
   </div>
 </main>
 {{template "foot" .}}

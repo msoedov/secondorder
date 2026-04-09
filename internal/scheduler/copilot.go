@@ -16,6 +16,7 @@ import (
 	"log/slog"
 
 	"github.com/msoedov/secondorder/internal/archetypes"
+	"github.com/msoedov/secondorder/internal/db"
 	"github.com/msoedov/secondorder/internal/models"
 )
 
@@ -157,7 +158,8 @@ var copilotTools = []map[string]interface{}{
 }
 
 // executeTool runs a tool call and returns the result string.
-func executeTool(name, argsJSON, workingDir string) string {
+// agentID and runID are used to log supermemory events; database may be nil (e.g. in tests).
+func executeTool(name, argsJSON, workingDir, agentID, runID string, database *db.DB) string {
 	var args map[string]interface{}
 	if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
 		return fmt.Sprintf("error parsing args: %v", err)
@@ -261,15 +263,26 @@ func executeTool(name, argsJSON, workingDir string) string {
 		respBody, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if resp.StatusCode >= 300 {
-			return fmt.Sprintf("supermemory error %d: %s", resp.StatusCode, string(respBody))
+			result := fmt.Sprintf("supermemory error %d: %s", resp.StatusCode, string(respBody))
+			if database != nil {
+				database.LogSupermemoryEvent(agentID, runID, "store", "", 1, false)
+			}
+			return result
 		}
-		var result map[string]interface{}
-		if err := json.Unmarshal(respBody, &result); err == nil {
-			if id, ok := result["id"].(string); ok {
-				return fmt.Sprintf("stored successfully (id: %s)", id)
+		var resultMap map[string]interface{}
+		var result string
+		if err := json.Unmarshal(respBody, &resultMap); err == nil {
+			if id, ok := resultMap["id"].(string); ok {
+				result = fmt.Sprintf("stored successfully (id: %s)", id)
 			}
 		}
-		return "stored successfully"
+		if result == "" {
+			result = "stored successfully"
+		}
+		if database != nil {
+			database.LogSupermemoryEvent(agentID, runID, "store", "", 1, true)
+		}
+		return result
 
 	case "supermemory_recall":
 		apiKey := os.Getenv("SUPERMEMORY_API_KEY")
@@ -302,11 +315,15 @@ func executeTool(name, argsJSON, workingDir string) string {
 		respBody, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if resp.StatusCode >= 300 {
-			return fmt.Sprintf("supermemory error %d: %s", resp.StatusCode, string(respBody))
+			result := fmt.Sprintf("supermemory error %d: %s", resp.StatusCode, string(respBody))
+			if database != nil {
+				database.LogSupermemoryEvent(agentID, runID, "recall", query, 0, false)
+			}
+			return result
 		}
 		var searchResp struct {
 			Results []struct {
-				Title  string `json:"title"`
+				Title  string  `json:"title"`
 				Score  float64 `json:"score"`
 				Chunks []struct {
 					Content string `json:"content"`
@@ -314,10 +331,18 @@ func executeTool(name, argsJSON, workingDir string) string {
 			} `json:"results"`
 		}
 		if err := json.Unmarshal(respBody, &searchResp); err != nil {
-			return fmt.Sprintf("error parsing supermemory response: %v", err)
+			result := fmt.Sprintf("error parsing supermemory response: %v", err)
+			if database != nil {
+				database.LogSupermemoryEvent(agentID, runID, "recall", query, 0, false)
+			}
+			return result
 		}
 		if len(searchResp.Results) == 0 {
-			return "no memories found for query: " + query
+			result := "no memories found for query: " + query
+			if database != nil {
+				database.LogSupermemoryEvent(agentID, runID, "recall", query, 0, true)
+			}
+			return result
 		}
 		var sb strings.Builder
 		sb.WriteString(fmt.Sprintf("Found %d memories:\n\n", len(searchResp.Results)))
@@ -329,11 +354,28 @@ func executeTool(name, argsJSON, workingDir string) string {
 			}
 			sb.WriteString("\n")
 		}
-		return sb.String()
+		result := sb.String()
+		resultCount := parseRecallCount(result)
+		success := !strings.HasPrefix(result, "error") && !strings.HasPrefix(result, "supermemory error")
+		if database != nil {
+			database.LogSupermemoryEvent(agentID, runID, "recall", query, resultCount, success)
+		}
+		return result
 
 	default:
 		return fmt.Sprintf("unknown tool: %s", name)
 	}
+}
+
+// parseRecallCount extracts N from "Found N memories:\n\n..."
+// Returns 0 if result starts with "no memories found" or on parse failure.
+func parseRecallCount(result string) int {
+	if strings.HasPrefix(result, "no memories found") {
+		return 0
+	}
+	var n int
+	fmt.Sscanf(result, "Found %d memories", &n)
+	return n
 }
 
 func (s *Scheduler) execCopilot(ctx context.Context, agent *models.Agent, soAPIKey, runID, issueKey, prompt string) (string, error) {
@@ -475,7 +517,7 @@ Use the bash tool to call the API with curl when you need to update issue status
 
 		for _, tc := range msg.ToolCalls {
 			slog.Debug("copilot: tool call", "tool", tc.Function.Name, "run_id", runID)
-			result := executeTool(tc.Function.Name, tc.Function.Arguments, agent.WorkingDir)
+			result := executeTool(tc.Function.Name, tc.Function.Arguments, agent.WorkingDir, agent.ID, runID, s.db)
 			outputBuf.WriteString(fmt.Sprintf("[tool:%s] %s\n", tc.Function.Name, result))
 			messages = append(messages, copilotMessage{
 				Role:       "tool",

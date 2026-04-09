@@ -194,9 +194,11 @@ type Approval struct {
 type APIKey struct {
 	ID        string     `json:"id"`
 	AgentID   string     `json:"agent_id"`
+	RunID     *string    `json:"run_id"`
 	KeyHash   string     `json:"-"`
 	Prefix    string     `json:"prefix"`
 	CreatedAt time.Time  `json:"created_at"`
+	ExpiresAt *time.Time `json:"expires_at"`
 	RevokedAt *time.Time `json:"revoked_at"`
 }
 
