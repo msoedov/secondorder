@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"log/slog"
 	"math"
@@ -69,9 +70,16 @@ type Row struct {
 	args  []any
 }
 
+func (d *DB) reader() *sql.DB {
+	if d.rdb != nil {
+		return d.rdb
+	}
+	return d.DB
+}
+
 func (r *Row) Scan(dest ...any) error {
 	return retryOnBusy("QueryRow", func() error {
-		return r.db.DB.QueryRow(r.query, r.args...).Scan(dest...)
+		return r.db.reader().QueryRow(r.query, r.args...).Scan(dest...)
 	})
 }
 
@@ -79,7 +87,7 @@ func (d *DB) Query(query string, args ...any) (*sql.Rows, error) {
 	var rows *sql.Rows
 	err := retryOnBusy("Query", func() error {
 		var queryErr error
-		rows, queryErr = d.DB.Query(query, args...)
+		rows, queryErr = d.reader().Query(query, args...)
 		return queryErr
 	})
 	return rows, err
@@ -114,4 +122,31 @@ func (t *Tx) Commit() error {
 func (t *Tx) Rollback() error {
 	defer t.mu.Unlock()
 	return retryOnBusy("Rollback", t.Tx.Rollback)
+}
+
+func (d *DB) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	var rows *sql.Rows
+	err := retryOnBusy("QueryContext", func() error {
+		var queryErr error
+		rows, queryErr = d.reader().QueryContext(ctx, query, args...)
+		return queryErr
+	})
+	return rows, err
+}
+
+func (d *DB) QueryRowContext(ctx context.Context, query string, args ...any) *CtxRow {
+	return &CtxRow{db: d, ctx: ctx, query: query, args: args}
+}
+
+type CtxRow struct {
+	db    *DB
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (r *CtxRow) Scan(dest ...any) error {
+	return retryOnBusy("QueryRowContext", func() error {
+		return r.db.reader().QueryRowContext(r.ctx, r.query, r.args...).Scan(dest...)
+	})
 }
