@@ -701,7 +701,7 @@ func (d *DB) GetAgentUsage(agentID string) (todayTokens int64, todayCost float64
 
 func (d *DB) GetTotalCostToday() (float64, error) {
 	var cost float64
-	err := d.QueryRow(`SELECT COALESCE(SUM(total_cost_usd), 0) FROM cost_events WHERE DATE(created_at)=DATE('now')`).Scan(&cost)
+	err := d.QueryRow(`SELECT COALESCE(SUM(total_cost_usd), 0) FROM cost_events WHERE created_at >= date('now')`).Scan(&cost)
 	return cost, err
 }
 
@@ -864,26 +864,17 @@ func (d *DB) GetDailyActivityStats(days int) ([]models.DailyStat, error) {
 
 func (d *DB) GetDashboardStats() (*models.DashboardStats, error) {
 	s := &models.DashboardStats{}
-	var err error
 
-	s.TotalAgents, s.ActiveAgents, err = d.CountAgents()
+	err := d.QueryRow(`SELECT
+		(SELECT COUNT(*) FROM agents) AS total_agents,
+		(SELECT COALESCE(SUM(CASE WHEN active=1 THEN 1 ELSE 0 END), 0) FROM agents) AS active_agents,
+		(SELECT COUNT(*) FROM issues) AS total_issues,
+		(SELECT COALESCE(SUM(CASE WHEN status NOT IN ('done','cancelled','wont_do') THEN 1 ELSE 0 END), 0) FROM issues) AS open_issues,
+		(SELECT COUNT(*) FROM runs WHERE status='running') AS running_runs,
+		(SELECT COALESCE(SUM(total_cost_usd), 0) FROM cost_events WHERE created_at >= date('now')) AS cost_today
+	`).Scan(&s.TotalAgents, &s.ActiveAgents, &s.TotalIssues, &s.OpenIssues, &s.RunningRuns, &s.TotalCostToday)
 	if err != nil {
-		return nil, fmt.Errorf("count agents: %w", err)
-	}
-
-	s.TotalIssues, s.OpenIssues, err = d.CountIssues()
-	if err != nil {
-		return nil, fmt.Errorf("count issues: %w", err)
-	}
-
-	s.RunningRuns, err = d.CountRunningRuns()
-	if err != nil {
-		return nil, fmt.Errorf("count runs: %w", err)
-	}
-
-	s.TotalCostToday, err = d.GetTotalCostToday()
-	if err != nil {
-		return nil, fmt.Errorf("cost today: %w", err)
+		return nil, err
 	}
 
 	return s, nil
@@ -1616,18 +1607,73 @@ func (d *DB) ChildrenWithCompletionComments(parentKey string) ([]ChildCompletion
 	if err != nil {
 		return nil, err
 	}
+	if len(children) == 0 {
+		return nil, nil
+	}
 
-	var results []ChildCompletionInfo
-	for _, child := range children {
+	// Build map of assignee-to-children for batch lookup
+	type childRef struct {
+		issueKey string
+		agentID  string
+		childIdx int
+	}
+	var refs []childRef
+	for i, child := range children {
 		if child.AssigneeAgentID == nil {
 			continue
 		}
-		found, excerpt, err := d.HasCompletionComment(child.Key, *child.AssigneeAgentID)
-		if err != nil {
+		refs = append(refs, childRef{issueKey: child.Key, agentID: *child.AssigneeAgentID, childIdx: i})
+	}
+	if len(refs) == 0 {
+		return nil, nil
+	}
+
+	// Fetch all comments for these issue+agent pairs in one query
+	var placeholders []string
+	var args []any
+	for _, ref := range refs {
+		placeholders = append(placeholders, "(issue_key = ? AND agent_id = ?)")
+		args = append(args, ref.issueKey, ref.agentID)
+	}
+	query := fmt.Sprintf(`SELECT issue_key, agent_id, body FROM comments WHERE %s ORDER BY created_at DESC`,
+		strings.Join(placeholders, " OR "))
+
+	rows, err := d.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// key = "issueKey|agentID" -> first matching excerpt
+	type matchKey struct{ issueKey, agentID string }
+	matched := make(map[matchKey]string)
+	for rows.Next() {
+		var issueKey, agentID, body string
+		if err := rows.Scan(&issueKey, &agentID, &body); err != nil {
 			continue
 		}
-		if found {
-			results = append(results, ChildCompletionInfo{Issue: child, Excerpt: excerpt})
+		mk := matchKey{issueKey, agentID}
+		if _, found := matched[mk]; found {
+			continue
+		}
+		lower := strings.ToLower(body)
+		for _, phrase := range completionPhrases {
+			if strings.Contains(lower, phrase) {
+				excerpt := body
+				if len(excerpt) > 200 {
+					excerpt = excerpt[:200] + "..."
+				}
+				matched[mk] = excerpt
+				break
+			}
+		}
+	}
+
+	var results []ChildCompletionInfo
+	for _, ref := range refs {
+		mk := matchKey{ref.issueKey, ref.agentID}
+		if excerpt, ok := matched[mk]; ok {
+			results = append(results, ChildCompletionInfo{Issue: children[ref.childIdx], Excerpt: excerpt})
 		}
 	}
 	return results, nil
