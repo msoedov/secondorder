@@ -115,6 +115,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	models.DiscoverOpenCodeModels()
+
 	// SSE hub
 	sse := handlers.NewSSEHub()
 
