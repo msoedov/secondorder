@@ -15,13 +15,13 @@ import (
 )
 
 func (s *Scheduler) execOpenCode(ctx context.Context, agent *models.Agent, apiKey, runID, issueKey, prompt string) (string, error) {
-	// Prepend archetype to prompt since opencode doesn't have a system prompt file flag
 	fullPrompt := prompt
 	if data, err := archetypes.Read(agent.ArchetypeSlug); err == nil {
 		fullPrompt = fmt.Sprintf("SYSTEM PROMPT:\n%s\n\nUSER PROMPT:\n%s", string(data), prompt)
 	}
 
 	args := []string{
+		"--pure",
 		"run", fullPrompt,
 		"--format", "json",
 		"--dangerously-skip-permissions",
