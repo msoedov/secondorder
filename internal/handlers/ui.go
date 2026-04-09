@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,13 +49,23 @@ func NewUI(database *db.DB, sse *SSEHub, tmpl *template.Template, wake func(*mod
 }
 
 func (u *UI) Dashboard(w http.ResponseWriter, r *http.Request) {
-	stats, _ := u.db.GetDashboardStats()
-	issues, _ := u.db.GetRecentIssues(20)
-	agents, _ := u.db.ListAgents()
-	runningAgents, _ := u.db.GetRunningAgentIDs()
+	var (
+		stats         *models.DashboardStats
+		issues        []models.Issue
+		agents        []models.Agent
+		runningAgents map[string]bool
+		workBlocks    []models.WorkBlock
+	)
 
-	// Calculate alignment score
-	workBlocks, _ := u.db.ListWorkBlocks()
+	var wg sync.WaitGroup
+	wg.Add(5)
+	go func() { defer wg.Done(); stats, _ = u.db.GetDashboardStats() }()
+	go func() { defer wg.Done(); issues, _ = u.db.GetRecentIssues(20) }()
+	go func() { defer wg.Done(); agents, _ = u.db.ListAgents() }()
+	go func() { defer wg.Done(); runningAgents, _ = u.db.GetRunningAgentIDs() }()
+	go func() { defer wg.Done(); workBlocks, _ = u.db.ListWorkBlocks() }()
+	wg.Wait()
+
 	totalWorkBlocks := len(workBlocks)
 	alignedWorkBlocks := 0
 	for _, wb := range workBlocks {
@@ -77,9 +88,14 @@ func (u *UI) Dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if u.db.IsFeatureEnabled("supermemory") {
+		var supermemoryStats []models.SupermemoryAgentStat
+		var supermemoryTrend []models.SupermemoryDailyStat
+		var wg2 sync.WaitGroup
+		wg2.Add(2)
+		go func() { defer wg2.Done(); supermemoryStats, _ = u.db.GetSupermemoryStats() }()
+		go func() { defer wg2.Done(); supermemoryTrend, _ = u.db.GetSupermemoryTrend(7) }()
+		wg2.Wait()
 		data["SupermemoryEnabled"] = true
-		supermemoryStats, _ := u.db.GetSupermemoryStats()
-		supermemoryTrend, _ := u.db.GetSupermemoryTrend(7)
 		data["SupermemoryStats"] = supermemoryStats
 		data["SupermemoryTrend"] = supermemoryTrend
 	}
@@ -823,8 +839,15 @@ func (u *UI) ListWorkBlocks(w http.ResponseWriter, r *http.Request) {
 		u.createWorkBlockUI(w, r)
 		return
 	}
-	blocks, _ := u.db.ListWorkBlocks()
-	apexBlocks, _ := u.db.ListApexBlocks()
+	var (
+		blocks     []models.WorkBlock
+		apexBlocks []models.ApexBlock
+	)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() { defer wg.Done(); blocks, _ = u.db.ListWorkBlocks() }()
+	go func() { defer wg.Done(); apexBlocks, _ = u.db.ListApexBlocks() }()
+	wg.Wait()
 	u.render(w, "work_blocks", map[string]any{
 		"Blocks":     blocks,
 		"ApexBlocks": apexBlocks,
@@ -948,9 +971,18 @@ func (u *UI) ActivityPage(w http.ResponseWriter, r *http.Request) {
 	limit := 30
 	offset := (page - 1) * limit
 
-	logs, _ := u.db.ListActivity(limit, offset)
-	total, _ := u.db.CountActivity()
-	dailyStats, _ := u.db.GetDailyActivityStats(14)
+	var (
+		logs       []models.ActivityLog
+		total      int
+		dailyStats []models.DailyStat
+	)
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() { defer wg.Done(); logs, _ = u.db.ListActivity(limit, offset) }()
+	go func() { defer wg.Done(); total, _ = u.db.CountActivity() }()
+	go func() { defer wg.Done(); dailyStats, _ = u.db.GetDailyActivityStats(14) }()
+	wg.Wait()
+
 	overview := buildActivityOverview(dailyStats)
 
 	u.render(w, "activity", map[string]any{
@@ -1017,10 +1049,20 @@ func (u *UI) PoliciesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	boardPolicies, _ := u.db.ListBoardPolicies()
-	pendingPatches, _ := u.db.ListPendingPatches()
-	auditRuns, _ := u.db.ListAuditRuns(20)
-	agents, _ := u.db.ListAgents()
+	var (
+		boardPolicies  []models.BoardPolicy
+		pendingPatches []models.ArchetypePatch
+		auditRuns      []models.AuditRun
+		agents         []models.Agent
+	)
+	var wg sync.WaitGroup
+	wg.Add(4)
+	go func() { defer wg.Done(); boardPolicies, _ = u.db.ListBoardPolicies() }()
+	go func() { defer wg.Done(); pendingPatches, _ = u.db.ListPendingPatches() }()
+	go func() { defer wg.Done(); auditRuns, _ = u.db.ListAuditRuns(20) }()
+	go func() { defer wg.Done(); agents, _ = u.db.ListAgents() }()
+	wg.Wait()
+
 	pendingPolicies := u.readPolicyDir("policies", agents)
 	acceptedPolicies := u.readPolicyDir(filepath.Join("policies", "accepted"), agents)
 	disabledPolicies := u.readPolicyDir(filepath.Join("policies", "disabled"), agents)
@@ -1282,8 +1324,15 @@ func (u *UI) ListCrons(w http.ResponseWriter, r *http.Request) {
 		u.createCronUI(w, r)
 		return
 	}
-	crons, _ := u.db.ListCronJobs()
-	agents, _ := u.db.ListAgents()
+	var (
+		crons  []models.CronJob
+		agents []models.Agent
+	)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() { defer wg.Done(); crons, _ = u.db.ListCronJobs() }()
+	go func() { defer wg.Done(); agents, _ = u.db.ListAgents() }()
+	wg.Wait()
 	u.render(w, "crons", map[string]any{
 		"Crons":  crons,
 		"Agents": agents,
@@ -1359,8 +1408,15 @@ func (u *UI) StrategyPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, _ := u.db.ListApexBlocks()
-	workBlocks, _ := u.db.ListWorkBlocks()
+	var (
+		blocks     []models.ApexBlock
+		workBlocks []models.WorkBlock
+	)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() { defer wg.Done(); blocks, _ = u.db.ListApexBlocks() }()
+	go func() { defer wg.Done(); workBlocks, _ = u.db.ListWorkBlocks() }()
+	wg.Wait()
 
 	// Calculate alignment score
 	totalWorkBlocks := len(workBlocks)

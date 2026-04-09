@@ -18,26 +18,41 @@ var migrationsFS embed.FS
 
 type DB struct {
 	*sql.DB
+	rdb *sql.DB    // read-only pool — higher concurrency, no write mutex
 	wmu sync.Mutex // serializes writes to avoid SQLITE_BUSY
 }
 
 func Open(path string) (*DB, error) {
 	dsn := path + "?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=on&_loc=UTC"
+
+	// Write connection pool: low concurrency, serialized by wmu
 	sqlDB, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
-	sqlDB.SetMaxOpenConns(4)
+	sqlDB.SetMaxOpenConns(2)
+	sqlDB.SetMaxIdleConns(2)
 
-	d := &DB{DB: sqlDB}
+	// Read connection pool: high concurrency, WAL allows parallel reads
+	rDB, err := sql.Open("sqlite", dsn+"&_query_only=true")
+	if err != nil {
+		sqlDB.Close()
+		return nil, fmt.Errorf("open read db: %w", err)
+	}
+	rDB.SetMaxOpenConns(16)
+	rDB.SetMaxIdleConns(8)
+
+	d := &DB{DB: sqlDB, rdb: rDB}
 	if err := d.RunMigrations(); err != nil {
 		sqlDB.Close()
+		rDB.Close()
 		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 	return d, nil
 }
 
 func (d *DB) Close() error {
+	d.rdb.Close()
 	return d.DB.Close()
 }
 
