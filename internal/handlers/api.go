@@ -25,16 +25,22 @@ type TelegramNotifier interface {
 	SendMessage(text string) error
 }
 
+type DiscordNotifier interface {
+	SendWorkBlockApproval(blockID, title, goal, transition string) error
+	SendMessage(text string) error
+}
+
 type API struct {
 	db       *db.DB
 	sse      *SSEHub
 	tmpl     *template.Template
 	wake     func(agent *models.Agent, issue *models.Issue)
 	telegram TelegramNotifier
+	discord  DiscordNotifier
 }
 
-func NewAPI(database *db.DB, sse *SSEHub, tmpl *template.Template, wake func(*models.Agent, *models.Issue), tg TelegramNotifier) *API {
-	return &API{db: database, sse: sse, tmpl: tmpl, wake: wake, telegram: tg}
+func NewAPI(database *db.DB, sse *SSEHub, tmpl *template.Template, wake func(*models.Agent, *models.Issue), tg TelegramNotifier, dc DiscordNotifier) *API {
+	return &API{db: database, sse: sse, tmpl: tmpl, wake: wake, telegram: tg, discord: dc}
 }
 
 // Auth middleware extracts agent from API key
@@ -169,7 +175,7 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
 			json.NewEncoder(w).Encode(map[string]string{
-				"error":                    "Issue has completion comment from assignee. Provide cancellation_reason to proceed.",
+				"error":                      "Issue has completion comment from assignee. Provide cancellation_reason to proceed.",
 				"completion_comment_excerpt": excerpt,
 			})
 			return
@@ -329,6 +335,9 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 			if a.telegram != nil {
 				go a.telegram.SendMessage(fmt.Sprintf("Issue %s stuck after %d runs. Needs human intervention.", key, runCount))
 			}
+			if a.discord != nil {
+				go a.discord.SendMessage(fmt.Sprintf("Issue %s stuck after %d runs. Needs human intervention.", key, runCount))
+			}
 		} else if a.wake != nil {
 			if assignee, err := a.db.GetAgent(*issue.AssigneeAgentID); err == nil {
 				go a.wake(assignee, issue)
@@ -343,6 +352,11 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 			if a.telegram != nil {
 				if wb, err := a.db.GetWorkBlock(*issue.WorkBlockID); err == nil {
 					go a.telegram.SendWorkBlockApproval(wb.ID, wb.Title, wb.Goal, "ready_to_ship")
+				}
+			}
+			if a.discord != nil {
+				if wb, err := a.db.GetWorkBlock(*issue.WorkBlockID); err == nil {
+					go a.discord.SendWorkBlockApproval(wb.ID, wb.Title, wb.Goal, "ready_to_ship")
 				}
 			}
 		}
@@ -854,6 +868,9 @@ func (a *API) CreateWorkBlock(w http.ResponseWriter, r *http.Request) {
 
 	if a.telegram != nil {
 		go a.telegram.SendWorkBlockApproval(wb.ID, wb.Title, wb.Goal, "proposed")
+	}
+	if a.discord != nil {
+		go a.discord.SendWorkBlockApproval(wb.ID, wb.Title, wb.Goal, "proposed")
 	}
 
 	w.WriteHeader(http.StatusCreated)

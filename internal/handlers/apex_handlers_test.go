@@ -18,7 +18,7 @@ func TestApexBlockHandlers(t *testing.T) {
 	sse := NewSSEHub()
 	defer sse.Close()
 	tmpl, _ := templates.Parse()
-	api := NewAPI(d, sse, tmpl, nil, nil)
+	api := NewAPI(d, sse, tmpl, nil, nil, nil)
 
 	// Create an agent for auth
 	agent := &models.Agent{
@@ -91,7 +91,7 @@ func TestWorkBlockWithApexHandlers(t *testing.T) {
 	sse := NewSSEHub()
 	defer sse.Close()
 	tmpl, _ := templates.Parse()
-	api := NewAPI(d, sse, tmpl, nil, nil)
+	api := NewAPI(d, sse, tmpl, nil, nil, nil)
 
 	agent := &models.Agent{ID: "a1", Name: "Alice", Slug: "alice"}
 	d.CreateAgent(agent)

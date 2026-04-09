@@ -170,7 +170,7 @@ func TestAuthMissingKey(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	handler := api.Auth(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -189,7 +189,7 @@ func TestAuthInvalidKey(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	handler := api.Auth(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -223,7 +223,7 @@ func TestAuthValidKey(t *testing.T) {
 	d.CreateAPIKey(agent.ID, "run-h1", keyHash, "so_test_ke", 60*time.Minute)
 
 	var gotAgent *models.Agent
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 	handler := api.Auth(func(w http.ResponseWriter, r *http.Request) {
 		gotAgent = agentFromContext(r.Context())
 		w.WriteHeader(http.StatusOK)
@@ -279,7 +279,7 @@ func TestCreateIssueDuplicateDetection(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	// Create an agent + API key for auth
 	agent := &models.Agent{
@@ -802,6 +802,47 @@ func TestSettingsPOST_Telegram(t *testing.T) {
 	}
 }
 
+func TestSettingsPOST_Discord(t *testing.T) {
+	d := testDB(t)
+	ui := testUI(t, d)
+
+	form := strings.NewReader("section=discord&discord_webhook_url=https://discord.com/api/webhooks/123/abc")
+	req := httptest.NewRequest("POST", "/settings", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	ui.Settings(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want 303", w.Code)
+	}
+
+	val, _ := d.GetSetting("discord_webhook_url")
+	if val != "https://discord.com/api/webhooks/123/abc" {
+		t.Errorf("discord_webhook_url = %q, want https://discord.com/api/webhooks/123/abc", val)
+	}
+}
+
+func TestSettingsPOST_DiscordFeatureFlag(t *testing.T) {
+	d := testDB(t)
+	ui := testUI(t, d)
+
+	form := strings.NewReader("section=feature_flags&feature_discord=on")
+	req := httptest.NewRequest("POST", "/settings", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	ui.Settings(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want 303", w.Code)
+	}
+
+	if !d.IsFeatureEnabled("discord") {
+		t.Error("feature_discord should be enabled after setting flag")
+	}
+}
+
 func TestSettingsPOST_UnknownSection(t *testing.T) {
 	d := testDB(t)
 	ui := testUI(t, d)
@@ -1112,7 +1153,7 @@ func TestUpdateIssue_ForbiddenForNonAssignee(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, _ := createAgentWithKey(t, d, "Owner", "owner", "backend")
 	other, otherKey := createAgentWithKey(t, d, "Other", "other", "frontend")
@@ -1137,7 +1178,7 @@ func TestUpdateIssue_CEOCanUpdateAnyIssue(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, _ := createAgentWithKey(t, d, "Owner", "owner2", "backend")
 	_, ceoKey := createAgentWithKey(t, d, "CEO", "ceo", "ceo")
@@ -1161,7 +1202,7 @@ func TestUpdateIssue_AssigneeCanUpdate(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, ownerKey := createAgentWithKey(t, d, "Owner3", "owner3", "backend")
 
@@ -1186,7 +1227,7 @@ func TestAuth_NoKey_Returns401(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	req := httptest.NewRequest("PATCH", "/api/v1/issues/SO-1", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -1202,7 +1243,7 @@ func TestAuth_InvalidKey_Returns401(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	req := httptest.NewRequest("PATCH", "/api/v1/issues/SO-1", strings.NewReader(`{}`))
 	req.Header.Set("Authorization", "Bearer totally-wrong-key")
@@ -1224,7 +1265,7 @@ func TestUpdateIssue_Reassign(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, _ := createAgentWithKey(t, d, "Owner", "owner", "backend")
 	newAssignee, _ := createAgentWithKey(t, d, "NewAssignee", "new-assignee", "frontend")
@@ -1285,7 +1326,7 @@ func TestUpdateIssue_CEOReassignStuckIssue(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, _ := createAgentWithKey(t, d, "Owner", "owner", "backend")
 	newAssignee, _ := createAgentWithKey(t, d, "NewAssignee", "new-assignee", "frontend")
@@ -1328,7 +1369,7 @@ func TestUpdateIssue_ForbiddenIfUnassigned(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	_, agentKey := createAgentWithKey(t, d, "Agent", "agent", "backend")
 
@@ -1351,7 +1392,7 @@ func TestCreateComment_ForbiddenForNonAssignee(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, _ := createAgentWithKey(t, d, "Owner", "owner", "backend")
 	_, otherKey := createAgentWithKey(t, d, "Other", "other", "frontend")
@@ -1375,7 +1416,7 @@ func TestCreateComment_AssigneeCanComment(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, ownerKey := createAgentWithKey(t, d, "Owner", "owner", "backend")
 
@@ -1398,7 +1439,7 @@ func TestCreateComment_CEOCanCommentAnywhere(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, _ := createAgentWithKey(t, d, "Owner", "owner", "backend")
 	_, ceoKey := createAgentWithKey(t, d, "CEO", "ceo", "ceo")
@@ -1422,7 +1463,7 @@ func TestCheckoutIssue_ForbiddenIfAssignedToOther(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, _ := createAgentWithKey(t, d, "Owner", "owner", "backend")
 	_, otherKey := createAgentWithKey(t, d, "Other", "other", "frontend")
@@ -1446,7 +1487,7 @@ func TestCheckoutIssue_CanCheckoutIfUnassigned(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	_, agentKey := createAgentWithKey(t, d, "Agent", "agent", "backend")
 
@@ -1469,7 +1510,7 @@ func TestCheckoutIssue_CEOCanCheckoutAssignedToOther(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, _ := createAgentWithKey(t, d, "Owner", "owner", "backend")
 	_, ceoKey := createAgentWithKey(t, d, "CEO", "ceo", "ceo")
@@ -1611,7 +1652,7 @@ func TestCancellationGuard_API_Returns409WhenNoReason(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, ownerKey := createAgentWithKey(t, d, "GuardOwner", "guard-owner", "backend")
 
@@ -1652,7 +1693,7 @@ func TestCancellationGuard_API_ProceedsWithReason(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, ownerKey := createAgentWithKey(t, d, "GuardOwner2", "guard-owner2", "backend")
 
@@ -1705,7 +1746,7 @@ func TestCancellationGuard_API_NoFrictionWithoutCompletionComment(t *testing.T) 
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	owner, ownerKey := createAgentWithKey(t, d, "CleanOwner", "clean-owner", "backend")
 
@@ -1739,7 +1780,7 @@ func TestCancellationGuard_API_NoFrictionUnassigned(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	_, ceoKey := createAgentWithKey(t, d, "CEO", "ceo", "ceo")
 

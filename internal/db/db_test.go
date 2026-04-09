@@ -1286,7 +1286,7 @@ func TestSettings(t *testing.T) {
 		if err != nil {
 			t.Fatalf("get all settings: %v", err)
 		}
-		expected := []string{"issue_prefix", "telegram_token", "telegram_chat_id", "github_url", "instance_name", "feature_supermemory", "feature_telegram"}
+		expected := []string{"issue_prefix", "telegram_token", "telegram_chat_id", "github_url", "instance_name", "feature_supermemory", "feature_telegram", "discord_webhook_url", "feature_discord"}
 		for _, k := range expected {
 			if _, ok := all[k]; !ok {
 				t.Errorf("missing expected key %q", k)
