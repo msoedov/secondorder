@@ -8,6 +8,7 @@ build:
 
 test:
 	go test ./...
+t: test
 
 run: build
 	./$(BINARY_NAME)
