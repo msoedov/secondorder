@@ -128,3 +128,37 @@ func parseVersion(filename string) (int, error) {
 	}
 	return strconv.Atoi(parts[0])
 }
+
+// --- Webhook Events ---
+
+// WebhookEventExists checks if a webhook event with the given delivery_id has already been processed
+func (d *DB) WebhookEventExists(deliveryID string) (bool, error) {
+	if deliveryID == "" {
+		return false, nil // No delivery ID means we can't check for duplicates
+	}
+	var count int
+	if err := d.QueryRow("SELECT COUNT(*) FROM webhook_events WHERE delivery_id = ?", deliveryID).Scan(&count); err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// CreateWebhookEvent inserts a new webhook event record
+func (d *DB) CreateWebhookEvent(id, source, eventType, deliveryID, payload string) error {
+	// Note: Exec() already acquires the write mutex
+	_, err := d.Exec(
+		"INSERT INTO webhook_events (id, source, event_type, delivery_id, payload, status) VALUES (?, ?, ?, ?, ?, 'received')",
+		id, source, eventType, deliveryID, payload,
+	)
+	return err
+}
+
+// UpdateWebhookEventStatus updates the status and error message of a webhook event
+func (d *DB) UpdateWebhookEventStatus(id, status, errorMsg string) error {
+	// Note: Exec() already acquires the write mutex
+	_, err := d.Exec(
+		"UPDATE webhook_events SET status = ?, error_message = ?, processed_at = datetime('now') WHERE id = ?",
+		status, errorMsg, id,
+	)
+	return err
+}
