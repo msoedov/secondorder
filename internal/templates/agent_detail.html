@@ -30,19 +30,19 @@
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 stagger">
           <div class="bg-card border border-bd rounded-lg p-3 hover:border-bd transition-colors">
             <div class="text-[11px] text-ink3/50 uppercase tracking-wider">Today Tokens</div>
-            <div class="text-lg font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex")}}{{formatTokens .TodayTokens}}{{else}}N/A{{end}}</div>
+            <div class="text-lg font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex") (eq .Agent.Runner "opencode")}}{{formatTokens .TodayTokens}}{{else}}N/A{{end}}</div>
           </div>
           <div class="bg-card border border-bd rounded-lg p-3 hover:border-bd transition-colors">
             <div class="text-[11px] text-ink3/50 uppercase tracking-wider">Today Cost</div>
-            <div class="text-lg font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex")}}{{formatCost .TodayCost}}{{else}}N/A{{end}}</div>
+            <div class="text-lg font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex") (eq .Agent.Runner "opencode")}}{{formatCost .TodayCost}}{{else}}N/A{{end}}</div>
           </div>
           <div class="bg-card border border-bd rounded-lg p-3 hover:border-bd transition-colors">
             <div class="text-[11px] text-ink3/50 uppercase tracking-wider">Total Tokens</div>
-            <div class="text-lg font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex")}}{{formatTokens .TotalTokens}}{{else}}N/A{{end}}</div>
+            <div class="text-lg font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex") (eq .Agent.Runner "opencode")}}{{formatTokens .TotalTokens}}{{else}}N/A{{end}}</div>
           </div>
           <div class="bg-card border border-bd rounded-lg p-3 hover:border-bd transition-colors">
             <div class="text-[11px] text-ink3/50 uppercase tracking-wider">Total Cost</div>
-            <div class="text-lg font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex")}}{{formatCost .TotalCost}}{{else}}N/A{{end}}</div>
+            <div class="text-lg font-semibold text-ink mt-1 tabular-nums">{{if or (eq .Agent.Runner "claude_code") (eq .Agent.Runner "gemini") (eq .Agent.Runner "codex") (eq .Agent.Runner "opencode")}}{{formatCost .TotalCost}}{{else}}N/A{{end}}</div>
           </div>
         </div>
 
@@ -138,6 +138,8 @@
                 <option value="claude_code" {{if eq .Agent.Runner "claude_code"}}selected{{end}}>Claude Code</option>
                 <option value="gemini" {{if eq .Agent.Runner "gemini"}}selected{{end}}>Gemini</option>
                 <option value="codex" {{if eq .Agent.Runner "codex"}}selected{{end}}>Codex</option>
+                <option value="copilot" {{if eq .Agent.Runner "copilot"}}selected{{end}}>Copilot</option>
+                <option value="opencode" {{if eq .Agent.Runner "opencode"}}selected{{end}}>OpenCode</option>
               </select>
             </div>
             <div>

@@ -668,6 +668,7 @@ func TestTokenZeroingForNonClaude(t *testing.T) {
 		{"", false},
 		{"codex", false},
 		{"gemini", false},
+		{"opencode", false},
 	}
 
 	for _, tt := range tests {
@@ -679,7 +680,7 @@ func TestTokenZeroingForNonClaude(t *testing.T) {
 			}
 
 			tokens := parseTokenUsage(stdout)
-			if agent.Runner != "claude_code" && agent.Runner != "gemini" && agent.Runner != "codex" && agent.Runner != "" {
+			if agent.Runner != "claude_code" && agent.Runner != "gemini" && agent.Runner != "codex" && agent.Runner != "opencode" && agent.Runner != "" {
 				tokens = tokenUsage{}
 			}
 
