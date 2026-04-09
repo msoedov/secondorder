@@ -161,13 +161,23 @@ func scanIssue(scanner interface {
 }) (*models.Issue, error) {
 	i := &models.Issue{}
 	var stagesJSON string
+	var startedAt, completedAt NullDBTime
+	var createdAt, updatedAt DBTime
 	err := scanner.Scan(
 		&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Type, &i.Priority, &i.AssigneeAgentID,
-		&i.ParentIssueKey, &i.WorkBlockID, &i.StartedAt, &i.CompletedAt, &i.CreatedAt, &i.UpdatedAt,
+		&i.ParentIssueKey, &i.WorkBlockID, &startedAt, &completedAt, &createdAt, &updatedAt,
 		&i.AssigneeName, &i.AssigneeSlug, &stagesJSON, &i.CurrentStageID)
 	if err != nil {
 		return nil, err
 	}
+	if startedAt.Valid {
+		i.StartedAt = &startedAt.Time
+	}
+	if completedAt.Valid {
+		i.CompletedAt = &completedAt.Time
+	}
+	i.CreatedAt = createdAt.Time
+	i.UpdatedAt = updatedAt.Time
 	if stagesJSON != "" {
 		json.Unmarshal([]byte(stagesJSON), &i.Stages)
 	}
@@ -399,16 +409,24 @@ func (d *DB) CreateRun(r *models.Run) error {
 
 func (d *DB) GetRun(id string) (*models.Run, error) {
 	r := &models.Run{}
+	var startedAt DBTime
+	var completedAt NullDBTime
+	var createdAt DBTime
 	err := d.QueryRow(`SELECT id, agent_id, issue_key, mode, status, stdout, diff,
 		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd,
 		started_at, completed_at, created_at
 		FROM runs WHERE id=?`, id).Scan(
 		&r.ID, &r.AgentID, &r.IssueKey, &r.Mode, &r.Status, &r.Stdout, &r.Diff,
 		&r.InputTokens, &r.OutputTokens, &r.CacheReadTokens, &r.CacheCreateTokens, &r.TotalCostUSD,
-		&r.StartedAt, &r.CompletedAt, &r.CreatedAt)
+		&startedAt, &completedAt, &createdAt)
 	if err != nil {
 		return nil, err
 	}
+	r.StartedAt = startedAt.Time
+	if completedAt.Valid {
+		r.CompletedAt = &completedAt.Time
+	}
+	r.CreatedAt = createdAt.Time
 	return r, nil
 }
 
@@ -501,11 +519,19 @@ func scanRuns(rows *sql.Rows) ([]models.Run, error) {
 	var runs []models.Run
 	for rows.Next() {
 		var r models.Run
+		var startedAt DBTime
+		var completedAt NullDBTime
+		var createdAt DBTime
 		if err := rows.Scan(&r.ID, &r.AgentID, &r.IssueKey, &r.Mode, &r.Status, &r.Stdout, &r.Diff,
 			&r.InputTokens, &r.OutputTokens, &r.CacheReadTokens, &r.CacheCreateTokens, &r.TotalCostUSD,
-			&r.StartedAt, &r.CompletedAt, &r.CreatedAt); err != nil {
+			&startedAt, &completedAt, &createdAt); err != nil {
 			return nil, err
 		}
+		r.StartedAt = startedAt.Time
+		if completedAt.Valid {
+			r.CompletedAt = &completedAt.Time
+		}
+		r.CreatedAt = createdAt.Time
 		runs = append(runs, r)
 	}
 	return runs, rows.Err()
