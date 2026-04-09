@@ -34,17 +34,12 @@ const (
 	RunnerClaudeCode       = "claude_code"
 	RunnerGemini           = "gemini"
 	RunnerCodex            = "codex"
-	RunnerAntigravity      = "antigravity"
 	RunnerCopilot          = "copilot"
 	DefaultAgentTimeoutSec = 1200
 )
 
 var RunnerModels = map[string][]string{
 	RunnerClaudeCode: {
-		"claude-3-7-sonnet-20250219",
-		"claude-3-5-sonnet-20241022",
-		"claude-3-5-haiku-20241022",
-		"claude-3-opus-20240229",
 		"sonnet",
 		"opus",
 		"haiku",
@@ -71,7 +66,6 @@ var RunnerModels = map[string][]string{
 		"gpt-4o",
 		"o4-mini",
 	},
-	RunnerAntigravity: {"default"},
 	RunnerCopilot: {
 		"claude-sonnet-4.6",
 		"claude-opus-4.6",

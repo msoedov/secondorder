@@ -623,70 +623,6 @@ func TestCodexDispatch(t *testing.T) {
 	}
 }
 
-// TestAntigravityDispatch verifies execAntigravity uses the antigravity binary.
-func TestAntigravityDispatch(t *testing.T) {
-	d := testDB(t)
-	binDir := t.TempDir()
-	archetypeDir := t.TempDir()
-
-	// Write an archetype file so --system-prompt-file gets appended
-	archetypeFile := filepath.Join(archetypeDir, "worker.md")
-	if err := os.WriteFile(archetypeFile, []byte("you are a worker"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	archetypes.SetOverridesDir(archetypeDir)
-	t.Cleanup(func() { archetypes.SetOverridesDir("archetypes") })
-
-	s := New(d, 9001)
-
-	makeStub(t, binDir, "antigravity")
-	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
-
-	agent := &models.Agent{
-		Name: "AG", Slug: "ag", ArchetypeSlug: "worker",
-		Runner: "antigravity", Model: "default",
-		WorkingDir: t.TempDir(), MaxTurns: 5, TimeoutSec: 10, Active: true,
-	}
-	d.CreateAgent(agent)
-
-	out, err := s.execAntigravity(t.Context(), agent, "key", "run2", "SO-2", "do stuff")
-	if err != nil {
-		t.Fatalf("execAntigravity: %v\noutput: %s", err, out)
-	}
-	if !strings.Contains(out, "--non-interactive") {
-		t.Errorf("expected --non-interactive, got: %s", out)
-	}
-	if !strings.Contains(out, "--system-prompt-file") {
-		t.Errorf("expected --system-prompt-file, got: %s", out)
-	}
-	if !strings.Contains(out, "worker-") {
-		t.Errorf("expected worker- temp file in args, got: %s", out)
-	}
-}
-
-// TestAntigravityNoSystemPromptFileWhenMissing verifies --system-prompt-file is NOT added when archetype is absent.
-func TestAntigravityNoSystemPromptFileWhenMissing(t *testing.T) {
-	d := testDB(t)
-	binDir := t.TempDir()
-	s := New(d, 9001) // empty archetype dir
-
-	makeStub(t, binDir, "antigravity")
-	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
-
-	agent := &models.Agent{
-		Name: "AG2", Slug: "ag2", ArchetypeSlug: "nofile",
-		Runner: "antigravity", WorkingDir: t.TempDir(), MaxTurns: 5, TimeoutSec: 10,
-	}
-
-	out, err := s.execAntigravity(t.Context(), agent, "key", "run3", "SO-3", "task")
-	if err != nil {
-		t.Fatalf("execAntigravity: %v\noutput: %s", err, out)
-	}
-	if strings.Contains(out, "--system-prompt-file") {
-		t.Errorf("should not pass --system-prompt-file when archetype missing, got: %s", out)
-	}
-}
-
 // TestCodexEnvVars verifies OPENAI_API_KEY and CODEX_SYSTEM_PROMPT are injected.
 func TestCodexEnvVars(t *testing.T) {
 	d := testDB(t)
@@ -722,30 +658,6 @@ func TestCodexEnvVars(t *testing.T) {
 	}
 }
 
-// TestAntigravityEnvVars verifies ANTIGRAVITY_API_KEY is injected.
-func TestAntigravityEnvVars(t *testing.T) {
-	d := testDB(t)
-	s := New(d, 9001)
-	binDir := t.TempDir()
-	makeStub(t, binDir, "antigravity")
-	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
-	t.Setenv("MY_AG_KEY", "ag-secret-key")
-
-	agent := &models.Agent{
-		Name: "AG3", Slug: "ag3", ArchetypeSlug: "worker",
-		Runner: "antigravity", ApiKeyEnv: "MY_AG_KEY",
-		WorkingDir: t.TempDir(), MaxTurns: 5, TimeoutSec: 10,
-	}
-
-	out, err := s.execAntigravity(t.Context(), agent, "key", "run5", "SO-5", "task")
-	if err != nil {
-		t.Fatalf("execAntigravity: %v\noutput: %s", err, out)
-	}
-	if !strings.Contains(out, "ANTIGRAVITY_API_KEY=ag-secret-key") {
-		t.Errorf("expected ANTIGRAVITY_API_KEY in env, got: %s", out)
-	}
-}
-
 // TestTokenZeroingForNonClaude verifies token counts are zeroed for non-Claude runners.
 func TestTokenZeroingForNonClaude(t *testing.T) {
 	tests := []struct {
@@ -755,7 +667,6 @@ func TestTokenZeroingForNonClaude(t *testing.T) {
 		{"claude_code", false},
 		{"", false},
 		{"codex", false},
-		{"antigravity", true},
 		{"gemini", false},
 	}
 

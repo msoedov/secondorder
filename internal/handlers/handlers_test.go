@@ -952,8 +952,6 @@ func TestAgentUI_Validation(t *testing.T) {
 		{"Invalid Claude Code", "claude_code", "gpt-4o", http.StatusBadRequest},
 		{"Valid Codex", "codex", "gpt-5.4-thinking", http.StatusSeeOther},
 		{"Invalid Codex", "codex", "sonnet", http.StatusBadRequest},
-		{"Valid Antigravity", "antigravity", "default", http.StatusSeeOther},
-		{"Invalid Antigravity", "antigravity", "sonnet", http.StatusBadRequest},
 		{"Valid Gemini", "gemini", "gemini-1.5-pro", http.StatusSeeOther},
 		{"Invalid Gemini", "gemini", "sonnet", http.StatusBadRequest},
 	}
@@ -1066,7 +1064,7 @@ func TestAgentUI_CreateAndUpdate(t *testing.T) {
 	}
 
 	// 2. Update agent (change runner and clear api_key_env)
-	updateForm := "name=Updated+Name&runner=antigravity&model=default&api_key_env="
+	updateForm := "name=Updated+Name&runner=codex&model=default&api_key_env="
 	req = httptest.NewRequest("POST", "/agents/test-runner-agent", strings.NewReader(updateForm))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetPathValue("slug", "test-runner-agent")
@@ -1082,8 +1080,8 @@ func TestAgentUI_CreateAndUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get updated agent: %v", err)
 	}
-	if agent.Runner != "antigravity" {
-		t.Errorf("updated runner = %q, want antigravity", agent.Runner)
+	if agent.Runner != "codex" {
+		t.Errorf("updated runner = %q, want codex", agent.Runner)
 	}
 	if agent.ApiKeyEnv != "" {
 		t.Errorf("updated api_key_env = %q, want empty", agent.ApiKeyEnv)

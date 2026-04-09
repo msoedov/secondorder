@@ -242,8 +242,6 @@ func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt strin
 			stdout, err = s.execCodex(ctx, agent, rawKey, runID, issueKey, prompt)
 		case "gemini":
 			stdout, err = s.execGemini(ctx, agent, rawKey, runID, issueKey, prompt)
-		case "antigravity":
-			stdout, err = s.execAntigravity(ctx, agent, rawKey, runID, issueKey, prompt)
 		case "claude_code":
 			stdout, err = s.execClaudeCode(ctx, agent, rawKey, runID, issueKey, prompt)
 		case "copilot":
@@ -511,62 +509,6 @@ func (s *Scheduler) execGemini(ctx context.Context, agent *models.Agent, apiKey,
 	return lw.String(), err
 }
 
-func (s *Scheduler) execAntigravity(ctx context.Context, agent *models.Agent, apiKey, runID, issueKey, prompt string) (string, error) {
-	args := []string{
-		"run",
-		"--non-interactive",
-		"--prompt", prompt,
-		"--max-turns", fmt.Sprintf("%d", agent.MaxTurns),
-	}
-	if agent.Model != "" && agent.Model != "default" {
-		args = append(args, "--model", agent.Model)
-	}
-
-	if agent.ArchetypeSlug != "" {
-		if tmpFile, cleanup, err := archetypes.WriteToTemp(agent.ArchetypeSlug); err == nil {
-			defer cleanup()
-			args = append(args, "--system-prompt-file", tmpFile)
-		}
-	}
-
-	cmd := exec.CommandContext(ctx, "antigravity", args...)
-	slog.Debug("scheduler: exec", "run_id", runID, "cmd", cmd.String())
-	cmd.Dir = agent.WorkingDir
-
-	env := os.Environ()
-	env = append(env,
-		fmt.Sprintf("SECONDORDER_AGENT_ID=%s", agent.ID),
-		fmt.Sprintf("SECONDORDER_AGENT_NAME=%s", agent.Name),
-		fmt.Sprintf("SECONDORDER_RUN_ID=%s", runID),
-		fmt.Sprintf("SECONDORDER_API_URL=http://localhost:%d", s.port),
-		fmt.Sprintf("SECONDORDER_ISSUE_KEY=%s", issueKey),
-		fmt.Sprintf("SECONDORDER_ARTIFACT_DOCS=%s", filepath.Join(agent.WorkingDir, "artifact-docs")),
-		fmt.Sprintf("SECONDORDER_API_KEY=%s", apiKey),
-	)
-
-	// Handle API key env override
-	if agent.ApiKeyEnv != "" {
-		if val := os.Getenv(agent.ApiKeyEnv); val != "" {
-			env = append(env, fmt.Sprintf("ANTIGRAVITY_API_KEY=%s", val))
-		}
-	}
-
-	cmd.Env = env
-
-	lw := &liveWriter{
-		db:            s.db,
-		runID:         runID,
-		interval:      2 * time.Second,
-		agentName:     agent.Name,
-		archetypeSlug: agent.ArchetypeSlug,
-	}
-	cmd.Stdout = lw
-	cmd.Stderr = lw
-
-	err := cmd.Run()
-	lw.Flush()
-	return lw.String(), err
-}
 
 func (s *Scheduler) provisionAPIKey(agentID, runID string) (string, error) {
 	// Revoke existing key for this run
