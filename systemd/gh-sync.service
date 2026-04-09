@@ -1,0 +1,9 @@
+[Unit]
+Description=Sync GitHub copilot-ready issues into secondorder
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/go/bin/gh-sync -db %h/.local/share/secondorder/so.db -repos castrojo/copilot-config
+StandardOutput=journal
+StandardError=journal

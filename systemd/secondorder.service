@@ -1,0 +1,17 @@
+[Unit]
+Description=secondorder agent orchestration
+Documentation=https://github.com/castrojo/secondorder
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/go/bin/secondorder -t castrojo
+Environment=DB=%h/.local/share/secondorder/so.db
+Environment=ARCHETYPES=%h/src/secondorder/internal/archetypes
+Environment=PORT=3001
+Environment=PATH=/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin:%h/go/bin:%h/.local/bin
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
