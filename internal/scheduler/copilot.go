@@ -236,9 +236,11 @@ Use the bash tool to call the API with curl when you need to update issue status
 
 	systemPrompt := strings.Join(systemParts, "\n\n---\n\n")
 
-	messages := []copilotMessage{
-		{Role: "user", Content: prompt},
+	messages := []copilotMessage{}
+	if systemPrompt != "" {
+		messages = append(messages, copilotMessage{Role: "system", Content: systemPrompt})
 	}
+	messages = append(messages, copilotMessage{Role: "user", Content: prompt})
 
 	model := agent.Model
 	if model == "" {
@@ -262,9 +264,6 @@ Use the bash tool to call the API with curl when you need to update issue status
 			"model":    model,
 			"messages": messages,
 			"tools":    copilotTools,
-		}
-		if systemPrompt != "" {
-			reqBody["system"] = systemPrompt
 		}
 
 		bodyBytes, err := json.Marshal(reqBody)
