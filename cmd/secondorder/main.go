@@ -20,6 +20,7 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/msoedov/secondorder/internal/archetypes"
 	"github.com/msoedov/secondorder/internal/db"
+	"github.com/msoedov/secondorder/internal/discord"
 	"github.com/msoedov/secondorder/internal/handlers"
 	"github.com/msoedov/secondorder/internal/models"
 	"github.com/msoedov/secondorder/internal/scheduler"
@@ -210,8 +211,20 @@ func main() {
 		slog.Info("telegram bot enabled")
 	}
 
+	// Discord webhook (optional, requires feature flag)
+	var dc handlers.DiscordNotifier
+	if webhookURL, _ := database.GetSetting("discord_webhook_url"); webhookURL != "" && database.IsFeatureEnabled("discord") {
+		notifier, err := discord.New(webhookURL)
+		if err != nil {
+			slog.Warn("discord: failed to create notifier", "error", err)
+		} else {
+			dc = notifier
+			slog.Info("discord webhook enabled")
+		}
+	}
+
 	// Handlers
-	api := handlers.NewAPI(database, sse, tmpl, wake, tg)
+	api := handlers.NewAPI(database, sse, tmpl, wake, tg, dc)
 	ui := handlers.NewUI(database, sse, tmpl, wake, sched)
 	// Routes
 	mux := http.NewServeMux()

@@ -60,6 +60,24 @@
       </div>
     </form>
 
+    <!-- Discord Integration -->
+    <form method="POST" action="/settings" class="mb-6">
+      <input type="hidden" name="section" value="discord">
+      <div class="bg-card border border-bd rounded-lg p-5">
+        <h2 class="text-sm font-medium text-ink mb-4">Discord Integration</h2>
+        <div class="space-y-4">
+          <div>
+            <label for="discord_webhook_url" class="block text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Webhook URL</label>
+            <input id="discord_webhook_url" name="discord_webhook_url" type="password" value="{{index .Settings "discord_webhook_url"}}" placeholder="https://discord.com/api/webhooks/..." class="w-full bg-sf border border-bd rounded-md px-3 py-2 text-sm text-ink placeholder-ink3/30 outline-none focus:ring-1 focus:ring-ac focus:border-ac transition-shadow font-mono">
+            <p class="text-[11px] text-ink3/40 mt-1">Create a webhook in your Discord channel settings under Integrations</p>
+          </div>
+        </div>
+        <div class="mt-4 flex justify-end">
+          <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium bg-ac text-ink hover:bg-ac-h active:scale-[0.97] transition-all">Save Discord Settings</button>
+        </div>
+      </div>
+    </form>
+
     <!-- Feature Flags -->
     <form method="POST" action="/settings" class="mb-6">
       <input type="hidden" name="section" value="feature_flags">
@@ -79,6 +97,13 @@
               <p class="text-[11px] text-ink3/40">Telegram bot for mobile approvals. Requires bot token and chat ID below.</p>
             </div>
             <input type="checkbox" name="feature_telegram" {{if eq (index .Settings "feature_telegram") "true"}}checked{{end}} class="w-4 h-4 accent-ac rounded">
+          </label>
+          <label class="flex items-center justify-between cursor-pointer">
+            <div>
+              <span class="text-sm text-ink">Discord</span>
+              <p class="text-[11px] text-ink3/40">Discord webhook notifications for work block approvals and stuck issues.</p>
+            </div>
+            <input type="checkbox" name="feature_discord" {{if eq (index .Settings "feature_discord") "true"}}checked{{end}} class="w-4 h-4 accent-ac rounded">
           </label>
         </div>
         <div class="mt-4 flex justify-end">

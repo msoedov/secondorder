@@ -1218,8 +1218,10 @@ func (u *UI) saveSettings(w http.ResponseWriter, r *http.Request) {
 		keys = []string{"instance_name", "issue_prefix"}
 	case "telegram":
 		keys = []string{"telegram_token", "telegram_chat_id"}
+	case "discord":
+		keys = []string{"discord_webhook_url"}
 	case "feature_flags":
-		for _, flag := range []string{"feature_supermemory", "feature_telegram"} {
+		for _, flag := range []string{"feature_supermemory", "feature_telegram", "feature_discord"} {
 			val := "false"
 			if r.FormValue(flag) == "on" {
 				val = "true"
@@ -1505,7 +1507,6 @@ func formatStreamJSON(stdout, runStatus string) string {
 	b.WriteString(`</div>`)
 	return b.String()
 }
-
 
 // truncateStr shortens s to max runes, appending "..." if truncated.
 func truncateStr(s string, max int) string {

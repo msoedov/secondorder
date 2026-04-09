@@ -162,7 +162,7 @@ func TestUpdateIssue_StagesValidation(t *testing.T) {
 	d := testDB(t)
 	hub := NewSSEHub()
 	defer hub.Close()
-	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
 
 	agent, agentKey := createAgentWithKey(t, d, "Stage Owner", "stage-owner", "qa")
 
