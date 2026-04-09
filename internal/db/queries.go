@@ -1392,3 +1392,103 @@ func (d *DB) GetAllSettings() (map[string]string, error) {
 	}
 	return settings, rows.Err()
 }
+
+// --- Supermemory ---
+
+// LogSupermemoryEvent inserts one row into supermemory_events.
+// success bool is mapped to INTEGER 1 (true) or 0 (false).
+func (d *DB) LogSupermemoryEvent(agentID, runID, eventType, query string, resultCount int, success bool) error {
+	successInt := 0
+	if success {
+		successInt = 1
+	}
+	_, err := d.Exec(`INSERT INTO supermemory_events (id, agent_id, run_id, event_type, query, result_count, success, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		uuid.NewString(), agentID, runID, eventType, query, resultCount, successInt, time.Now().UTC().Format("2006-01-02 15:04:05"))
+	return err
+}
+
+// GetSupermemoryStats returns per-agent aggregation from supermemory_events LEFT JOIN agents.
+// Returns an empty (non-nil) slice when no rows exist.
+// HitRatePct is set to -1.0 when Recalls == 0 to distinguish "no data" from 0% hit-rate.
+func (d *DB) GetSupermemoryStats() ([]models.SupermemoryAgentStat, error) {
+	rows, err := d.Query(`
+		SELECT
+			se.agent_id,
+			COALESCE(a.name, '') AS agent_name,
+			COALESCE(a.slug, '') AS agent_slug,
+			COUNT(*) FILTER (WHERE se.event_type = 'store') AS stores,
+			COUNT(*) FILTER (WHERE se.event_type = 'recall') AS recalls,
+			COUNT(*) FILTER (WHERE se.event_type = 'recall' AND se.result_count > 0 AND se.success = 1) AS recall_hits,
+			ROUND(
+				100.0 * COUNT(*) FILTER (WHERE se.event_type = 'recall' AND se.result_count > 0 AND se.success = 1)
+				      / NULLIF(COUNT(*) FILTER (WHERE se.event_type = 'recall'), 0),
+				1
+			) AS hit_rate_pct
+		FROM supermemory_events se
+		LEFT JOIN agents a ON a.id = se.agent_id
+		GROUP BY se.agent_id
+		ORDER BY recalls DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	stats := []models.SupermemoryAgentStat{} // non-nil empty slice
+	for rows.Next() {
+		var s models.SupermemoryAgentStat
+		var hitRatePct sql.NullFloat64
+		if err := rows.Scan(&s.AgentID, &s.AgentName, &s.AgentSlug, &s.Stores, &s.Recalls, &s.RecallHits, &hitRatePct); err != nil {
+			return nil, err
+		}
+		if s.Recalls == 0 {
+			s.HitRatePct = -1.0
+		} else if hitRatePct.Valid {
+			s.HitRatePct = hitRatePct.Float64
+		} else {
+			s.HitRatePct = -1.0
+		}
+		stats = append(stats, s)
+	}
+	return stats, rows.Err()
+}
+
+// GetSupermemoryTrend returns exactly `days` rows (one per calendar day, oldest first, newest last).
+// Missing days have Stores=0, Recalls=0.
+// Label is formatted as "Jan 2" (Go time.Format "Jan 2").
+func (d *DB) GetSupermemoryTrend(days int) ([]models.SupermemoryDailyStat, error) {
+	today := time.Now().UTC().Format("2006-01-02")
+	query := `
+		WITH RECURSIVE days(d) AS (
+			SELECT DATE(?, '-' || (? - 1) || ' days')
+			UNION ALL
+			SELECT DATE(d, '+1 day') FROM days WHERE d < ?
+		)
+		SELECT
+			d AS date,
+			COALESCE(SUM(CASE WHEN event_type='store'  THEN 1 ELSE 0 END), 0) AS stores,
+			COALESCE(SUM(CASE WHEN event_type='recall' THEN 1 ELSE 0 END), 0) AS recalls
+		FROM days
+		LEFT JOIN supermemory_events ON DATE(created_at) = d
+		GROUP BY d
+		ORDER BY d
+	`
+	rows, err := d.Query(query, today, days, today)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var trend []models.SupermemoryDailyStat
+	for rows.Next() {
+		var s models.SupermemoryDailyStat
+		if err := rows.Scan(&s.Date, &s.Stores, &s.Recalls); err != nil {
+			return nil, err
+		}
+		t, _ := time.Parse("2006-01-02", s.Date)
+		s.Label = t.Format("Jan 2")
+		trend = append(trend, s)
+	}
+	return trend, rows.Err()
+}

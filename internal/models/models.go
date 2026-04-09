@@ -385,3 +385,20 @@ type ActivityOverview struct {
 	BusiestDayLabel string  `json:"busiest_day_label"`
 	AvgPerDay       float64 `json:"avg_per_day"`
 }
+
+type SupermemoryAgentStat struct {
+	AgentID    string  `json:"agent_id"`
+	AgentName  string  `json:"agent_name"`
+	AgentSlug  string  `json:"agent_slug"`
+	Stores     int     `json:"stores"`
+	Recalls    int     `json:"recalls"`
+	RecallHits int     `json:"recall_hits"`
+	HitRatePct float64 `json:"hit_rate_pct"` // -1.0 when no recalls
+}
+
+type SupermemoryDailyStat struct {
+	Date    string `json:"date"`
+	Label   string `json:"label"`
+	Stores  int    `json:"stores"`
+	Recalls int    `json:"recalls"`
+}

@@ -72,6 +72,7 @@ var funcMap = template.FuncMap{
 	"formatTokens":   formatTokens,
 	"truncate":       truncate,
 	"deref":          deref,
+	"extractProject": extractProject,
 	"diffLines":      diffLines,
 	"nl2br":          nl2br,
 	"linkTickets":    linkTickets,
@@ -477,6 +478,35 @@ func diffLines(diff string) []DiffLine {
 
 func nl2br(s string) template.HTML {
 	return template.HTML(strings.ReplaceAll(template.HTMLEscapeString(s), "\n", "<br>"))
+}
+
+// projectRe matches conventional-commit scope "verb(scope):" or bare "scope:" at start of title.
+var projectRe = regexp.MustCompile(`^(?:\w+\(([^)]+)\):|([a-z][a-z0-9-]+):)`)
+
+// extractProject returns the project slug from a conventional-commit style issue title.
+// Examples:
+//
+//	"fix(bootc-ecosystem): ..." → "bootc-ecosystem"
+//	"feat(cncf-darkmode): ..."  → "cncf-darkmode"
+//	"fix(cncf-darkmode/ci): ..." → "cncf-darkmode"  (sub-path stripped)
+//
+// Returns empty string when no scope is found.
+func extractProject(title string) string {
+	m := projectRe.FindStringSubmatch(strings.TrimSpace(title))
+	if m == nil {
+		return ""
+	}
+	// group 1 = conventional-commit scope, group 2 = bare prefix
+	raw := m[1]
+	if raw == "" {
+		raw = m[2]
+	}
+	raw = strings.ToLower(raw)
+	// strip sub-scope path e.g. "cncf-darkmode/ci" → "cncf-darkmode"
+	if idx := strings.Index(raw, "/"); idx != -1 {
+		raw = raw[:idx]
+	}
+	return raw
 }
 
 var ticketRe = regexp.MustCompile(`SO-\d+`)

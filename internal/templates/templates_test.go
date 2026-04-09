@@ -26,3 +26,33 @@ func TestLinkTickets(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractProject(t *testing.T) {
+	tests := []struct {
+		title string
+		want  string
+	}{
+		{"fix(bootc-ecosystem): repair something", "bootc-ecosystem"},
+		{"feat(cncf-darkmode): add dark mode toggle", "cncf-darkmode"},
+		{"feat(dashboard): add per-project filter labels to issues dashboard", "dashboard"},
+		{"fix(bluefin-lts): align CI", "bluefin-lts"},
+		{"fix(powerlevel): pin ci.yml Go version", "powerlevel"},
+		{"feat(cncf-darkmode/ci): update workflow", "cncf-darkmode"},
+		{"fix(ui): activity feed timeAgo timestamps freeze", "ui"},
+		{"fix(scheduler): auto-cleanup stale runs", "scheduler"},
+		// bare prefix (no verb)
+		{"secondorder: update config", "secondorder"},
+		// no scope → empty
+		{"add something without scope", ""},
+		{"SO-55: some issue", ""},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.title, func(t *testing.T) {
+			got := extractProject(tt.title)
+			if got != tt.want {
+				t.Errorf("extractProject(%q) = %q, want %q", tt.title, got, tt.want)
+			}
+		})
+	}
+}
