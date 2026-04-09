@@ -489,6 +489,85 @@ func TestCreateSubIssueUI_Success(t *testing.T) {
 	}
 }
 
+func TestCreateIssueUI_ACWarning_RendersOnListPage(t *testing.T) {
+	d := testDB(t)
+	ui := testUI(t, d)
+
+	// api type with no spec fields triggers AC warning
+	form := strings.NewReader("title=New+API+Issue&description=nothing+here&type=api")
+	req := httptest.NewRequest("POST", "/issues", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	ui.ListIssues(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want 303", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if !strings.Contains(loc, "warning=") {
+		t.Fatalf("redirect %q missing warning param", loc)
+	}
+
+	// Follow redirect: GET /issues?success=Created&warning=...
+	req2 := httptest.NewRequest("GET", loc, nil)
+	w2 := httptest.NewRecorder()
+	ui.ListIssues(w2, req2)
+
+	if w2.Code != http.StatusOK {
+		t.Fatalf("GET status = %d, want 200", w2.Code)
+	}
+	body := w2.Body.String()
+	if !strings.Contains(body, "missing some standard acceptance criteria") {
+		t.Errorf("warning banner missing from list page body")
+	}
+}
+
+func TestUpdateIssueUI_ACWarning_RendersOnDetailPage(t *testing.T) {
+	d := testDB(t)
+	ui := testUI(t, d)
+
+	issue := &models.Issue{
+		ID:     uuid.New().String(),
+		Key:    "SO-1",
+		Title:  "Backend Issue",
+		Type:   "backend",
+		Status: models.StatusTodo,
+	}
+	d.CreateIssue(issue)
+
+	// POST update with no spec fields so AC warning fires
+	form := strings.NewReader("title=Backend+Issue&description=nothing+here&type=backend")
+	req := httptest.NewRequest("POST", "/issues/SO-1", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetPathValue("key", "SO-1")
+	w := httptest.NewRecorder()
+
+	ui.IssueDetail(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want 303", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if !strings.Contains(loc, "warning=") {
+		t.Fatalf("redirect %q missing warning param", loc)
+	}
+
+	// Follow redirect: GET /issues/SO-1?success=...&warning=...
+	req2 := httptest.NewRequest("GET", loc, nil)
+	req2.SetPathValue("key", "SO-1")
+	w2 := httptest.NewRecorder()
+	ui.IssueDetail(w2, req2)
+
+	if w2.Code != http.StatusOK {
+		t.Fatalf("GET status = %d, want 200", w2.Code)
+	}
+	body := w2.Body.String()
+	if !strings.Contains(body, "missing some standard acceptance criteria") {
+		t.Errorf("warning banner missing from issue detail body")
+	}
+}
+
 func TestBuildActivityOverview(t *testing.T) {
 	stats := []models.DailyStat{
 		{Label: "Apr 5", Creations: 2, Updates: 1, Completed: 1},
