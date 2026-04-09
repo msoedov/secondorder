@@ -4,6 +4,6 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=%h/go/bin/gh-sync -db %h/.local/share/secondorder/so.db -repos castrojo/copilot-config
+ExecStart=%h/go/bin/gh-sync -db %h/.local/share/secondorder/so.db -repos castrojo/copilot-config,castrojo/cncf-darkmode,castrojo/documentation
 StandardOutput=journal
 StandardError=journal
