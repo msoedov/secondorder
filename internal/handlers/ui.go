@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -1416,10 +1417,13 @@ func (u *UI) render(w http.ResponseWriter, name string, data any) {
 			m["IsPaused"] = u.IsPaused()
 		}
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := u.tmpl.ExecuteTemplate(w, name, data); err != nil {
+	var buf bytes.Buffer
+	if err := u.tmpl.ExecuteTemplate(&buf, name, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	buf.WriteTo(w)
 }
 
 func formatStreamJSON(stdout, runStatus string) string {
