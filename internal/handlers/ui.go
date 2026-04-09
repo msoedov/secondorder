@@ -289,10 +289,15 @@ func (u *UI) IssueDetail(w http.ResponseWriter, r *http.Request) {
 
 	var assignee *models.Agent
 	if issue.AssigneeAgentID != nil {
-		assignee, _ = u.db.GetAgent(*issue.AssigneeAgentID)
+		for i := range agents {
+			if agents[i].ID == *issue.AssigneeAgentID {
+				assignee = &agents[i]
+				break
+			}
+		}
 	}
 
-	// Extract PR URLs from issue description + comments, then fetch review state.
+	// Extract PR URLs for lazy-loaded review status (fetched via HTMX)
 	var commentBodies []string
 	if issue.Description != "" {
 		commentBodies = append(commentBodies, issue.Description)
@@ -301,7 +306,6 @@ func (u *UI) IssueDetail(w http.ResponseWriter, r *http.Request) {
 		commentBodies = append(commentBodies, c.Body)
 	}
 	prInfos := ExtractPRURLs(commentBodies)
-	prInfos = FetchAllPRReviews(prInfos)
 
 	u.render(w, "issue_detail", map[string]any{
 		"Issue":            issue,
@@ -750,6 +754,34 @@ func (u *UI) RunStdout(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, formatStreamJSON(run.Stdout, run.Status))
 }
 
+func (u *UI) IssuePRStatus(w http.ResponseWriter, r *http.Request) {
+	key := r.PathValue("key")
+	issue, err := u.db.GetIssue(key)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	comments, _ := u.db.ListComments(key)
+
+	var commentBodies []string
+	if issue.Description != "" {
+		commentBodies = append(commentBodies, issue.Description)
+	}
+	for _, c := range comments {
+		commentBodies = append(commentBodies, c.Body)
+	}
+	prInfos := ExtractPRURLs(commentBodies)
+	if len(prInfos) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	prInfos = FetchAllPRReviews(prInfos)
+
+	u.render(w, "issue_pr_status", map[string]any{
+		"PRInfos": prInfos,
+	})
+}
+
 func (u *UI) SearchIssuesAndAgents(w http.ResponseWriter, r *http.Request) {
 	q := strings.ToLower(r.URL.Query().Get("q"))
 	if q == "" {
@@ -988,9 +1020,10 @@ func (u *UI) PoliciesPage(w http.ResponseWriter, r *http.Request) {
 	boardPolicies, _ := u.db.ListBoardPolicies()
 	pendingPatches, _ := u.db.ListPendingPatches()
 	auditRuns, _ := u.db.ListAuditRuns(20)
-	pendingPolicies := u.readPolicyDir("policies")
-	acceptedPolicies := u.readPolicyDir(filepath.Join("policies", "accepted"))
-	disabledPolicies := u.readPolicyDir(filepath.Join("policies", "disabled"))
+	agents, _ := u.db.ListAgents()
+	pendingPolicies := u.readPolicyDir("policies", agents)
+	acceptedPolicies := u.readPolicyDir(filepath.Join("policies", "accepted"), agents)
+	disabledPolicies := u.readPolicyDir(filepath.Join("policies", "disabled"), agents)
 	errMsg := r.URL.Query().Get("error")
 
 	u.render(w, "policies", map[string]any{
@@ -1009,8 +1042,7 @@ type policyFile struct {
 	Content string
 }
 
-func (u *UI) readPolicyDir(dirname string) []policyFile {
-	agents, _ := u.db.ListAgents()
+func (u *UI) readPolicyDir(dirname string, agents []models.Agent) []policyFile {
 	if len(agents) == 0 {
 		return nil
 	}
