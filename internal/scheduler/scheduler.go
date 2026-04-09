@@ -583,7 +583,7 @@ func (s *Scheduler) provisionAPIKey(agentID, runID string) (string, error) {
 	keyHash := hex.EncodeToString(hash[:])
 	prefix := rawKey[:12]
 
-	if err := s.db.CreateAPIKey(agentID, runID, keyHash, prefix, 60*time.Minute); err != nil {
+	if err := s.db.CreateAPIKey(agentID, runID, keyHash, prefix, 2*time.Hour); err != nil {
 		return "", err
 	}
 
