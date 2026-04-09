@@ -220,7 +220,7 @@ func TestAuthValidKey(t *testing.T) {
 	rawKey := "so_test_key_123"
 	hash := sha256.Sum256([]byte(rawKey))
 	keyHash := hex.EncodeToString(hash[:])
-	d.CreateAPIKey(agent.ID, keyHash, "so_test_ke")
+	d.CreateAPIKey(agent.ID, "run-h1", keyHash, "so_test_ke", 60*time.Minute)
 
 	var gotAgent *models.Agent
 	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
@@ -291,7 +291,7 @@ func TestCreateIssueDuplicateDetection(t *testing.T) {
 	rawKey := "so_dup_test_key"
 	h := sha256.Sum256([]byte(rawKey))
 	keyHash := hex.EncodeToString(h[:])
-	d.CreateAPIKey(agent.ID, keyHash, "so_dup_tes")
+	d.CreateAPIKey(agent.ID, "run-h2", keyHash, "so_dup_tes", 60*time.Minute)
 
 	authHandler := api.Auth(api.CreateIssue)
 
@@ -1104,7 +1104,7 @@ func createAgentWithKey(t *testing.T, d *db.DB, name, slug, archetype string) (*
 	if len(prefix) > 10 {
 		prefix = prefix[:10]
 	}
-	d.CreateAPIKey(agent.ID, hex.EncodeToString(h[:]), prefix)
+	d.CreateAPIKey(agent.ID, "run-h3", hex.EncodeToString(h[:]), prefix, 60*time.Minute)
 	return agent, rawKey
 }
 

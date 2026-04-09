@@ -288,6 +288,17 @@ func (u *UI) IssueDetail(w http.ResponseWriter, r *http.Request) {
 		assignee, _ = u.db.GetAgent(*issue.AssigneeAgentID)
 	}
 
+	// Extract PR URLs from issue description + comments, then fetch review state.
+	var commentBodies []string
+	if issue.Description != "" {
+		commentBodies = append(commentBodies, issue.Description)
+	}
+	for _, c := range comments {
+		commentBodies = append(commentBodies, c.Body)
+	}
+	prInfos := ExtractPRURLs(commentBodies)
+	prInfos = FetchAllPRReviews(prInfos)
+
 	u.render(w, "issue_detail", map[string]any{
 		"Issue":    issue,
 		"Assignee": assignee,
@@ -295,6 +306,7 @@ func (u *UI) IssueDetail(w http.ResponseWriter, r *http.Request) {
 		"Children": children,
 		"Runs":     runs,
 		"Agents":   agents,
+		"PRInfos":  prInfos,
 		"Error":    r.URL.Query().Get("error"),
 		"Success":  r.URL.Query().Get("success"),
 		"Warning":  r.URL.Query().Get("warning"),
@@ -1449,3 +1461,4 @@ func formatStreamJSON(stdout, runStatus string) string {
 	b.WriteString(`</div>`)
 	return b.String()
 }
+

@@ -107,7 +107,7 @@ func TestProvisionAPIKey(t *testing.T) {
 	}
 	d.CreateAgent(agent)
 
-	key, err := s.provisionAPIKey(agent.ID)
+	key, err := s.provisionAPIKey(agent.ID, "run-test-1")
 	if err != nil {
 		t.Fatalf("provision: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestProvisionAPIKey(t *testing.T) {
 	}
 
 	// Provision again revokes old key
-	key2, err := s.provisionAPIKey(agent.ID)
+	key2, err := s.provisionAPIKey(agent.ID, "run-test-1")
 	if err != nil {
 		t.Fatalf("provision again: %v", err)
 	}
