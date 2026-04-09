@@ -210,8 +210,16 @@ func (u *UI) submitBacklog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	backlogPath := filepath.Join("artifact-docs", "backlog.md")
-	if err := os.MkdirAll("artifact-docs", 0o755); err != nil {
+	// Resolve CEO working dir so backlog.md is written where the CEO agent reads it.
+	ceoWorkingDir := "artifact-docs"
+	ceo, ceoErr := u.db.GetCEOAgent()
+	if ceoErr == nil && ceo.WorkingDir != "" {
+		ceoWorkingDir = ceo.WorkingDir
+	}
+
+	backlogDir := filepath.Join(ceoWorkingDir, "artifact-docs")
+	backlogPath := filepath.Join(backlogDir, "backlog.md")
+	if err := os.MkdirAll(backlogDir, 0o755); err != nil {
 		http.Redirect(w, r, "/issues?error=Failed+to+create+backlog+directory", http.StatusSeeOther)
 		return
 	}
@@ -231,7 +239,7 @@ func (u *UI) submitBacklog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Wake CEO to triage the backlog
-	if ceo, err := u.db.GetCEOAgent(); err == nil && u.sched != nil {
+	if ceoErr == nil && u.sched != nil {
 		go u.sched.WakeAgentHeartbeat(ceo)
 	}
 
