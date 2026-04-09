@@ -92,7 +92,42 @@ A **Workbook** (represented in the system as a `WorkBlock`) is a **milestone or 
   - `ready`: All issues completed; awaiting human sign-off.
   - `shipped`: Terminal state; value delivered; immutable.
 
-### Transition Flows
+### Issue Lifecycle
+
+```text
+       [ CREATE ]
+           |
+           v
+     +-----------+
+     |   todo    | <-----------------------------+
+     +-----------+                               |
+           |                                     |
+    [ ASSIGN/CHECKOUT ]                          |
+           |                                     |
+           v                                     |
+     +-------------+       [ BLOCK ]       +-----------+
+     | in_progress | --------------------> |  blocked  |
+     +-------------+ <-------------------- +-----------+
+           |              [ UNBLOCK ]
+           |
+    [ SUBMIT/REVIEW ]
+           |
+           v
+     +-----------+       [ REQUEST CHANGES ]
+     | in_review | -------------------------------> todo
+     +-----------+
+           |
+           +-----------------------+-----------------------+
+           |                       |                       |
+    [ APPROVE ]             [ ESCALATE ]            [ REJECT ]
+           |                       |                       |
+           v                       v                       v
+     +-----------+         +--------------+          +-----------+
+     |   done    |         | board_review |          |  wont_do  |
+     +-----------+         +--------------+          +-----------+
+
+     [ CANCEL ] (from any non-terminal state) ----> [ cancelled ]
+```
 
 **The Queue (Backlog to Done):**
 1. **Intake**: Human/System adds items to `artifact-docs/backlog.md`.
@@ -115,7 +150,7 @@ A **Workbook** (represented in the system as a `WorkBlock`) is a **milestone or 
 
 **Cost enforcement** -- Per-agent daily token and cost budgets. Hard limits pause execution before overspend. Real-time token tracking parsed from CLI output.
 
-**Strategic alignment** -- Apex Blocks define board-level goals. Work blocks align to strategy with north-star metrics. Alignment scores surface drift between execution and intent.
+**North star alignment** -- Every Work Block can carry a north-star metric and target (e.g. "P95 latency < 200ms"). Apex Blocks define board-level strategic goals. Work Blocks link to an Apex Block, and the Strategy dashboard shows an alignment score -- the percentage of active work tied to a strategic goal. Unlinked work is visible drift. Agents don't just close tickets; they move metrics toward goals the board defined.
 
 **Work blocks** -- Sprint-like coordination. Group issues, set goals, lifecycle (proposed -> active -> ready -> shipped). Telegram bot for mobile approvals.
 

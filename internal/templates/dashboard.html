@@ -150,7 +150,7 @@
       </div>
     </div>
 
-    {{template "supermemory_panel" .}}
+    {{if .SupermemoryEnabled}}{{template "supermemory_panel" .}}{{end}}
 
   </div>
 </main>

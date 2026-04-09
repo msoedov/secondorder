@@ -67,18 +67,21 @@ func (u *UI) Dashboard(w http.ResponseWriter, r *http.Request) {
 		alignmentScore = (alignedWorkBlocks * 100) / totalWorkBlocks
 	}
 
-	supermemoryStats, _ := u.db.GetSupermemoryStats()
-	supermemoryTrend, _ := u.db.GetSupermemoryTrend(7)
-
 	data := map[string]any{
-		"Stats":            stats,
-		"Issues":           issues,
-		"Agents":           agents,
-		"RunningAgents":    runningAgents,
-		"AlignmentScore":   alignmentScore,
-		"IsPaused":         u.IsPaused(),
-		"SupermemoryStats": supermemoryStats,
-		"SupermemoryTrend": supermemoryTrend,
+		"Stats":          stats,
+		"Issues":         issues,
+		"Agents":         agents,
+		"RunningAgents":  runningAgents,
+		"AlignmentScore": alignmentScore,
+		"IsPaused":       u.IsPaused(),
+	}
+
+	if u.db.IsFeatureEnabled("supermemory") {
+		data["SupermemoryEnabled"] = true
+		supermemoryStats, _ := u.db.GetSupermemoryStats()
+		supermemoryTrend, _ := u.db.GetSupermemoryTrend(7)
+		data["SupermemoryStats"] = supermemoryStats
+		data["SupermemoryTrend"] = supermemoryTrend
 	}
 
 	if activeBlock, err := u.db.GetActiveWorkBlock(); err == nil {
@@ -1215,6 +1218,16 @@ func (u *UI) saveSettings(w http.ResponseWriter, r *http.Request) {
 		keys = []string{"instance_name", "issue_prefix"}
 	case "telegram":
 		keys = []string{"telegram_token", "telegram_chat_id"}
+	case "feature_flags":
+		for _, flag := range []string{"feature_supermemory", "feature_telegram"} {
+			val := "false"
+			if r.FormValue(flag) == "on" {
+				val = "true"
+			}
+			u.db.SetSetting(flag, val)
+		}
+		http.Redirect(w, r, "/settings?msg=Feature+flags+saved", http.StatusSeeOther)
+		return
 	default:
 		http.Redirect(w, r, "/settings?error=Unknown+section", http.StatusSeeOther)
 		return

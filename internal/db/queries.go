@@ -1450,6 +1450,11 @@ func (d *DB) GetAllSettings() (map[string]string, error) {
 	return settings, rows.Err()
 }
 
+func (d *DB) IsFeatureEnabled(key string) bool {
+	val, err := d.GetSetting("feature_" + key)
+	return err == nil && val == "true"
+}
+
 // --- Supermemory ---
 
 // LogSupermemoryEvent inserts one row into supermemory_events.

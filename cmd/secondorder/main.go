@@ -174,9 +174,9 @@ func main() {
 		}
 	})
 
-	// Telegram bot (optional)
+	// Telegram bot (optional, requires feature flag)
 	var tg handlers.TelegramNotifier
-	if token := os.Getenv("TELEGRAM_TOKEN"); token != "" {
+	if token := os.Getenv("TELEGRAM_TOKEN"); token != "" && database.IsFeatureEnabled("telegram") {
 		chatID := os.Getenv("TELEGRAM_CHAT_ID")
 		bot := telegram.New(token, chatID)
 		bot.OnApproval = func(blockID, decision string) {

@@ -60,6 +60,33 @@
       </div>
     </form>
 
+    <!-- Feature Flags -->
+    <form method="POST" action="/settings" class="mb-6">
+      <input type="hidden" name="section" value="feature_flags">
+      <div class="bg-card border border-bd rounded-lg p-5">
+        <h2 class="text-sm font-medium text-ink mb-4">Feature Flags</h2>
+        <div class="space-y-4">
+          <label class="flex items-center justify-between cursor-pointer">
+            <div>
+              <span class="text-sm text-ink">Supermemory</span>
+              <p class="text-[11px] text-ink3/40">Cross-session memory via Supermemory API. Shows stats panel on dashboard.</p>
+            </div>
+            <input type="checkbox" name="feature_supermemory" {{if eq (index .Settings "feature_supermemory") "true"}}checked{{end}} class="w-4 h-4 accent-ac rounded">
+          </label>
+          <label class="flex items-center justify-between cursor-pointer">
+            <div>
+              <span class="text-sm text-ink">Telegram</span>
+              <p class="text-[11px] text-ink3/40">Telegram bot for mobile approvals. Requires bot token and chat ID below.</p>
+            </div>
+            <input type="checkbox" name="feature_telegram" {{if eq (index .Settings "feature_telegram") "true"}}checked{{end}} class="w-4 h-4 accent-ac rounded">
+          </label>
+        </div>
+        <div class="mt-4 flex justify-end">
+          <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium bg-ac text-ink hover:bg-ac-h active:scale-[0.97] transition-all">Save Feature Flags</button>
+        </div>
+      </div>
+    </form>
+
     <!-- Appearance -->
     <div class="bg-card border border-bd rounded-lg p-5 mb-6">
       <h2 class="text-sm font-medium text-ink mb-4">Appearance</h2>

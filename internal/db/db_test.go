@@ -100,6 +100,7 @@ func TestRunMigrationsUpdatesLegacyDefaultTimeoutAgents(t *testing.T) {
 		`CREATE TABLE agents (id TEXT PRIMARY KEY, timeout_sec INTEGER NOT NULL DEFAULT 600)`,
 		`CREATE TABLE runs (id TEXT PRIMARY KEY)`,
 		`CREATE TABLE api_keys (id TEXT PRIMARY KEY, agent_id TEXT, key_hash TEXT, prefix TEXT, revoked_at DATETIME, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+		`CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
 		`INSERT INTO agents (id, timeout_sec) VALUES ('legacy-default', 600), ('custom-timeout', 900)`,
 	}
 	for i := 1; i <= 15; i++ {
@@ -1285,7 +1286,7 @@ func TestSettings(t *testing.T) {
 		if err != nil {
 			t.Fatalf("get all settings: %v", err)
 		}
-		expected := []string{"issue_prefix", "telegram_token", "telegram_chat_id", "github_url", "instance_name"}
+		expected := []string{"issue_prefix", "telegram_token", "telegram_chat_id", "github_url", "instance_name", "feature_supermemory", "feature_telegram"}
 		for _, k := range expected {
 			if _, ok := all[k]; !ok {
 				t.Errorf("missing expected key %q", k)
