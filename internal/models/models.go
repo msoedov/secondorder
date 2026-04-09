@@ -35,6 +35,7 @@ const (
 	RunnerGemini           = "gemini"
 	RunnerCodex            = "codex"
 	RunnerCopilot          = "copilot"
+	RunnerOpenCode         = "opencode"
 	DefaultAgentTimeoutSec = 1200
 )
 
@@ -74,6 +75,16 @@ var RunnerModels = map[string][]string{
 		"gpt-5.1",
 		"gpt-5-mini",
 		"gemini-2.5-pro",
+	},
+	RunnerOpenCode: {
+		"github-copilot/claude-opus-4.6",
+		"github-copilot/claude-sonnet-4.5",
+		"github-copilot/gpt-5.4",
+		"anthropic/claude-sonnet-4-5",
+		"anthropic/claude-opus-4",
+		"openai/gpt-4o",
+		"google/gemini-2.5-pro",
+		"openrouter/auto",
 	},
 }
 
