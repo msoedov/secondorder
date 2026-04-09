@@ -1553,6 +1553,7 @@ func (d *DB) GetSupermemoryTrend(days int) ([]models.SupermemoryDailyStat, error
 // --- Cancellation Guard ---
 
 // completionPhrases lists signal phrases that indicate an assignee completed work.
+// Matches are case-insensitive (bodies are lowercased before comparison).
 var completionPhrases = []string{
 	"fix applied",
 	"work completed",
@@ -1562,6 +1563,9 @@ var completionPhrases = []string{
 	"implemented",
 	"fix implemented",
 	"## root cause found",
+	"## fix",
+	"## summary",
+	"## work complete",
 }
 
 // HasCompletionComment checks whether the issue has any comment from the current assignee
@@ -1591,4 +1595,35 @@ func (d *DB) HasCompletionComment(issueKey, assigneeAgentID string) (bool, strin
 		}
 	}
 	return false, "", rows.Err()
+}
+
+// ChildrenWithCompletionComments returns a list of child issues (for the given parent key)
+// that have completion comments from their current assignee. Each returned entry contains
+// the child issue and the matching comment excerpt (max 200 chars).
+// Issues without an assignee, or whose assignee has no completion comment, are excluded.
+type ChildCompletionInfo struct {
+	Issue   models.Issue
+	Excerpt string
+}
+
+func (d *DB) ChildrenWithCompletionComments(parentKey string) ([]ChildCompletionInfo, error) {
+	children, err := d.GetChildIssues(parentKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []ChildCompletionInfo
+	for _, child := range children {
+		if child.AssigneeAgentID == nil {
+			continue
+		}
+		found, excerpt, err := d.HasCompletionComment(child.Key, *child.AssigneeAgentID)
+		if err != nil {
+			continue
+		}
+		if found {
+			results = append(results, ChildCompletionInfo{Issue: child, Excerpt: excerpt})
+		}
+	}
+	return results, nil
 }

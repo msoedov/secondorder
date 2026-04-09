@@ -300,16 +300,17 @@ func (u *UI) IssueDetail(w http.ResponseWriter, r *http.Request) {
 	prInfos = FetchAllPRReviews(prInfos)
 
 	u.render(w, "issue_detail", map[string]any{
-		"Issue":    issue,
-		"Assignee": assignee,
-		"Comments": comments,
-		"Children": children,
-		"Runs":     runs,
-		"Agents":   agents,
-		"PRInfos":  prInfos,
-		"Error":    r.URL.Query().Get("error"),
-		"Success":  r.URL.Query().Get("success"),
-		"Warning":  r.URL.Query().Get("warning"),
+		"Issue":            issue,
+		"Assignee":         assignee,
+		"Comments":         comments,
+		"Children":         children,
+		"Runs":             runs,
+		"Agents":           agents,
+		"PRInfos":          prInfos,
+		"Error":            r.URL.Query().Get("error"),
+		"Success":          r.URL.Query().Get("success"),
+		"Warning":          r.URL.Query().Get("warning"),
+		"ShowCancelReason": r.URL.Query().Get("show_cancel_reason") == "1",
 	})
 }
 
@@ -333,6 +334,29 @@ func (u *UI) updateIssueUI(w http.ResponseWriter, r *http.Request, key string) {
 			}
 		}
 	case "cancel":
+		reason := r.FormValue("cancellation_reason")
+		// Pre-cancellation guard: warn if assignee has a completion comment
+		if reason == "" && issue.AssigneeAgentID != nil {
+			found, excerpt, err := u.db.HasCompletionComment(key, *issue.AssigneeAgentID)
+			if err == nil && found {
+				// Re-render the issue detail page with a warning so the user can confirm
+				warningMsg := "This issue has a completion comment from the assignee: \"" + truncateStr(excerpt, 120) + "\". If you still want to cancel, provide a reason below."
+				http.Redirect(w, r,
+					"/issues/"+key+"?warning="+url.QueryEscape(warningMsg)+"&show_cancel_reason=1",
+					http.StatusSeeOther,
+				)
+				return
+			}
+		}
+		if reason != "" {
+			sysComment := &models.Comment{
+				ID:       uuid.New().String(),
+				IssueKey: key,
+				Author:   "System",
+				Body:     fmt.Sprintf("Cancellation reason: %s", reason),
+			}
+			u.db.CreateComment(sysComment)
+		}
 		issue.Status = models.StatusCancelled
 		u.db.UpdateIssue(issue)
 	case "comment":
@@ -1096,7 +1120,10 @@ func (u *UI) applyPatch(patchID string) {
 	if err != nil {
 		return
 	}
-	filePath := filepath.Join("archetypes", patch.AgentSlug+".md")
+	filePath := filepath.Join(archetypes.GetOverridesDir(), patch.AgentSlug+".md")
+	if err := os.MkdirAll(archetypes.GetOverridesDir(), 0755); err != nil {
+		return
+	}
 	current, _ := os.ReadFile(filePath)
 	if len(current) > 0 && patch.CurrentContent == "" {
 		patch.CurrentContent = string(current)
@@ -1462,3 +1489,12 @@ func formatStreamJSON(stdout, runStatus string) string {
 	return b.String()
 }
 
+
+// truncateStr shortens s to max runes, appending "..." if truncated.
+func truncateStr(s string, max int) string {
+	runes := []rune(s)
+	if len(runes) <= max {
+		return s
+	}
+	return string(runes[:max]) + "..."
+}

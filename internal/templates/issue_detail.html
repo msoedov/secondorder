@@ -342,13 +342,29 @@
               Restart
             </button>
           </form>
-          <form method="POST" action="/issues/{{.Issue.Key}}">
+          {{if .ShowCancelReason}}
+          <!-- Cancellation reason form (shown after guard fires) -->
+          <div class="bg-red-950/20 border border-red-800/40 rounded-lg p-3 space-y-2">
+            <p class="text-[11px] text-red-300 font-medium">⚠ Completion comment detected. Provide a reason to proceed:</p>
+            <form method="POST" action="/issues/{{.Issue.Key}}">
+              <input type="hidden" name="action" value="cancel">
+              <textarea name="cancellation_reason" rows="2" required placeholder="Why is this work being cancelled?" class="w-full bg-sf border border-red-700/50 rounded-md px-3 py-2 text-xs text-ink placeholder-ink3/30 outline-none focus:ring-1 focus:ring-red-500 resize-none mb-2"></textarea>
+              <button type="submit" class="w-full flex items-center justify-center gap-1.5 bg-red-900/40 border border-red-700/50 hover:bg-red-800/60 hover:text-red-300 active:scale-[0.97] text-red-400 text-xs px-3 py-2 rounded-md transition-all">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                Confirm Cancel
+              </button>
+            </form>
+          </div>
+          {{else}}
+          <form method="POST" action="/issues/{{.Issue.Key}}" id="cancel-issue-form">
             <input type="hidden" name="action" value="cancel">
-            <button type="submit" onclick="return confirm('Are you sure you want to cancel this issue?')" class="w-full flex items-center justify-center gap-1.5 bg-sf border border-bd hover:bg-red-950/40 hover:border-red-800/50 hover:text-red-400 active:scale-[0.97] text-ink3 text-xs px-3 py-2 rounded-md transition-all">
+            <input type="hidden" name="cancellation_reason" id="cancel-reason-input" value="">
+            <button type="button" onclick="handleCancelClick()" class="w-full flex items-center justify-center gap-1.5 bg-sf border border-bd hover:bg-red-950/40 hover:border-red-800/50 hover:text-red-400 active:scale-[0.97] text-ink3 text-xs px-3 py-2 rounded-md transition-all">
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               Cancel
             </button>
           </form>
+          {{end}}
         </div>
 
         <div class="text-[11px] text-ink3/40 space-y-0.5 pt-1">
@@ -360,4 +376,12 @@
 
   </div>
 </main>
+<script>
+function handleCancelClick() {
+  var msg = 'Are you sure you want to cancel this issue?';
+  if (confirm(msg)) {
+    document.getElementById('cancel-issue-form').submit();
+  }
+}
+</script>
 {{template "foot" .}}

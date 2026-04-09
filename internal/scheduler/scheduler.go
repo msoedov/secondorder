@@ -1243,3 +1243,31 @@ func captureGitDiff(workingDir string) string {
 	}
 	return diff
 }
+
+// StartAPIKeyExpiryLoop runs a periodic sweep to expire stale session-scoped API keys.
+// This enforces the idle-timeout (AC#3): keys with expires_at in the past are revoked.
+// Recommended interval: 1 minute. The loop stops when the scheduler is stopped.
+func (s *Scheduler) StartAPIKeyExpiryLoop(interval time.Duration) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				s.mu.Lock()
+				if s.stopped {
+					s.mu.Unlock()
+					return
+				}
+				s.mu.Unlock()
+
+				n, err := s.db.ExpireStaleAPIKeys()
+				if err != nil {
+					slog.Error("scheduler: failed to expire stale API keys", "error", err)
+				} else if n > 0 {
+					slog.Info("scheduler: expired stale API keys", "count", n)
+				}
+			}
+		}
+	}()
+}

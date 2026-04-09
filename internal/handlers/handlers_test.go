@@ -1533,3 +1533,275 @@ func TestCreateSubIssueFromUI_DetailForm(t *testing.T) {
 		t.Error("sub-issue not found in database")
 	}
 }
+
+// ============================================================
+// SO-74: Pre-cancellation guard tests
+// ============================================================
+
+// TestCompletionSignalDetection validates the phrase-matching logic (AC#6).
+// Each sub-test gets its own issue key to avoid cross-contamination from accumulated comments.
+func TestCompletionSignalDetection(t *testing.T) {
+	d := testDB(t)
+
+	agent := &models.Agent{
+		Name: "Worker", Slug: "worker-guard", ArchetypeSlug: "worker",
+		Model: "sonnet", WorkingDir: "/tmp", MaxTurns: 50, TimeoutSec: 600, Active: true,
+	}
+	d.CreateAgent(agent)
+
+	tests := []struct {
+		name    string
+		body    string
+		wantHit bool
+	}{
+		{"fix applied phrase", "## Fix Applied\nPatched the auth handler.", true},
+		{"work completed phrase", "Work completed. Merged to main.", true},
+		{"changes made phrase", "changes made in api.go", true},
+		{"pr filed phrase", "PR filed: github.com/org/repo/pull/42", true},
+		{"done phrase", "Done. Tests pass.", true},
+		{"implemented phrase", "Implemented the solution as described.", true},
+		{"fix implemented phrase", "Fix implemented in handlers/api.go", true},
+		{"root cause found phrase", "## Root Cause Found\nThe issue was a nil pointer.", true},
+		{"fix section header", "## Fix\nReplaced the broken function.", true},
+		{"summary section header", "## Summary\nDeployed fix.", true},
+		{"work complete section", "## Work Complete\nAll ACs met.", true},
+		{"case insensitive", "FIX APPLIED: patched config", true},
+		{"no match - planning", "Looking into the issue now.", false},
+		{"no match - question", "Can you clarify the requirements?", false},
+		{"no match - status update", "Still investigating the root problem.", false},
+	}
+
+	issueNum := 9000
+	for _, tt := range tests {
+		tt := tt
+		issueNum++
+		issueKey := fmt.Sprintf("SO-%d", issueNum)
+		issue := &models.Issue{
+			Key:             issueKey,
+			Title:           "Guard Test " + tt.name,
+			Status:          "in_progress",
+			AssigneeAgentID: &agent.ID,
+		}
+		d.CreateIssue(issue)
+
+		t.Run(tt.name, func(t *testing.T) {
+			comment := &models.Comment{
+				ID:       uuid.New().String(),
+				IssueKey: issueKey,
+				AgentID:  &agent.ID,
+				Author:   agent.Name,
+				Body:     tt.body,
+			}
+			d.CreateComment(comment)
+
+			found, excerpt, err := d.HasCompletionComment(issueKey, agent.ID)
+			if err != nil {
+				t.Fatalf("HasCompletionComment error: %v", err)
+			}
+			if found != tt.wantHit {
+				t.Errorf("found=%v, want %v (comment: %q)", found, tt.wantHit, tt.body)
+			}
+			if found && excerpt == "" {
+				t.Error("expected non-empty excerpt when found=true")
+			}
+		})
+	}
+}
+
+// TestCancellationGuard_API_Returns409WhenNoReason tests AC#1.
+func TestCancellationGuard_API_Returns409WhenNoReason(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+
+	owner, ownerKey := createAgentWithKey(t, d, "GuardOwner", "guard-owner", "backend")
+
+	issue := &models.Issue{Key: "SO-91", Title: "Guard Issue", Status: "in_progress", AssigneeAgentID: &owner.ID}
+	d.CreateIssue(issue)
+
+	// Add a completion comment from the assignee
+	d.CreateComment(&models.Comment{
+		ID:       uuid.New().String(),
+		IssueKey: "SO-91",
+		AgentID:  &owner.ID,
+		Author:   owner.Name,
+		Body:     "## Fix Applied\nPatched the handler. Tests pass.",
+	})
+
+	// PATCH without cancellation_reason should return 409
+	req := httptest.NewRequest("PATCH", "/api/v1/issues/SO-91", strings.NewReader(`{"status":"cancelled"}`))
+	req.Header.Set("Authorization", "Bearer "+ownerKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("key", "SO-91")
+	w := httptest.NewRecorder()
+	api.Auth(api.UpdateIssue)(w, req)
+
+	if w.Code != http.StatusConflict {
+		t.Errorf("status = %d, want 409; body: %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "cancellation_reason") {
+		t.Errorf("response missing 'cancellation_reason' hint: %s", body)
+	}
+	if !strings.Contains(body, "completion_comment_excerpt") {
+		t.Errorf("response missing 'completion_comment_excerpt': %s", body)
+	}
+}
+
+// TestCancellationGuard_API_ProceedsWithReason tests AC#2.
+func TestCancellationGuard_API_ProceedsWithReason(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+
+	owner, ownerKey := createAgentWithKey(t, d, "GuardOwner2", "guard-owner2", "backend")
+
+	issue := &models.Issue{Key: "SO-92", Title: "Guard Issue 2", Status: "in_progress", AssigneeAgentID: &owner.ID}
+	d.CreateIssue(issue)
+
+	d.CreateComment(&models.Comment{
+		ID:       uuid.New().String(),
+		IssueKey: "SO-92",
+		AgentID:  &owner.ID,
+		Author:   owner.Name,
+		Body:     "Work completed. Merged to main.",
+	})
+
+	// PATCH WITH cancellation_reason should succeed (200)
+	req := httptest.NewRequest("PATCH", "/api/v1/issues/SO-92",
+		strings.NewReader(`{"status":"cancelled","cancellation_reason":"Approach changed, replaced by SO-100"}`))
+	req.Header.Set("Authorization", "Bearer "+ownerKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("key", "SO-92")
+	w := httptest.NewRecorder()
+	api.Auth(api.UpdateIssue)(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", w.Code, w.Body.String())
+	}
+
+	// Verify issue is now cancelled
+	updated, _ := d.GetIssue("SO-92")
+	if updated.Status != models.StatusCancelled {
+		t.Errorf("status = %q, want cancelled", updated.Status)
+	}
+
+	// Verify system comment was written with the reason
+	comments, _ := d.ListComments("SO-92")
+	found := false
+	for _, c := range comments {
+		if c.Author == "System" && strings.Contains(c.Body, "Approach changed, replaced by SO-100") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("system cancellation_reason comment not found in DB")
+	}
+}
+
+// TestCancellationGuard_API_NoFrictionWithoutCompletionComment tests AC#5.
+func TestCancellationGuard_API_NoFrictionWithoutCompletionComment(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+
+	owner, ownerKey := createAgentWithKey(t, d, "CleanOwner", "clean-owner", "backend")
+
+	issue := &models.Issue{Key: "SO-93", Title: "Clean Issue", Status: "in_progress", AssigneeAgentID: &owner.ID}
+	d.CreateIssue(issue)
+
+	// No completion comment — just a plain status update comment
+	d.CreateComment(&models.Comment{
+		ID:       uuid.New().String(),
+		IssueKey: "SO-93",
+		AgentID:  &owner.ID,
+		Author:   owner.Name,
+		Body:     "Still looking into this. Will update tomorrow.",
+	})
+
+	// Cancel without reason should succeed immediately
+	req := httptest.NewRequest("PATCH", "/api/v1/issues/SO-93", strings.NewReader(`{"status":"cancelled"}`))
+	req.Header.Set("Authorization", "Bearer "+ownerKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("key", "SO-93")
+	w := httptest.NewRecorder()
+	api.Auth(api.UpdateIssue)(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200 (no friction for issues without completion comments); body: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestCancellationGuard_API_NoFrictionUnassigned tests AC#5 for unassigned issues.
+func TestCancellationGuard_API_NoFrictionUnassigned(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{})
+
+	_, ceoKey := createAgentWithKey(t, d, "CEO", "ceo", "ceo")
+
+	issue := &models.Issue{Key: "SO-94", Title: "Unassigned Issue", Status: "todo", AssigneeAgentID: nil}
+	d.CreateIssue(issue)
+
+	req := httptest.NewRequest("PATCH", "/api/v1/issues/SO-94", strings.NewReader(`{"status":"cancelled"}`))
+	req.Header.Set("Authorization", "Bearer "+ceoKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.SetPathValue("key", "SO-94")
+	w := httptest.NewRecorder()
+	api.Auth(api.UpdateIssue)(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200; body: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestChildrenWithCompletionComments tests the bulk-cancel helper (AC#4).
+func TestChildrenWithCompletionComments(t *testing.T) {
+	d := testDB(t)
+
+	agent := &models.Agent{
+		Name: "Worker", Slug: "worker-bulk", ArchetypeSlug: "worker",
+		Model: "sonnet", WorkingDir: "/tmp", MaxTurns: 50, TimeoutSec: 600, Active: true,
+	}
+	d.CreateAgent(agent)
+
+	parent := &models.Issue{Key: "SO-95", Title: "Parent", Status: "in_progress"}
+	d.CreateIssue(parent)
+
+	child1 := &models.Issue{Key: "SO-96", Title: "Child Done", Status: "done", AssigneeAgentID: &agent.ID, ParentIssueKey: ptr("SO-95")}
+	d.CreateIssue(child1)
+
+	child2 := &models.Issue{Key: "SO-97", Title: "Child No Comment", Status: "in_progress", AssigneeAgentID: &agent.ID, ParentIssueKey: ptr("SO-95")}
+	d.CreateIssue(child2)
+
+	child3 := &models.Issue{Key: "SO-98", Title: "Child Completed Comment", Status: "done", AssigneeAgentID: &agent.ID, ParentIssueKey: ptr("SO-95")}
+	d.CreateIssue(child3)
+
+	// Only child3 has a completion comment
+	d.CreateComment(&models.Comment{
+		ID:       uuid.New().String(),
+		IssueKey: "SO-98",
+		AgentID:  &agent.ID,
+		Author:   agent.Name,
+		Body:     "## Fix Applied\nAll acceptance criteria met.",
+	})
+
+	results, err := d.ChildrenWithCompletionComments("SO-95")
+	if err != nil {
+		t.Fatalf("ChildrenWithCompletionComments error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d: %+v", len(results), results)
+	}
+	if results[0].Issue.Key != "SO-98" {
+		t.Errorf("expected SO-98, got %s", results[0].Issue.Key)
+	}
+	if results[0].Excerpt == "" {
+		t.Error("expected non-empty excerpt")
+	}
+}

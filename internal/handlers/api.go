@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/msoedov/secondorder/internal/archetypes"
 	"github.com/msoedov/secondorder/internal/db"
 	"github.com/msoedov/secondorder/internal/models"
 	acvalidator "github.com/msoedov/secondorder/internal/validator"
@@ -137,15 +138,16 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		Status         string               `json:"status"`
-		Type           string               `json:"type"`
-		Comment        string               `json:"comment"`
-		Title          string               `json:"title"`
-		Description    string               `json:"description"`
-		Priority       *int                 `json:"priority"`
-		AssigneeSlug   *string              `json:"assignee_slug"`
-		Stages         *[]models.IssueStage `json:"stages"`
-		CurrentStageID *int                 `json:"current_stage_id"`
+		Status             string               `json:"status"`
+		Type               string               `json:"type"`
+		Comment            string               `json:"comment"`
+		Title              string               `json:"title"`
+		Description        string               `json:"description"`
+		Priority           *int                 `json:"priority"`
+		AssigneeSlug       *string              `json:"assignee_slug"`
+		Stages             *[]models.IssueStage `json:"stages"`
+		CurrentStageID     *int                 `json:"current_stage_id"`
+		CancellationReason string               `json:"cancellation_reason"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		jsonError(w, "invalid body", http.StatusBadRequest)
@@ -158,6 +160,20 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	if agent.ArchetypeSlug != "ceo" && (issue.AssigneeAgentID == nil || *issue.AssigneeAgentID != agent.ID) {
 		jsonError(w, "forbidden: issue not assigned to you", http.StatusForbidden)
 		return
+	}
+
+	// Pre-cancellation guard: if setting status to cancelled, check for completion comments
+	if body.Status == models.StatusCancelled && body.CancellationReason == "" && issue.AssigneeAgentID != nil {
+		found, excerpt, err := a.db.HasCompletionComment(key, *issue.AssigneeAgentID)
+		if err == nil && found {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error":                    "Issue has completion comment from assignee. Provide cancellation_reason to proceed.",
+				"completion_comment_excerpt": excerpt,
+			})
+			return
+		}
 	}
 
 	oldAssigneeID := issue.AssigneeAgentID
@@ -267,6 +283,23 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	LogActivityAndBroadcast(a.db, a.sse, a.tmpl,
 		"update", "issue", key, ptrStr(agent), details)
+
+	// Record cancellation_reason as a system comment
+	if body.Status == models.StatusCancelled && body.CancellationReason != "" {
+		sysComment := &models.Comment{
+			ID:       uuid.New().String(),
+			IssueKey: key,
+			Author:   "System",
+			Body:     fmt.Sprintf("Cancellation reason: %s", body.CancellationReason),
+		}
+		a.db.CreateComment(sysComment)
+		sysData, _ := json.Marshal(map[string]string{
+			"issue_key": key,
+			"author":    "System",
+			"body":      sysComment.Body,
+		})
+		a.sse.Broadcast("comment", string(sysData))
+	}
 
 	// Wake chain on status change
 	if body.Status == models.StatusDone || body.Status == models.StatusBlocked || body.Status == models.StatusInReview {
@@ -937,7 +970,7 @@ func (a *API) CreateArchetypePatch(w http.ResponseWriter, r *http.Request) {
 
 	// Snapshot current archetype content
 	currentContent := ""
-	if data, err := os.ReadFile(filepath.Join("archetypes", body.AgentSlug+".md")); err == nil {
+	if data, err := os.ReadFile(filepath.Join(archetypes.GetOverridesDir(), body.AgentSlug+".md")); err == nil {
 		currentContent = string(data)
 	}
 
