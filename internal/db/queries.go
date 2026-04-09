@@ -1492,3 +1492,46 @@ func (d *DB) GetSupermemoryTrend(days int) ([]models.SupermemoryDailyStat, error
 	}
 	return trend, rows.Err()
 }
+
+// --- Cancellation Guard ---
+
+// completionPhrases lists signal phrases that indicate an assignee completed work.
+var completionPhrases = []string{
+	"fix applied",
+	"work completed",
+	"changes made",
+	"pr filed",
+	"done",
+	"implemented",
+	"fix implemented",
+	"## root cause found",
+}
+
+// HasCompletionComment checks whether the issue has any comment from the current assignee
+// that contains a completion signal phrase. Returns (found, excerpted body, error).
+func (d *DB) HasCompletionComment(issueKey, assigneeAgentID string) (bool, string, error) {
+	rows, err := d.Query(`SELECT body FROM comments WHERE issue_key=? AND agent_id=? ORDER BY created_at DESC`, issueKey, assigneeAgentID)
+	if err != nil {
+		return false, "", err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var body string
+		if err := rows.Scan(&body); err != nil {
+			return false, "", err
+		}
+		lower := strings.ToLower(body)
+		for _, phrase := range completionPhrases {
+			if strings.Contains(lower, phrase) {
+				// Return a short excerpt (max 200 chars)
+				excerpt := body
+				if len(excerpt) > 200 {
+					excerpt = excerpt[:200] + "..."
+				}
+				return true, excerpt, nil
+			}
+		}
+	}
+	return false, "", rows.Err()
+}

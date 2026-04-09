@@ -216,6 +216,26 @@ var funcMap = template.FuncMap{
 		}
 		return av / bv
 	},
+	// percent calculates a proportional pixel height for bar charts.
+	// Returns val/max * scale, with a minimum of 1px when val > 0.
+	"percent": func(val, max, scale int) int {
+		if max == 0 {
+			return 0
+		}
+		v := val * scale / max
+		if v < 1 && val > 0 {
+			return 1 // always show nonzero as at least 1px
+		}
+		return v
+	},
+	// shortDate extracts the day number from a "Mon D" label, e.g. "Apr 9" -> "9".
+	"shortDate": func(label string) string {
+		parts := strings.Fields(label)
+		if len(parts) == 2 {
+			return parts[1]
+		}
+		return label
+	},
 	"completedStages":  completedStages,
 	"stageProgressPct": stageProgressPct,
 	"stageStateLabel":  stageStateLabel,

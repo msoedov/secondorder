@@ -66,13 +66,18 @@ func (u *UI) Dashboard(w http.ResponseWriter, r *http.Request) {
 		alignmentScore = (alignedWorkBlocks * 100) / totalWorkBlocks
 	}
 
+	supermemoryStats, _ := u.db.GetSupermemoryStats()
+	supermemoryTrend, _ := u.db.GetSupermemoryTrend(7)
+
 	data := map[string]any{
-		"Stats":          stats,
-		"Issues":         issues,
-		"Agents":         agents,
-		"RunningAgents":  runningAgents,
-		"AlignmentScore": alignmentScore,
-		"IsPaused":       u.IsPaused(),
+		"Stats":            stats,
+		"Issues":           issues,
+		"Agents":           agents,
+		"RunningAgents":    runningAgents,
+		"AlignmentScore":   alignmentScore,
+		"IsPaused":         u.IsPaused(),
+		"SupermemoryStats": supermemoryStats,
+		"SupermemoryTrend": supermemoryTrend,
 	}
 
 	if activeBlock, err := u.db.GetActiveWorkBlock(); err == nil {
