@@ -305,18 +305,25 @@ Use the bash tool to call the API with curl when you need to update issue status
 			break
 		}
 
-		choice := apiResp.Choices[0]
-		msg := choice.Message
-		msg.Role = "assistant"
+		// The Copilot API may return multiple choices: one with text content and
+		// one with tool_calls. Merge them into a single synthetic assistant message.
+		var merged copilotMessage
+		merged.Role = "assistant"
+		for _, c := range apiResp.Choices {
+			if s, ok := c.Message.Content.(string); ok && s != "" && merged.Content == nil {
+				merged.Content = s
+			}
+			if len(c.Message.ToolCalls) > 0 {
+				merged.ToolCalls = append(merged.ToolCalls, c.Message.ToolCalls...)
+			}
+		}
+		msg := merged
 		messages = append(messages, msg)
 
 		// Collect text output
-		switch c := msg.Content.(type) {
-		case string:
-			if c != "" {
-				outputBuf.WriteString(c)
-				outputBuf.WriteString("\n")
-			}
+		if s, ok := msg.Content.(string); ok && s != "" {
+			outputBuf.WriteString(s)
+			outputBuf.WriteString("\n")
 		}
 
 		// Handle tool calls
