@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mockup: Dashboard — SO-107</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          pg:   'rgb(var(--c-pg) / <alpha-value>)',
+          card: 'rgb(var(--c-card) / <alpha-value>)',
+          sf:   'rgb(var(--c-sf) / <alpha-value>)',
+          bd:   'rgb(var(--c-bd) / <alpha-value>)',
+          ink:  'rgb(var(--c-ink) / <alpha-value>)',
+          ink2: 'rgb(var(--c-ink2) / <alpha-value>)',
+          ink3: 'rgb(var(--c-ink3) / <alpha-value>)',
+          ac:   'rgb(var(--c-ac) / <alpha-value>)',
+          'ac-h': 'rgb(var(--c-ac-h) / <alpha-value>)',
+          'ac-t': 'rgb(var(--c-ac-t) / <alpha-value>)',
+        },
+        maxWidth: { layout: '72rem' },
+      },
+    },
+  }
+  </script>
+  <style>
+  :root {
+    --c-pg: 249 248 243; --c-card: 255 255 255; --c-sf: 241 239 238; --c-bd: 223 223 221;
+    --c-ink: 20 18 17; --c-ink2: 51 49 47; --c-ink3: 48 47 45;
+    --c-ac: 122 223 156; --c-ac-h: 107 207 140; --c-ac-t: 0 159 96;
+  }
+  :root.dark {
+    --c-pg: 9 9 11; --c-card: 24 24 27; --c-sf: 39 39 42; --c-bd: 39 39 42;
+    --c-ink: 228 228 231; --c-ink2: 212 212 216; --c-ink3: 161 161 170;
+    --c-ac: 79 70 229; --c-ac-h: 99 102 241; --c-ac-t: 129 140 248;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; }
+  </style>
+</head>
+<body class="bg-pg text-ink min-h-screen">
+
+<!-- Annotation bar -->
+<div class="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs text-amber-400 flex items-center gap-3">
+  <span class="font-bold uppercase tracking-wider">Mockup</span>
+  <span>SO-107 · Dashboard · Changes: per-apex rows in alignment panel, dynamic Board Pulse, unaligned badge on active block</span>
+  <button onclick="document.documentElement.classList.toggle('dark')" class="ml-auto px-2 py-1 bg-amber-500/20 rounded text-amber-300 hover:bg-amber-500/30 transition-colors">Toggle dark/light</button>
+</div>
+
+<div class="flex">
+  <!-- Sidebar stub -->
+  <nav class="w-56 bg-pg border-r border-bd flex-col fixed h-full hidden md:flex pt-3">
+    <div class="px-4 py-4 border-b border-bd">
+      <h1 class="text-sm font-semibold text-ink">Second Order</h1>
+      <p class="text-[10px] text-ink3/50 mt-0.5 uppercase tracking-widest">Zero human company</p>
+    </div>
+    <div class="flex-1 px-2 py-3 space-y-0.5">
+      <a href="#" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm bg-sf text-ink font-medium">Dashboard</a>
+      <a href="#" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-ink3 hover:text-ink hover:bg-sf transition-colors">Strategy</a>
+      <a href="#" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-ink3 hover:text-ink hover:bg-sf transition-colors">Work Blocks</a>
+      <a href="#" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-ink3 hover:text-ink hover:bg-sf transition-colors">Issues</a>
+      <a href="#" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-ink3 hover:text-ink hover:bg-sf transition-colors">Agents</a>
+    </div>
+  </nav>
+
+  <main class="flex-1 ml-0 md:ml-56 p-8 pt-8">
+    <div class="max-w-layout mx-auto">
+
+      <div class="mb-8">
+        <h1 class="text-lg font-semibold text-ink tracking-tight">Dashboard</h1>
+        <p class="text-[13px] text-ink3/50 mt-0.5">Organization overview</p>
+      </div>
+
+      <!-- Strategic Alignment — REDESIGNED -->
+      <div class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-3">
+
+        <!-- NEW: expanded alignment panel with per-apex rows -->
+        <a href="/strategy" class="md:col-span-2 bg-card border border-bd rounded-lg p-5 hover:border-ac/30 transition-all group">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="p-2 rounded bg-ac/10 text-ac-t">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold text-ink">Strategic Alignment</h3>
+                <p class="text-[11px] text-ink3/50">Connectivity between work blocks and apex goals</p>
+              </div>
+            </div>
+            <span class="text-xs font-mono text-ac-t font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+              75%
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </span>
+          </div>
+
+          <!-- Overall bar -->
+          <div class="overflow-hidden h-1.5 flex rounded bg-sf mb-4">
+            <div style="width:75%" class="flex flex-col text-center whitespace-nowrap text-white justify-center bg-ac transition-all duration-700"></div>
+          </div>
+
+          <!-- NEW: per-apex block rows (up to 3) -->
+          <div class="space-y-2.5">
+            <!-- Row 1 -->
+            <div class="flex items-center gap-3">
+              <span class="text-[11px] text-ink2 w-44 truncate shrink-0">Market Expansion Q2</span>
+              <div class="flex-1 overflow-hidden h-1 rounded bg-sf">
+                <div style="width:67%" class="h-full bg-ac/70 rounded"></div>
+              </div>
+              <span class="text-[10px] text-ink3 tabular-nums w-12 text-right shrink-0">4 / 6</span>
+              <span class="text-[10px] text-ink3/50 w-14 text-right shrink-0">2 blocks</span>
+            </div>
+            <!-- Row 2 -->
+            <div class="flex items-center gap-3">
+              <span class="text-[11px] text-ink2 w-44 truncate shrink-0">Reduce Time-to-Value</span>
+              <div class="flex-1 overflow-hidden h-1 rounded bg-sf">
+                <div style="width:100%" class="h-full bg-ac/70 rounded"></div>
+              </div>
+              <span class="text-[10px] text-ink3 tabular-nums w-12 text-right shrink-0">8 / 8</span>
+              <span class="text-[10px] text-ink3/50 w-14 text-right shrink-0">1 block</span>
+            </div>
+            <!-- Row 3 -->
+            <div class="flex items-center gap-3">
+              <span class="text-[11px] text-ink2 w-44 truncate shrink-0">Infrastructure Hardening</span>
+              <div class="flex-1 overflow-hidden h-1 rounded bg-sf">
+                <div style="width:20%" class="h-full bg-ac/70 rounded"></div>
+              </div>
+              <span class="text-[10px] text-ink3 tabular-nums w-12 text-right shrink-0">1 / 5</span>
+              <span class="text-[10px] text-ink3/50 w-14 text-right shrink-0">1 block</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Board Pulse — dynamic copy -->
+        <div class="bg-card border border-bd rounded-lg p-5">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-bold text-ink3/50 uppercase tracking-wider">Board Pulse</span>
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+          </div>
+          <!-- NEW: dynamic copy based on alignment state -->
+          <!-- State shown: partial alignment (1 unaligned block) -->
+          <p class="text-[12px] text-ink2 leading-relaxed">
+            <strong>1 work block</strong> is unaligned. The CEO agent will prioritize linking it to a strategic goal.
+          </p>
+          <!-- Other states (annotation only): -->
+          <div class="mt-3 pt-3 border-t border-bd space-y-1.5">
+            <p class="text-[10px] text-ink3/50 italic">Other states (not rendered):</p>
+            <p class="text-[10px] text-ink3/50">• Full coverage: "All work blocks are aligned. Full strategic coverage."</p>
+            <p class="text-[10px] text-ink3/50">• No apex blocks: "No strategic goals defined. Create an Apex Block to start."</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats (unchanged) -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+        <div class="bg-card border border-bd rounded-lg p-4">
+          <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider">Agents</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span class="text-2xl font-semibold text-ink tabular-nums">3</span>
+            <span class="text-xs text-ink3/50">/ 5</span>
+          </div>
+        </div>
+        <div class="bg-card border border-bd rounded-lg p-4">
+          <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider">Open Issues</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span class="text-2xl font-semibold text-ink tabular-nums">12</span>
+            <span class="text-xs text-ink3/50">/ 48</span>
+          </div>
+        </div>
+        <div class="bg-card border border-bd rounded-lg p-4">
+          <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider">Running</div>
+          <div class="mt-2">
+            <span class="text-2xl font-semibold text-blue-400 tabular-nums">2</span>
+          </div>
+        </div>
+        <div class="bg-card border border-bd rounded-lg p-4">
+          <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider">Cost Today</div>
+          <div class="mt-2">
+            <span class="text-2xl font-semibold text-ink tabular-nums">$4.82</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Work Block — with apex link / unaligned badge -->
+      <div class="mb-6 space-y-3">
+        <p class="text-[11px] text-ink3 uppercase tracking-wider font-bold">Active Block (two states)</p>
+
+        <!-- State 1: Aligned active block -->
+        <a href="#" class="block bg-card border border-ac/50 rounded-lg p-4 hover:border-ac/70 transition-colors group">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-blue-400 bg-blue-400/10 inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium">ACTIVE</span>
+              <span class="text-sm font-medium text-ink group-hover:text-ink">User Onboarding v2</span>
+            </div>
+            <span class="text-xs text-ink3/50 tabular-nums">6 / 12 issues · $12.40</span>
+          </div>
+          <!-- NEW: strategic goal link on active block -->
+          <div class="mt-1.5 flex items-center gap-1.5">
+            <span class="text-[11px] text-ink3/50">Strategic Goal:</span>
+            <span class="text-[11px] text-ac-t font-medium">Market Expansion Q2</span>
+          </div>
+          <p class="text-[12px] text-ink3/50 mt-1">Ship a redesigned onboarding flow that gets new users to their first run in under 10 minutes.</p>
+        </a>
+
+        <!-- State 2: Unaligned active block (NEW state) -->
+        <a href="#" class="block bg-card border border-amber-500/30 rounded-lg p-4 hover:border-amber-500/50 transition-colors group">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-blue-400 bg-blue-400/10 inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium">ACTIVE</span>
+              <span class="text-sm font-medium text-ink group-hover:text-ink">Auth Refactor</span>
+            </div>
+            <span class="text-xs text-ink3/50 tabular-nums">2 / 8 issues · $3.10</span>
+          </div>
+          <!-- NEW: unaligned badge -->
+          <div class="mt-1.5 flex items-center gap-1.5">
+            <svg class="w-3 h-3 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            <span class="text-[11px] text-amber-400 font-medium">Unaligned</span>
+            <span class="text-[11px] text-ink3/50">— assign a strategic goal in</span>
+            <a href="/strategy" class="text-[11px] text-ac-t hover:underline" onclick="event.stopPropagation()">Strategy</a>
+          </div>
+        </a>
+      </div>
+
+      <!-- Rest of dashboard (issues + agents) unchanged — showing skeleton for context -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-[13px] font-medium text-ink2">Recent Issues</h2>
+            <a href="#" class="text-xs text-ink3/50 hover:text-ink2 transition-colors">View all</a>
+          </div>
+          <div class="bg-card border border-bd rounded-lg divide-y divide-sf overflow-hidden">
+            <div class="flex items-center gap-3 px-4 py-2.5">
+              <span class="bg-blue-400/10 text-blue-400 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0">●</span>
+              <span class="font-mono text-xs text-ink3/50 w-14 shrink-0">SO-112</span>
+              <span class="text-[13px] text-ink flex-1 truncate">Implement brand token refresh</span>
+              <span class="text-[11px] text-ink3/50 shrink-0">designer</span>
+              <span class="text-[11px] text-ink3/50 shrink-0 tabular-nums">2h ago</span>
+            </div>
+            <div class="flex items-center gap-3 px-4 py-2.5">
+              <span class="bg-emerald-400/10 text-emerald-400 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0">✓</span>
+              <span class="font-mono text-xs text-ink3/50 w-14 shrink-0">SO-111</span>
+              <span class="text-[13px] text-ink flex-1 truncate">Fix SSE connection drops on mobile</span>
+              <span class="text-[11px] text-ink3/50 shrink-0">8h ago</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-[13px] font-medium text-ink2">Agents</h2>
+            <a href="#" class="text-xs text-ink3/50 hover:text-ink2 transition-colors">Manage</a>
+          </div>
+          <div class="space-y-1.5">
+            <div class="flex items-center gap-3 bg-card border border-bd rounded-lg px-4 py-3">
+              <div class="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0"></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-medium text-ink truncate">CEO</div>
+                <div class="text-[11px] text-ink3/50 flex items-center gap-1.5 mt-0.5">
+                  <span>ceo</span><span class="text-ink3/30">·</span><span class="font-mono">claude_code</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 bg-card border border-bd rounded-lg px-4 py-3">
+              <div class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-medium text-ink truncate">Engineer</div>
+                <div class="text-[11px] text-ink3/50 flex items-center gap-1.5 mt-0.5">
+                  <span>engineer</span><span class="text-ink3/30">·</span><span class="font-mono">claude_code</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Annotation legend -->
+<div class="fixed bottom-4 right-4 bg-card border border-amber-500/30 rounded-lg p-4 text-xs text-ink3 max-w-xs shadow-lg">
+  <p class="font-bold text-amber-400 mb-2 uppercase tracking-wider text-[10px]">Design Changes</p>
+  <ul class="space-y-1.5">
+    <li><span class="text-emerald-400">+</span> Per-apex progress rows in alignment panel</li>
+    <li><span class="text-emerald-400">+</span> Mini progress bars (issues completed/planned ratio)</li>
+    <li><span class="text-emerald-400">+</span> Dynamic Board Pulse copy (3 states)</li>
+    <li><span class="text-emerald-400">+</span> Active block: Strategic Goal link when aligned</li>
+    <li><span class="text-emerald-400">+</span> Active block: amber border + Unaligned badge when not aligned</li>
+    <li><span class="text-zinc-400">~</span> Stats grid, recent issues, agents: unchanged</li>
+  </ul>
+  <p class="mt-3 text-[10px] text-ink3/50">New data needed: <code>ApexProgress []ApexProgressRow</code> passed to dashboard template.</p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mockup: Work Block Forms — SO-107</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          pg:   'rgb(var(--c-pg) / <alpha-value>)',
+          card: 'rgb(var(--c-card) / <alpha-value>)',
+          sf:   'rgb(var(--c-sf) / <alpha-value>)',
+          bd:   'rgb(var(--c-bd) / <alpha-value>)',
+          ink:  'rgb(var(--c-ink) / <alpha-value>)',
+          ink2: 'rgb(var(--c-ink2) / <alpha-value>)',
+          ink3: 'rgb(var(--c-ink3) / <alpha-value>)',
+          ac:   'rgb(var(--c-ac) / <alpha-value>)',
+          'ac-h': 'rgb(var(--c-ac-h) / <alpha-value>)',
+          'ac-t': 'rgb(var(--c-ac-t) / <alpha-value>)',
+        },
+        maxWidth: { layout: '72rem' },
+      },
+    },
+  }
+  </script>
+  <style>
+  :root {
+    --c-pg: 249 248 243; --c-card: 255 255 255; --c-sf: 241 239 238; --c-bd: 223 223 221;
+    --c-ink: 20 18 17; --c-ink2: 51 49 47; --c-ink3: 48 47 45;
+    --c-ac: 122 223 156; --c-ac-h: 107 207 140; --c-ac-t: 0 159 96;
+  }
+  :root.dark {
+    --c-pg: 9 9 11; --c-card: 24 24 27; --c-sf: 39 39 42; --c-bd: 39 39 42;
+    --c-ink: 228 228 231; --c-ink2: 212 212 216; --c-ink3: 161 161 170;
+    --c-ac: 79 70 229; --c-ac-h: 99 102 241; --c-ac-t: 129 140 248;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; }
+  </style>
+</head>
+<body class="bg-pg text-ink min-h-screen">
+
+<!-- Annotation bar -->
+<div class="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs text-amber-400 flex items-center gap-3">
+  <span class="font-bold uppercase tracking-wider">Mockup</span>
+  <span>SO-107 · Work Block Forms · Changes: field reorder, alignment indicator, copy updates</span>
+  <button onclick="document.documentElement.classList.toggle('dark')" class="ml-auto px-2 py-1 bg-amber-500/20 rounded text-amber-300 hover:bg-amber-500/30 transition-colors">Toggle dark/light</button>
+</div>
+
+<div class="max-w-3xl mx-auto p-8 space-y-16">
+
+  <!-- Section 1: Propose Form (inline, from work_blocks.html) -->
+  <section>
+    <div class="mb-4">
+      <h2 class="text-base font-semibold text-ink">Propose Block Form (inline)</h2>
+      <p class="text-xs text-ink3 mt-1">Changes: Strategic Goal moved to position 2; alignment indicator added; label copy updated.</p>
+    </div>
+
+    <form class="bg-card border border-bd rounded-lg p-4 space-y-3">
+      <!-- 1. Title (unchanged position) -->
+      <div>
+        <label class="text-xs text-ink3 block mb-1">Title</label>
+        <input type="text" class="w-full px-3 py-2 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac" placeholder="e.g. User Authentication">
+      </div>
+
+      <!-- 2. Strategic Goal (NEW: moved up from position 4; new label copy) -->
+      <div>
+        <label class="text-xs text-ink3 block mb-1">
+          Strategic Goal (Apex Block)
+          <!-- annotation marker -->
+          <span class="ml-1 text-amber-400 text-[10px] font-bold">MOVED UP</span>
+        </label>
+        <select id="propose-apex" onchange="updateAlignmentIndicator('propose-apex', 'propose-indicator')"
+          class="w-full px-3 py-2 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac">
+          <option value="">None — unaligned</option>
+          <option value="apex-1">Market Expansion Q2</option>
+          <option value="apex-2">Reduce Time-to-Value</option>
+        </select>
+        <!-- NEW: alignment indicator (toggled by JS) -->
+        <div id="propose-indicator" class="mt-2">
+          <!-- State: unaligned (shown by default) -->
+          <div id="propose-indicator-warning" class="flex items-center gap-2 px-3 py-2 rounded bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            This block will be unaligned. Unaligned blocks don't contribute to strategic goals.
+          </div>
+          <!-- State: aligned (hidden by default) -->
+          <div id="propose-indicator-ok" class="hidden flex items-center gap-2 px-3 py-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span>Aligned to: <strong id="propose-indicator-label"></strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Goal -->
+      <div>
+        <label class="text-xs text-ink3 block mb-1">Goal</label>
+        <textarea rows="2" class="w-full px-3 py-2 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac" placeholder="What should this block deliver when shipped?"></textarea>
+      </div>
+
+      <!-- 4. Acceptance Criteria -->
+      <div>
+        <label class="text-xs text-ink3 block mb-1">Acceptance Criteria</label>
+        <textarea rows="3" class="w-full px-3 py-2 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac" placeholder="How will you know this block is done?"></textarea>
+      </div>
+
+      <!-- 5. North Star -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs text-ink3 block mb-1">North Star Metric</label>
+          <input type="text" class="w-full px-3 py-2 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac" placeholder="e.g. Avg runs per issue">
+        </div>
+        <div>
+          <label class="text-xs text-ink3 block mb-1">North Star Target</label>
+          <input type="text" class="w-full px-3 py-2 bg-sf border border-bd rounded text-sm text-ink focus:outline-none focus:border-ac" placeholder="e.g. &lt; 8">
+        </div>
+      </div>
+
+      <button type="submit" class="px-3 py-1.5 text-sm bg-ac hover:bg-ac-h text-white rounded-md transition-colors">Create</button>
+    </form>
+  </section>
+
+  <!-- Section 2: Edit Modal -->
+  <section>
+    <div class="mb-4">
+      <h2 class="text-base font-semibold text-ink">Edit Work Block Modal</h2>
+      <p class="text-xs text-ink3 mt-1">Same field order and alignment indicator as propose form. Pre-filled values shown. Aligned state shown by default.</p>
+    </div>
+
+    <!-- Modal rendered inline for mockup visibility -->
+    <div class="bg-card rounded-xl border border-bd shadow-2xl p-6 max-w-lg">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-bold text-ink">Edit Work Block</h3>
+        <button class="text-ink3 hover:text-ink transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form class="space-y-4">
+        <input type="hidden" name="action" value="update">
+
+        <!-- Title -->
+        <div>
+          <label class="block text-xs font-bold text-ink3/50 uppercase tracking-wider mb-1.5">Title</label>
+          <input type="text" value="User Onboarding v2"
+            class="w-full bg-sf border border-bd rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-ac transition-colors">
+        </div>
+
+        <!-- Strategic Goal (moved to position 2) -->
+        <div>
+          <label class="block text-xs font-bold text-ink3/50 uppercase tracking-wider mb-1.5">
+            Strategic Goal (Apex Block)
+          </label>
+          <select id="edit-apex" onchange="updateAlignmentIndicator('edit-apex', 'edit-indicator')"
+            class="w-full bg-sf border border-bd rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-ac transition-colors">
+            <option value="">None — unaligned</option>
+            <option value="apex-1" selected>Market Expansion Q2</option>
+            <option value="apex-2">Reduce Time-to-Value</option>
+          </select>
+          <!-- Alignment indicator: pre-rendered as aligned since block has apex_block_id set -->
+          <div id="edit-indicator" class="mt-2">
+            <div id="edit-indicator-warning" class="hidden flex items-center gap-2 px-3 py-2 rounded bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+              This block will be unaligned. Unaligned blocks don't contribute to strategic goals.
+            </div>
+            <div id="edit-indicator-ok" class="flex items-center gap-2 px-3 py-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>Aligned to: <strong id="edit-indicator-label">Market Expansion Q2</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- North Star -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-ink3/50 uppercase tracking-wider mb-1.5">North Star Metric</label>
+            <input type="text" value="Avg runs per issue"
+              class="w-full bg-sf border border-bd rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-ac transition-colors">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-ink3/50 uppercase tracking-wider mb-1.5">North Star Target</label>
+            <input type="text" value="&lt; 8"
+              class="w-full bg-sf border border-bd rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-ac transition-colors">
+          </div>
+        </div>
+
+        <!-- Goal -->
+        <div>
+          <label class="block text-xs font-bold text-ink3/50 uppercase tracking-wider mb-1.5">Goal</label>
+          <textarea rows="3" class="w-full bg-sf border border-bd rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-ac transition-colors resize-none">Ship a redesigned onboarding flow that gets new users to their first run in under 10 minutes.</textarea>
+        </div>
+
+        <!-- Acceptance Criteria -->
+        <div>
+          <label class="block text-xs font-bold text-ink3/50 uppercase tracking-wider mb-1.5">Acceptance Criteria</label>
+          <textarea rows="4" class="w-full bg-sf border border-bd rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-ac transition-colors resize-none">- New user can create an agent without docs
+- Time-to-first-run p50 &lt; 10 minutes
+- Onboarding completion rate &gt; 60%</textarea>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 text-sm font-medium rounded-md bg-sf border border-bd text-ink3 hover:text-ink transition-colors">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-sm font-medium rounded-md bg-ac hover:bg-ac-h text-white shadow-sm active:scale-[0.98] transition-all">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Section 3: Work Block Detail — strategic goal display -->
+  <section>
+    <div class="mb-4">
+      <h2 class="text-base font-semibold text-ink">Work Block Detail Header</h2>
+      <p class="text-xs text-ink3 mt-1">Changes: "⚠ Unaligned" badge shown when apex_block_id is NULL.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Card: aligned block -->
+      <div class="lg:col-span-1 bg-card border border-bd rounded-lg p-5">
+        <p class="text-[10px] text-ink3 uppercase tracking-wider mb-3 font-bold">Aligned block (existing)</p>
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded text-[11px] font-medium uppercase">active</span>
+          <h1 class="text-base font-semibold text-ink">User Onboarding v2</h1>
+        </div>
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-[11px] font-bold text-ink3/50 uppercase tracking-wider">Strategic Goal:</span>
+          <a href="#" class="text-[11px] font-medium text-ac-t hover:underline">Market Expansion Q2</a>
+        </div>
+      </div>
+
+      <!-- Card: UNALIGNED block (new state) -->
+      <div class="lg:col-span-1 bg-card border border-bd rounded-lg p-5">
+        <p class="text-[10px] text-ink3 uppercase tracking-wider mb-3 font-bold">Unaligned block <span class="text-amber-400">NEW STATE</span></p>
+        <div class="flex items-center gap-3 mb-3">
+          <span class="text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded text-[11px] font-medium uppercase">proposed</span>
+          <h1 class="text-base font-semibold text-ink">Auth Refactor</h1>
+        </div>
+        <!-- NEW: unaligned badge -->
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-[11px] font-bold text-ink3/50 uppercase tracking-wider">Strategic Goal:</span>
+          <span class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-400">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            Unaligned
+          </span>
+          <a href="/strategy" class="text-[11px] text-ink3 hover:text-ac-t transition-colors">Assign goal →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Annotation legend -->
+<div class="fixed bottom-4 right-4 bg-card border border-amber-500/30 rounded-lg p-4 text-xs text-ink3 max-w-xs shadow-lg">
+  <p class="font-bold text-amber-400 mb-2 uppercase tracking-wider text-[10px]">Design Changes</p>
+  <ul class="space-y-1.5">
+    <li><span class="text-emerald-400">+</span> Strategic Goal field moved to position 2 (after Title)</li>
+    <li><span class="text-emerald-400">+</span> Alignment indicator: amber warning / green confirmed</li>
+    <li><span class="text-emerald-400">+</span> Label: "None — unaligned" (was "None / Maintenance / Overhead")</li>
+    <li><span class="text-emerald-400">+</span> Unaligned badge in detail view with "Assign goal →" link</li>
+    <li><span class="text-zinc-400">~</span> Edit modal: same field order as propose form</li>
+  </ul>
+  <p class="mt-3 text-[10px] text-ink3/50">Try the dropdown — the indicator updates live.</p>
+</div>
+
+<script>
+const apexLabels = {
+  'apex-1': 'Market Expansion Q2',
+  'apex-2': 'Reduce Time-to-Value',
+};
+
+function updateAlignmentIndicator(selectId, indicatorId) {
+  const val = document.getElementById(selectId).value;
+  const warning = document.getElementById(indicatorId + '-warning');
+  const ok = document.getElementById(indicatorId + '-ok');
+  const label = document.getElementById(indicatorId + '-label');
+
+  if (val && apexLabels[val]) {
+    warning.classList.add('hidden');
+    ok.classList.remove('hidden');
+    if (label) label.textContent = apexLabels[val];
+  } else {
+    ok.classList.add('hidden');
+    warning.classList.remove('hidden');
+  }
+}
+</script>
+</body>
+</html>
