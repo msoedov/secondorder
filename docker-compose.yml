@@ -1,0 +1,31 @@
+services:
+  secondorder:
+    build:
+      context: .
+      args:
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+    ports:
+      - "${PORT:-3001}:${PORT:-3001}"
+    volumes:
+      # Target repository — set WORKSPACE to your project path
+      - ${WORKSPACE:-.}:/workspace
+      # Agent auth directories — bind-mount from host
+      - ${HOME}/.claude:/home/so/.claude
+      - ${HOME}/.codex:/home/so/.codex
+      - ${HOME}/.gemini:/home/so/.gemini
+      - ${HOME}/.config/gh:/home/so/.config/gh
+    environment:
+      - PORT=${PORT:-3001}
+      - TEMPLATE=${TEMPLATE:-startup}
+      - MODEL=${MODEL:-claude}
+      - VERBOSITY=${VERBOSITY:-}
+      # API keys (alternative to file-based OAuth)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GH_TOKEN=${GH_TOKEN:-}
+      # Optional integrations
+      - SUPERMEMORY_API_KEY=${SUPERMEMORY_API_KEY:-}
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
