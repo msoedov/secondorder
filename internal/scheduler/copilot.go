@@ -124,18 +124,55 @@ var copilotTools = []map[string]interface{}{
 			},
 		},
 	},
+	{
+		"type": "function",
+		"function": map[string]interface{}{
+			"name":        "supermemory_store",
+			"description": "Store a learning, finding, or fact in Supermemory for recall in future sessions. Call this at the end of a run to persist key insights.",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"content": map[string]interface{}{"type": "string", "description": "The content to store (finding, learning, decision, technical fact)"},
+					"tags":    map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Tags to categorize this memory (e.g. repo name, domain, agent slug)"},
+				},
+				"required": []string{"content"},
+			},
+		},
+	},
+	{
+		"type": "function",
+		"function": map[string]interface{}{
+			"name":        "supermemory_recall",
+			"description": "Search Supermemory for relevant past learnings and context. Call this at the start of a run to recall domain knowledge from prior sessions.",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"query": map[string]interface{}{"type": "string", "description": "Search query to find relevant memories"},
+					"limit": map[string]interface{}{"type": "integer", "description": "Maximum results to return (default: 5)"},
+				},
+				"required": []string{"query"},
+			},
+		},
+	},
 }
 
 // executeTool runs a tool call and returns the result string.
 func executeTool(name, argsJSON, workingDir string) string {
-	var args map[string]string
+	var args map[string]interface{}
 	if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
 		return fmt.Sprintf("error parsing args: %v", err)
 	}
 
+	strArg := func(key string) string {
+		if v, ok := args[key]; ok {
+			return fmt.Sprintf("%v", v)
+		}
+		return ""
+	}
+
 	switch name {
 	case "read_file":
-		path := args["path"]
+		path := strArg("path")
 		if !filepath.IsAbs(path) {
 			path = filepath.Join(workingDir, path)
 		}
@@ -146,20 +183,20 @@ func executeTool(name, argsJSON, workingDir string) string {
 		return string(data)
 
 	case "write_file":
-		path := args["path"]
+		path := strArg("path")
 		if !filepath.IsAbs(path) {
 			path = filepath.Join(workingDir, path)
 		}
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 			return fmt.Sprintf("error creating dirs: %v", err)
 		}
-		if err := os.WriteFile(path, []byte(args["content"]), 0644); err != nil {
+		if err := os.WriteFile(path, []byte(strArg("content")), 0644); err != nil {
 			return fmt.Sprintf("error writing file: %v", err)
 		}
 		return "file written successfully"
 
 	case "bash":
-		cmd := exec.Command("bash", "-c", args["command"])
+		cmd := exec.Command("bash", "-c", strArg("command"))
 		cmd.Dir = workingDir
 		out, err := cmd.CombinedOutput()
 		result := string(out)
@@ -172,7 +209,7 @@ func executeTool(name, argsJSON, workingDir string) string {
 		return result
 
 	case "list_dir":
-		path := args["path"]
+		path := strArg("path")
 		if !filepath.IsAbs(path) {
 			path = filepath.Join(workingDir, path)
 		}
@@ -189,6 +226,110 @@ func executeTool(name, argsJSON, workingDir string) string {
 			lines = append(lines, prefix+e.Name())
 		}
 		return strings.Join(lines, "\n")
+
+	case "supermemory_store":
+		apiKey := os.Getenv("SUPERMEMORY_API_KEY")
+		if apiKey == "" {
+			return "error: SUPERMEMORY_API_KEY not set"
+		}
+		content := strArg("content")
+		if content == "" {
+			return "error: content is required"
+		}
+		var tags []string
+		if tagsRaw, ok := args["tags"]; ok {
+			if tagsSlice, ok := tagsRaw.([]interface{}); ok {
+				for _, t := range tagsSlice {
+					tags = append(tags, fmt.Sprintf("%v", t))
+				}
+			}
+		}
+		tags = append(tags, "secondorder")
+		payload := map[string]interface{}{"content": content, "tags": tags}
+		body, _ := json.Marshal(payload)
+		req, err := http.NewRequest("POST", "https://api.supermemory.ai/v3/documents", bytes.NewReader(body))
+		if err != nil {
+			return fmt.Sprintf("error creating request: %v", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		req.Header.Set("Content-Type", "application/json")
+		client := &http.Client{Timeout: 30 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Sprintf("error calling supermemory: %v", err)
+		}
+		respBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode >= 300 {
+			return fmt.Sprintf("supermemory error %d: %s", resp.StatusCode, string(respBody))
+		}
+		var result map[string]interface{}
+		if err := json.Unmarshal(respBody, &result); err == nil {
+			if id, ok := result["id"].(string); ok {
+				return fmt.Sprintf("stored successfully (id: %s)", id)
+			}
+		}
+		return "stored successfully"
+
+	case "supermemory_recall":
+		apiKey := os.Getenv("SUPERMEMORY_API_KEY")
+		if apiKey == "" {
+			return "error: SUPERMEMORY_API_KEY not set"
+		}
+		query := strArg("query")
+		if query == "" {
+			return "error: query is required"
+		}
+		limit := 5
+		if lv, ok := args["limit"]; ok {
+			if lf, ok := lv.(float64); ok && lf > 0 {
+				limit = int(lf)
+			}
+		}
+		payload := map[string]interface{}{"q": query, "limit": limit}
+		body, _ := json.Marshal(payload)
+		req, err := http.NewRequest("POST", "https://api.supermemory.ai/v3/search", bytes.NewReader(body))
+		if err != nil {
+			return fmt.Sprintf("error creating request: %v", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		req.Header.Set("Content-Type", "application/json")
+		client := &http.Client{Timeout: 30 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Sprintf("error calling supermemory: %v", err)
+		}
+		respBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode >= 300 {
+			return fmt.Sprintf("supermemory error %d: %s", resp.StatusCode, string(respBody))
+		}
+		var searchResp struct {
+			Results []struct {
+				Title  string `json:"title"`
+				Score  float64 `json:"score"`
+				Chunks []struct {
+					Content string `json:"content"`
+				} `json:"chunks"`
+			} `json:"results"`
+		}
+		if err := json.Unmarshal(respBody, &searchResp); err != nil {
+			return fmt.Sprintf("error parsing supermemory response: %v", err)
+		}
+		if len(searchResp.Results) == 0 {
+			return "no memories found for query: " + query
+		}
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("Found %d memories:\n\n", len(searchResp.Results)))
+		for i, r := range searchResp.Results {
+			sb.WriteString(fmt.Sprintf("### %d. %s (score: %.2f)\n", i+1, r.Title, r.Score))
+			for _, chunk := range r.Chunks {
+				sb.WriteString(chunk.Content)
+				sb.WriteString("\n")
+			}
+			sb.WriteString("\n")
+		}
+		return sb.String()
 
 	default:
 		return fmt.Sprintf("unknown tool: %s", name)
