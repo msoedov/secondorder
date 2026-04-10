@@ -15,7 +15,7 @@ func TestApplyStartupTemplateUsesDefaultAgentTimeout(t *testing.T) {
 	}
 	t.Cleanup(func() { database.Close() })
 
-	applyStartupTemplate(database, "startup", "claude")
+	applyStartupTemplate(database, "startup", "claude", "")
 
 	agents, err := database.ListAgents()
 	if err != nil {

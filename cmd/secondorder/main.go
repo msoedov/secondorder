@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -45,6 +46,7 @@ func main() {
 	port := envOr("PORT", "3001")
 	dbPath := envOr("DB", "so.db")
 	archetypesDir := envOr("ARCHETYPES", "archetypes")
+	teamTemplatesDir := os.Getenv("TEAM_TEMPLATES")
 	templateName := envOr("TEMPLATE", "startup")
 	archetypes.SetOverridesDir(archetypesDir)
 
@@ -312,8 +314,8 @@ func main() {
 	mux.HandleFunc("POST /api/v1/archetype-patches", api.Auth(api.CreateArchetypePatch))
 
 	// Apply org template on first run
-	templateName, defaultModel = promptFirstRun(database, templateName, defaultModel, templateProvided, modelProvided)
-	applyStartupTemplate(database, templateName, defaultModel)
+	templateName, defaultModel = promptFirstRun(database, templateName, defaultModel, templateProvided, modelProvided, teamTemplatesDir)
+	applyStartupTemplate(database, templateName, defaultModel, teamTemplatesDir)
 
 	// Recover stuck issues from previous run
 	if recovered := sched.RecoverStuckIssues(); recovered > 0 {
@@ -373,7 +375,7 @@ func resolveRunner(model string) string {
 	}
 }
 
-func applyStartupTemplate(database *db.DB, templateName, defaultModel string) {
+func applyStartupTemplate(database *db.DB, templateName, defaultModel, teamTemplatesDir string) {
 	if templateName == "blank" {
 		slog.Info("startup: blank template selected, skipping agent seeding")
 		return
@@ -388,7 +390,13 @@ func applyStartupTemplate(database *db.DB, templateName, defaultModel string) {
 		return
 	}
 
-	data, err := startupTemplatesFS.ReadFile("templates/" + templateName + ".json")
+	var data []byte
+	if teamTemplatesDir != "" {
+		data, err = os.ReadFile(filepath.Join(teamTemplatesDir, templateName+".json"))
+	}
+	if data == nil {
+		data, err = startupTemplatesFS.ReadFile("templates/" + templateName + ".json")
+	}
 	if err != nil {
 		slog.Warn("startup template not found, skipping", "error", err)
 		return
@@ -474,7 +482,7 @@ func parsePort(s string) (int, error) {
 	return p, nil
 }
 
-func promptFirstRun(database *db.DB, templateName, defaultModel string, templateProvided, modelProvided bool) (string, string) {
+func promptFirstRun(database *db.DB, templateName, defaultModel string, templateProvided, modelProvided bool, teamTemplatesDir string) (string, string) {
 	agents, _ := database.ListAgents()
 	if len(agents) > 0 {
 		return templateName, defaultModel
@@ -486,6 +494,24 @@ func promptFirstRun(database *db.DB, templateName, defaultModel string, template
 
 	reader := bufio.NewReader(os.Stdin)
 
+	// Discover custom templates from the override directory
+	var customTemplates []string
+	if teamTemplatesDir != "" {
+		if entries, err := os.ReadDir(teamTemplatesDir); err == nil {
+			for _, e := range entries {
+				if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
+					name := strings.TrimSuffix(e.Name(), ".json")
+					// Skip names that match built-in templates
+					switch name {
+					case "startup", "dev-team", "saas", "agency", "enterprise":
+						continue
+					}
+					customTemplates = append(customTemplates, name)
+				}
+			}
+		}
+	}
+
 	if !templateProvided {
 		fmt.Println("\nSelect a team template:")
 		fmt.Println("  1. startup     - Founding team: CEO, Engineer, Product, Designer, QA, DevOps")
@@ -494,6 +520,9 @@ func promptFirstRun(database *db.DB, templateName, defaultModel string, template
 		fmt.Println("  4. agency      - Agency delivery team")
 		fmt.Println("  5. enterprise  - Larger org structure")
 		fmt.Println("  6. blank       - No agents, configure manually")
+		for i, name := range customTemplates {
+			fmt.Printf("  %d. %-12s - Custom template\n", 7+i, name)
+		}
 
 		prompt := func() string {
 			fmt.Print("\nEnter choice [1]: ")
@@ -516,6 +545,12 @@ func promptFirstRun(database *db.DB, templateName, defaultModel string, template
 			case "6", "blank":
 				return "blank"
 			default:
+				// Check if input matches a custom template by number or name
+				for i, name := range customTemplates {
+					if input == fmt.Sprintf("%d", 7+i) || input == name {
+						return name
+					}
+				}
 				return ""
 			}
 		}

@@ -257,6 +257,40 @@ Each agent is assigned a runner that controls which CLI executes its prompts. Se
 
 All runners receive `SECONDORDER_*` env vars (agent ID, run ID, API URL, issue key, artifact docs path, API key) so agents can call back into the secondorder API during execution.
 
+## Docker
+
+Run secondorder in a container with all agent CLIs (claude, codex, gemini, gh) pre-installed. Bind-mount your target repo and host auth directories so agents can work and authenticate.
+
+```bash
+# Build (match your host UID/GID to avoid permission issues)
+docker build --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) -t secondorder .
+
+# Run against a project
+docker run -it --rm -p 3001:3001 \
+  -v ~/projects/myapp:/workspace \
+  -v ~/.claude:/home/so/.claude \
+  -v ~/.codex:/home/so/.codex \
+  -v ~/.gemini:/home/so/.gemini \
+  -v ~/.config/gh:/home/so/.config/gh \
+  -e GH_TOKEN="$(gh auth token)" \
+  secondorder
+
+# Or with docker compose
+WORKSPACE=~/projects/myapp docker compose up
+```
+
+| Env var | Default | Description |
+|---------|---------|-------------|
+| `WORKSPACE` | `.` | Host path to target repository (compose only) |
+| `TEMPLATE` | `startup` | Team template: startup, dev-team, saas, agency, enterprise, blank |
+| `MODEL` | `claude` | Default runner: claude, gemini, codex |
+| `PORT` | `3001` | HTTP listen port |
+| `VERBOSITY` | | `-v`, `-vv`, or `-vvv` |
+| `ANTHROPIC_API_KEY` | | Alternative to Claude OAuth file mount |
+| `OPENAI_API_KEY` | | Alternative to Codex OAuth file mount |
+| `GEMINI_API_KEY` | | Alternative to Gemini config file mount |
+| `GH_TOKEN` | | GitHub token for copilot runner (gh stores tokens in system keyring, not files) |
+
 ## Design decisions
 
 - **Single binary over microservices.** `scp` it to a server and run. Backup is `cp so.db backup.db`.
