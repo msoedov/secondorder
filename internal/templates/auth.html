@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Second Order - Auth</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #0f1117;
+      color: #e2e4e9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3a;
+      border-radius: 12px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 400px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .logo svg { width: 24px; height: 24px; color: #6366f1 }
+    .logo span { font-size: 0.85rem; font-weight: 600; letter-spacing: -0.01em }
+    h1 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.35rem }
+    p { font-size: 0.8rem; color: #8b8fa3; margin-bottom: 1.5rem; line-height: 1.5 }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #8b8fa3;
+      margin-bottom: 0.4rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background: #0f1117;
+      border: 1px solid #2a2d3a;
+      border-radius: 8px;
+      color: #e2e4e9;
+      font-size: 0.85rem;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #6366f1 }
+    input::placeholder { color: #4a4d5a }
+    button {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.65rem;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #5558e6 }
+    button:active { background: #4f46e5 }
+    .hint {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid #2a2d3a;
+      font-size: 0.7rem;
+      color: #5a5d6a;
+      line-height: 1.5;
+    }
+    code {
+      background: #0f1117;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <span>Second Order</span>
+    </div>
+    <h1>Dashboard Access</h1>
+    <p>This dashboard is protected. Enter the access token printed in the server console to continue.</p>
+    <form method="GET" onsubmit="this.action=location.pathname">
+      <label for="token">Access Token</label>
+      <input id="token" name="token" type="password" placeholder="Paste token here" autocomplete="off" autofocus required>
+      <button type="submit">Authenticate</button>
+    </form>
+    <div class="hint">
+      The token is printed at startup. Look for the line containing <code>Open: http://...</code> in your terminal output.
+    </div>
+  </div>
+</body>
+</html>

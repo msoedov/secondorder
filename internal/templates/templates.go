@@ -15,6 +15,15 @@ import (
 //go:embed *.html
 var fs embed.FS
 
+// AuthHTML returns the raw auth page HTML for use by the dashboard auth middleware.
+func AuthHTML() string {
+	data, err := fs.ReadFile("auth.html")
+	if err != nil {
+		panic("auth.html not embedded: " + err.Error())
+	}
+	return string(data)
+}
+
 func Parse() (*template.Template, error) {
 	root := template.New("").Funcs(funcMap)
 

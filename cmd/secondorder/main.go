@@ -56,15 +56,18 @@ func main() {
 
 	verbosity := 0
 
-	// CLI: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [port]
+	dashboardAuth := false
+
+	// CLI: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [port]
 	args := os.Args[1:]
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if arg == "-h" || arg == "--help" {
-			fmt.Println("Usage: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [port]")
+			fmt.Println("Usage: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [port]")
 			fmt.Println("  -t, --template  Team template: startup, dev-team, enterprise, saas, agency (default: startup)")
 			fmt.Println("  -m, --model     Default agent runner: claude, gemini, codex, opencode (default: claude)")
 			fmt.Println("  -v              Verbosity: -v info, -vv debug, -vvv debug+cmd")
+			fmt.Println("  --auth          Enable dashboard authentication with auto-generated token")
 			fmt.Println("  port            HTTP port (default: 3001, or PORT env)")
 			os.Exit(0)
 		} else if arg == "-vvv" {
@@ -89,6 +92,8 @@ func main() {
 			i++
 			defaultModel = args[i]
 			modelProvided = true
+		} else if arg == "--auth" {
+			dashboardAuth = true
 		} else {
 			port = arg
 		}
@@ -330,15 +335,30 @@ func main() {
 	// Heartbeat loop
 	sched.StartHeartbeatLoop(1 * time.Hour)
 
+	// Dashboard auth
+	var dashToken string
+	if dashboardAuth {
+		dashToken = handlers.GenerateDashboardToken()
+	}
+	// Also allow DASHBOARD_TOKEN env to enable auth without CLI flag
+	if t := os.Getenv("DASHBOARD_TOKEN"); t != "" {
+		dashToken = t
+	}
+	handler := handlers.DashboardAuth(dashToken, mux)
+
 	// HTTP server
 	srv := &http.Server{
 		Addr:         ":" + port,
-		Handler:      mux,
+		Handler:      handler,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 0, // disabled for SSE
 	}
 
 	go func() {
+		if dashToken != "" {
+			fmt.Fprintf(os.Stderr, "\n  Dashboard auth enabled\n")
+			fmt.Fprintf(os.Stderr, "  Open: http://localhost:%s/dashboard?token=%s\n\n", port, dashToken)
+		}
 		slog.Info("secondorder running", "url", "http://localhost:"+port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("http server error", "error", err)
