@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -511,6 +513,161 @@ func (a *API) CreateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonOK(w, comment)
+}
+
+func (a *API) ListWikiPages(w http.ResponseWriter, r *http.Request) {
+	pages, err := a.db.ListWikiPageSummaries()
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, pages)
+}
+
+func (a *API) CreateWikiPage(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Slug    string `json:"slug"`
+		Title   string `json:"title"`
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonError(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	body.Slug = strings.TrimSpace(body.Slug)
+	body.Title = strings.TrimSpace(body.Title)
+	if body.Title == "" {
+		jsonError(w, "title required", http.StatusBadRequest)
+		return
+	}
+
+	// Auto-generate slug from title if not provided
+	if body.Slug == "" {
+		body.Slug = wikiSlug(body.Title)
+	} else {
+		body.Slug = wikiSlug(body.Slug)
+	}
+	if body.Slug == "" {
+		jsonError(w, "title must contain letters or numbers", http.StatusBadRequest)
+		return
+	}
+
+	agent := agentFromContext(r.Context())
+	page := &models.WikiPage{
+		Slug:             body.Slug,
+		Title:            body.Title,
+		Content:          body.Content,
+		CreatedByAgentID: ptrStr(agent),
+		UpdatedByAgentID: ptrStr(agent),
+	}
+	if err := a.db.CreateWikiPage(page); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			jsonError(w, "wiki page with this slug already exists", http.StatusConflict)
+			return
+		}
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	jsonOK(w, page)
+}
+
+func (a *API) GetWikiPage(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	page, err := a.db.GetWikiPageBySlug(slug)
+	if errors.Is(err, sql.ErrNoRows) {
+		jsonError(w, "wiki page not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, page)
+}
+
+func (a *API) UpdateWikiPage(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	page, err := a.db.GetWikiPageBySlug(slug)
+	if errors.Is(err, sql.ErrNoRows) {
+		jsonError(w, "wiki page not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var body struct {
+		Slug    *string `json:"slug"`
+		Title   *string `json:"title"`
+		Content *string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonError(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+
+	title := page.Title
+	content := page.Content
+	newSlug := page.Slug
+	if body.Title != nil {
+		title = strings.TrimSpace(*body.Title)
+		if title == "" {
+			jsonError(w, "title cannot be empty", http.StatusBadRequest)
+			return
+		}
+	}
+	if body.Content != nil {
+		content = *body.Content
+	}
+	if body.Slug != nil {
+		newSlug = wikiSlug(*body.Slug)
+		if newSlug == "" {
+			jsonError(w, "slug must contain letters or numbers", http.StatusBadRequest)
+			return
+		}
+	}
+
+	agent := agentFromContext(r.Context())
+	page.Title = title
+	page.Content = content
+	page.Slug = newSlug
+	page.UpdatedByAgentID = ptrStr(agent)
+	if err := a.db.UpdateWikiPage(page); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			jsonError(w, "wiki page with this slug already exists", http.StatusConflict)
+			return
+		}
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	updated, err := a.db.GetWikiPageBySlug(newSlug)
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, updated)
+}
+
+func (a *API) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	page, err := a.db.GetWikiPageBySlug(slug)
+	if errors.Is(err, sql.ErrNoRows) {
+		jsonError(w, "wiki page not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := a.db.DeleteWikiPage(page.ID); err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, map[string]string{"deleted": slug})
 }
 
 func (a *API) CreateIssue(w http.ResponseWriter, r *http.Request) {

@@ -185,6 +185,25 @@ type Comment struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type WikiPage struct {
+	ID               string    `json:"id"`
+	Slug             string    `json:"slug"`
+	Title            string    `json:"title"`
+	Content          string    `json:"content"`
+	CreatedByAgentID *string   `json:"created_by_agent_id"`
+	UpdatedByAgentID *string   `json:"updated_by_agent_id"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+// WikiPageSummary is a lightweight projection for list endpoints (omits content).
+type WikiPageSummary struct {
+	ID        string    `json:"id"`
+	Slug      string    `json:"slug"`
+	Title     string    `json:"title"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type Approval struct {
 	ID          string     `json:"id"`
 	IssueKey    string     `json:"issue_key"`
