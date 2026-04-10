@@ -45,6 +45,7 @@ func DashboardAuth(token string, next http.Handler) http.Handler {
 					Value:    token,
 					Path:     "/",
 					HttpOnly: true,
+					Secure:   r.TLS != nil,
 					SameSite: http.SameSiteLaxMode,
 				})
 				// Strip token from URL and redirect to clean path
