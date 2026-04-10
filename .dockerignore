@@ -1,17 +1,1 @@
-# Database files
-so.db
-*.db
-
-# Git history
-.git
-
-# Large demo file
-static/demo.gif
-
-# Documentation (not needed in image)
-docs/
-artifact-docs/
-WORKFLOW.md
-
-# Node modules (if any)
-node_modules/
+docker/.dockerignore

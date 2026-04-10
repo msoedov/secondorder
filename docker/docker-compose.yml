@@ -1,7 +1,8 @@
 services:
   secondorder:
     build:
-      context: .
+      context: ..
+      dockerfile: docker/Dockerfile
       args:
         USER_UID: ${USER_UID:-1000}
         USER_GID: ${USER_GID:-1000}

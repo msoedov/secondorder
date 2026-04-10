@@ -205,6 +205,7 @@ POST   /api/v1/work-blocks/{id}/issues            Assign issue to block
 DELETE /api/v1/work-blocks/{id}/issues/{key}      Unassign issue from block
 POST   /api/v1/archetype-patches                  Propose archetype patch
 GET    /api/v1/wiki                               List all wiki pages
+GET    /api/v1/wiki/search?q={pattern}             Fuzzy search wiki (fzf-like scoring)
 POST   /api/v1/wiki                               Create wiki page
 GET    /api/v1/wiki/{slug}                         Get wiki page by slug
 PATCH  /api/v1/wiki/{slug}                         Update wiki page
@@ -269,21 +270,21 @@ All runners receive `SECONDORDER_*` env vars (agent ID, run ID, API URL, issue k
 Run secondorder in a container with all agent CLIs (claude, codex, gemini, gh) pre-installed. Bind-mount your target repo and host auth directories so agents can work and authenticate.
 
 ```bash
-# Build (match your host UID/GID to avoid permission issues)
-docker build --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) -t secondorder .
+# Docker Compose (recommended)
+docker compose -f docker/docker-compose.yml up --build
 
-# Run against a project
+# Or build and run manually
+docker build --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) \
+  -f docker/Dockerfile -t secondorder .
+
 docker run -it --rm -p 3001:3001 \
-  -v ~/projects/myapp:/workspace \
+  -v $(pwd):/workspace \
   -v ~/.claude:/home/so/.claude \
   -v ~/.codex:/home/so/.codex \
   -v ~/.gemini:/home/so/.gemini \
   -v ~/.config/gh:/home/so/.config/gh \
   -e GH_TOKEN="$(gh auth token)" \
   secondorder
-
-# Or with docker compose
-WORKSPACE=~/projects/myapp docker compose up
 ```
 
 | Env var | Default | Description |

@@ -57,7 +57,7 @@ RUN mkdir -p \
     && chown -R so:so /home/so/.claude /home/so/.codex /home/so/.gemini /home/so/.config
 
 # Copy entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 USER so
