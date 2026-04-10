@@ -1013,6 +1013,7 @@ const workerAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
 
 Wiki (shared knowledge base):
   GET    $SECONDORDER_API_URL/api/v1/wiki                               - list wiki pages (titles + slugs)
+  GET    $SECONDORDER_API_URL/api/v1/wiki/search?q={pattern}            - fzf-like fuzzy search (add &content=true to search body, &limit=N)
   POST   $SECONDORDER_API_URL/api/v1/wiki                               - create wiki page: {"title":"...","content":"..."}
   GET    $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - read wiki page
   PATCH  $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - update wiki page: {"title":"...","content":"..."}
@@ -1048,6 +1049,7 @@ const ceoAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
 
 Wiki (shared knowledge base):
   GET    $SECONDORDER_API_URL/api/v1/wiki                               - list wiki pages (titles + slugs)
+  GET    $SECONDORDER_API_URL/api/v1/wiki/search?q={pattern}            - fzf-like fuzzy search (add &content=true to search body, &limit=N)
   POST   $SECONDORDER_API_URL/api/v1/wiki                               - create wiki page: {"title":"...","content":"..."}
   GET    $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - read wiki page
   PATCH  $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - update wiki page: {"title":"...","content":"..."}

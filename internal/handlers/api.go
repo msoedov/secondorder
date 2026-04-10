@@ -670,6 +670,181 @@ func (a *API) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]string{"deleted": slug})
 }
 
+// SearchWikiPages provides fzf-like fuzzy search over wiki pages.
+// Query params:
+//
+//	q       - search pattern (required)
+//	limit   - max results (default 20)
+//	content - if "true", search inside page content too
+func (a *API) SearchWikiPages(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if q == "" {
+		jsonOK(w, []any{})
+		return
+	}
+	searchContent := r.URL.Query().Get("content") == "true"
+	limit := 20
+	if n, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && n > 0 && n <= 100 {
+		limit = n
+	}
+
+	var pages []models.WikiPage
+	var err error
+	if searchContent {
+		pages, err = a.db.ListWikiPages()
+	} else {
+		// Only need summaries but we reuse WikiPage for uniform scoring
+		summaries, e := a.db.ListWikiPageSummaries()
+		err = e
+		for _, s := range summaries {
+			pages = append(pages, models.WikiPage{ID: s.ID, Slug: s.Slug, Title: s.Title, UpdatedAt: s.UpdatedAt})
+		}
+	}
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type scored struct {
+		models.WikiPage
+		Score    int      `json:"score"`
+		Matches  []string `json:"matches"` // which fields matched
+		Positions []int   `json:"positions,omitempty"`
+	}
+
+	var results []scored
+	for _, p := range pages {
+		best := 0
+		var matches []string
+		var bestPos []int
+
+		if s, pos := fzfScore(p.Title, q); s > 0 {
+			// title matches get a 2x bonus
+			s *= 2
+			if s > best {
+				best = s
+				bestPos = pos
+			}
+			matches = append(matches, "title")
+		}
+		if s, _ := fzfScore(p.Slug, q); s > 0 {
+			if s > best {
+				best = s
+			}
+			matches = append(matches, "slug")
+		}
+		if searchContent && p.Content != "" {
+			if s, _ := fzfScore(p.Content, q); s > 0 {
+				if s > best {
+					best = s
+				}
+				matches = append(matches, "content")
+			}
+		}
+		if best > 0 {
+			results = append(results, scored{
+				WikiPage:  models.WikiPage{ID: p.ID, Slug: p.Slug, Title: p.Title, UpdatedAt: p.UpdatedAt},
+				Score:     best,
+				Matches:   matches,
+				Positions: bestPos,
+			})
+		}
+	}
+
+	// Sort by score descending
+	for i := 1; i < len(results); i++ {
+		for j := i; j > 0 && results[j].Score > results[j-1].Score; j-- {
+			results[j], results[j-1] = results[j-1], results[j]
+		}
+	}
+
+	if len(results) > limit {
+		results = results[:limit]
+	}
+
+	jsonOK(w, results)
+}
+
+// fzfScore implements fzf's v2 scoring heuristics:
+//   - +1 per matched character
+//   - +4 consecutive bonus (chars matching in a row)
+//   - +8 word boundary bonus (match after separator or at start)
+//   - +6 camelCase bonus (lowercase followed by uppercase match)
+//   - +16 exact prefix bonus
+//   - +10 exact match bonus (query equals text)
+//
+// Returns 0 if not all pattern chars matched.
+func fzfScore(text, pattern string) (int, []int) {
+	if pattern == "" || text == "" {
+		return 0, nil
+	}
+
+	tLower := strings.ToLower(text)
+	pLower := strings.ToLower(pattern)
+
+	// Exact match shortcut
+	if tLower == pLower {
+		pos := make([]int, len(pattern))
+		for i := range pos {
+			pos[i] = i
+		}
+		return len(pattern)*10 + 10, pos
+	}
+
+	// Prefix match shortcut
+	prefixBonus := 0
+	if strings.HasPrefix(tLower, pLower) {
+		prefixBonus = 16
+	}
+
+	ti, pi := 0, 0
+	var positions []int
+	score := 0
+	lastMatch := -2
+
+	tRunes := []rune(tLower)
+	pRunes := []rune(pLower)
+	origRunes := []rune(text)
+
+	for ti < len(tRunes) && pi < len(pRunes) {
+		if tRunes[ti] == pRunes[pi] {
+			score++ // base per-char
+
+			// Consecutive bonus
+			if ti == lastMatch+1 {
+				score += 4
+			}
+
+			// Word boundary bonus
+			if ti == 0 || isSeparator(tRunes[ti-1]) {
+				score += 8
+			}
+
+			// CamelCase bonus
+			if ti > 0 && isLower(origRunes[ti-1]) && isUpper(origRunes[ti]) {
+				score += 6
+			}
+
+			positions = append(positions, ti)
+			lastMatch = ti
+			pi++
+		}
+		ti++
+	}
+
+	if pi < len(pRunes) {
+		return 0, nil
+	}
+	return score + prefixBonus, positions
+}
+
+func isSeparator(r rune) bool {
+	return r == ' ' || r == '-' || r == '_' || r == '/' || r == '.' || r == ','
+}
+
+func isLower(r rune) bool { return r >= 'a' && r <= 'z' }
+func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
+
 func (a *API) CreateIssue(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Title          string `json:"title"`

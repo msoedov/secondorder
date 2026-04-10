@@ -547,3 +547,115 @@ func TestListWikiPagesSummaryOmitsContent(t *testing.T) {
 		t.Error("list response should include title field")
 	}
 }
+
+func TestFzfScore(t *testing.T) {
+	tests := []struct {
+		text    string
+		pattern string
+		wantHit bool
+	}{
+		{"deployment-guide", "dpg", true},
+		{"deployment-guide", "dep", true},
+		{"deployment-guide", "xyz", false},
+		{"API Key Rotation", "akr", true},
+		{"API Key Rotation", "api", true},
+		{"API Key Rotation", "rotation", true},
+		{"API Key Rotation", "zzz", false},
+		{"hello", "hello", true},
+		{"", "a", false},
+		{"abc", "", false},
+	}
+	for _, tt := range tests {
+		score, pos := fzfScore(tt.text, tt.pattern)
+		got := score > 0
+		if got != tt.wantHit {
+			t.Errorf("fzfScore(%q, %q) hit=%v want=%v (score=%d pos=%v)", tt.text, tt.pattern, got, tt.wantHit, score, pos)
+		}
+	}
+}
+
+func TestFzfScoreRanking(t *testing.T) {
+	// Exact prefix should score higher than scattered match
+	prefixScore, _ := fzfScore("api-key-rotation", "api")
+	scatterScore, _ := fzfScore("archetype-patches-implementation", "api")
+	if prefixScore <= scatterScore {
+		t.Errorf("prefix match (%d) should rank higher than scattered (%d)", prefixScore, scatterScore)
+	}
+
+	// Exact match should be highest
+	exactScore, _ := fzfScore("hello", "hello")
+	partialScore, _ := fzfScore("hello world", "hello")
+	if exactScore <= partialScore {
+		t.Errorf("exact match (%d) should rank higher than partial (%d)", exactScore, partialScore)
+	}
+}
+
+func TestSearchWikiPages(t *testing.T) {
+	d, api, agent, apiKey := setupWikiTest(t)
+
+	pages := []models.WikiPage{
+		{Slug: "api-key-rotation", Title: "API Key Rotation", Content: "How to rotate keys", CreatedByAgentID: &agent.ID, UpdatedByAgentID: &agent.ID},
+		{Slug: "deployment-guide", Title: "Deployment Guide", Content: "Deploy steps", CreatedByAgentID: &agent.ID, UpdatedByAgentID: &agent.ID},
+		{Slug: "security-model", Title: "Security Model", Content: "Our security approach", CreatedByAgentID: &agent.ID, UpdatedByAgentID: &agent.ID},
+	}
+	for i := range pages {
+		if err := d.CreateWikiPage(&pages[i]); err != nil {
+			t.Fatalf("create page: %v", err)
+		}
+	}
+
+	tests := []struct {
+		query     string
+		wantCount int
+		wantFirst string
+	}{
+		{"api", 1, "api-key-rotation"},
+		{"sec", 1, "security-model"},
+		{"de", 2, ""},    // matches deployment + security-model (model has no 'de'... actually deployment-guide)
+		{"zzz", 0, ""},
+	}
+
+	for _, tt := range tests {
+		req := httptest.NewRequest("GET", "/api/v1/wiki/search?q="+tt.query, nil)
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		w := httptest.NewRecorder()
+		http.HandlerFunc(api.Auth(api.SearchWikiPages))(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("q=%q: status=%d want=200", tt.query, w.Code)
+			continue
+		}
+
+		var results []struct {
+			Slug  string `json:"slug"`
+			Score int    `json:"score"`
+		}
+		if err := json.NewDecoder(w.Body).Decode(&results); err != nil {
+			t.Fatalf("q=%q: decode: %v", tt.query, err)
+		}
+		if len(results) < tt.wantCount {
+			t.Errorf("q=%q: got %d results, want >= %d", tt.query, len(results), tt.wantCount)
+		}
+		if tt.wantFirst != "" && len(results) > 0 && results[0].Slug != tt.wantFirst {
+			t.Errorf("q=%q: first result slug=%q want=%q", tt.query, results[0].Slug, tt.wantFirst)
+		}
+	}
+}
+
+func TestSearchWikiPagesEmpty(t *testing.T) {
+	_, api, _, apiKey := setupWikiTest(t)
+
+	req := httptest.NewRequest("GET", "/api/v1/wiki/search?q=", nil)
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	w := httptest.NewRecorder()
+	http.HandlerFunc(api.Auth(api.SearchWikiPages))(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status=%d want=200", w.Code)
+	}
+	var results []any
+	json.NewDecoder(w.Body).Decode(&results)
+	if len(results) != 0 {
+		t.Errorf("empty query should return 0 results, got %d", len(results))
+	}
+}
