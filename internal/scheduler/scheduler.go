@@ -999,7 +999,8 @@ const workerRules = `RULES:
 - Always checkout the issue first, then do the work, then update status.
 - Write any documentation to the artifact-docs/ folder.
 - When your work is ready for review: create a PR (gh pr create --fill), then mark the issue "done" with the PR URL in your comment.
-- Do NOT merge PRs yourself. The QA agent will run gates and merge when approved.`
+- Do NOT merge PRs yourself. The QA agent will run gates and merge when approved.
+- Use the wiki for durable shared knowledge (runbooks, decisions, onboarding). Use issue comments for task-specific progress.`
 
 const workerAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
@@ -1008,7 +1009,14 @@ const workerAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   PATCH  $SECONDORDER_API_URL/api/v1/issues/{key}                       - update status, comment, or reassignment ({"status":"...","comment":"...","assignee_slug":"..."})
   POST   $SECONDORDER_API_URL/api/v1/issues/{key}/comments              - add comment
   POST   $SECONDORDER_API_URL/api/v1/issues                             - create sub-issue
-  GET    $SECONDORDER_API_URL/api/v1/usage                              - your token/cost usage`
+  GET    $SECONDORDER_API_URL/api/v1/usage                              - your token/cost usage
+
+Wiki (shared knowledge base):
+  GET    $SECONDORDER_API_URL/api/v1/wiki                               - list wiki pages (titles + slugs)
+  POST   $SECONDORDER_API_URL/api/v1/wiki                               - create wiki page: {"title":"...","content":"..."}
+  GET    $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - read wiki page
+  PATCH  $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - update wiki page: {"title":"...","content":"..."}
+  DELETE $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - delete wiki page`
 
 const ceoRules = `RULES:
 - You are fully autonomous. Do NOT ask questions interactively.
@@ -1020,7 +1028,8 @@ const ceoRules = `RULES:
 - If there is an active work block, focus your work on its goal. Assign relevant issues to the block.
 - When all issues in a block are done, mark the block as "ready" via PATCH.
 - To start new work, propose a work block first. A human must approve it before it becomes active.
-- Only one work block can be active or proposed at a time.`
+- Only one work block can be active or proposed at a time.
+- Use the wiki for durable shared knowledge (decisions, architecture, onboarding). Use issue comments for task-specific progress.`
 
 const ceoAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
@@ -1036,6 +1045,13 @@ const ceoAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   PATCH  $SECONDORDER_API_URL/api/v1/work-blocks/{id}                   - update status: {"status":"ready"}
   POST   $SECONDORDER_API_URL/api/v1/work-blocks/{id}/issues            - assign issue: {"issue_key":"SO-5"}
   DELETE $SECONDORDER_API_URL/api/v1/work-blocks/{id}/issues/{key}      - unassign issue
+
+Wiki (shared knowledge base):
+  GET    $SECONDORDER_API_URL/api/v1/wiki                               - list wiki pages (titles + slugs)
+  POST   $SECONDORDER_API_URL/api/v1/wiki                               - create wiki page: {"title":"...","content":"..."}
+  GET    $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - read wiki page
+  PATCH  $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - update wiki page: {"title":"...","content":"..."}
+  DELETE $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - delete wiki page
 
 Your team:
 %s`
