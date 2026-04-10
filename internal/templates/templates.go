@@ -27,7 +27,7 @@ func AuthHTML() string {
 func Parse() (*template.Template, error) {
 	root := template.New("").Funcs(funcMap)
 
-	partialFiles := []string{"partials.html"}
+	partialFiles := []string{"partials.html", "wiki_search.html"}
 	pageFiles := []string{
 		"dashboard.html",
 		"issues.html",

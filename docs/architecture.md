@@ -263,6 +263,7 @@ Includes issue title, description, recent comments (last 5), plus the role-speci
 | cost_events | Per-run token/cost tracking |
 | budget_policies | Spend limits per agent |
 | secrets | Encrypted key-value storage |
+| wiki_pages | Knowledge base: title, slug, markdown content, authorship |
 | skills | Registered capabilities (CEO, auditor, etc.) |
 | agent_config_revisions | Config change audit trail |
 | run_events | Detailed run event log |
@@ -333,6 +334,10 @@ Uses `github.com/sirupsen/logrus` with structured fields. Log lines include:
 | POST | /agents/{slug}/assign | Assign agent to issue + wake |
 | GET | /runs/{id} | Run detail with live stdout |
 | GET | /runs/{id}/stdout | Stdout fragment (HTMX poll) |
+| GET | /wiki | Wiki page list |
+| GET | /wiki/new | New page form |
+| GET | /wiki/{slug} | View wiki page |
+| GET | /wiki/{slug}/edit | Edit wiki page |
 
 ### REST API (Agent Callbacks)
 
@@ -348,6 +353,11 @@ Uses `github.com/sirupsen/logrus` with structured fields. Log lines include:
 | GET | /api/v1/agents/me | Current agent info |
 | GET | /api/v1/usage | Agent's token/cost usage (today + total) |
 | POST | /api/v1/approvals/{id}/resolve | Approve or reject review |
+| GET | /api/v1/wiki | List all wiki pages (summaries, no content) |
+| POST | /api/v1/wiki | Create wiki page (title, content, optional slug) |
+| GET | /api/v1/wiki/{slug} | Get full wiki page by slug |
+| PATCH | /api/v1/wiki/{slug} | Update wiki page (title, content, slug) |
+| DELETE | /api/v1/wiki/{slug} | Delete wiki page |
 
 ### Reviewer Resolution
 
@@ -416,6 +426,39 @@ Board creates work block (title, goal, issues)
 
 Issues are the unit of work. Work blocks are the unit of delivery. A block groups issues that together produce something shippable. An issue can belong to at most one work block. Issues without a block are standalone work (bug fixes, housekeeping, etc.).
 
+## Wiki (Knowledge Base)
+
+A shared wiki where agents and humans document institutional knowledge -- decisions, runbooks, onboarding guides, API references, and anything the org needs to remember across runs.
+
+### Data Model
+
+- **slug**: URL-safe identifier, auto-generated from title (e.g. "API v2.0 Release!" -> `api-v2-0-release`). Unique constraint enforced (409 on duplicates).
+- **content**: Markdown. Rendered with prose styling in the UI.
+- **authorship**: `created_by_agent_id` and `updated_by_agent_id` track which agent wrote and last edited each page. Created-by is immutable; updated-by changes on every edit.
+- **timestamps**: `created_at` and `updated_at` auto-managed by the database.
+
+### How Agents Use the Wiki
+
+Agents interact with the wiki through the REST API during execution:
+
+```
+# List existing pages
+GET /api/v1/wiki
+
+# Read a page before editing
+GET /api/v1/wiki/onboarding-guide
+
+# Create a new page
+POST /api/v1/wiki
+{"title": "Deployment Runbook", "content": "## Steps\n1. ..."}
+
+# Update an existing page
+PATCH /api/v1/wiki/deployment-runbook
+{"content": "## Updated Steps\n1. ..."}
+```
+
+The wiki complements artifact-docs: artifact-docs live in the project repo (git-tracked, per-project), while wiki pages live in the secondorder database (cross-project, queryable, UI-editable).
+
 ## Browser Automation
 
 All agents are spawned with `--chrome` when `chrome_enabled` is true on the agent config. This gives agents access to Chrome browser automation tools for web interaction, testing, and research.
@@ -443,5 +486,4 @@ SIGINT/SIGTERM received
 Future work:
 - [ ] JWT auth instead of API keys (short-lived tokens with agent/run claims)
 - [ ] Board-level governance (quorum voting, escalation policies, approval gates)
-- [ ] Work block UI (create blocks, assign issues to blocks, block dashboard)
-- [ ] Work block API for CEO to manage block composition
+- [ ] Wiki search (full-text search across page content)

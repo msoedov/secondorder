@@ -539,7 +539,7 @@ async function searchPalette(q) {
   const items = await res.json();
   let html = '';
   (items || []).forEach((it, i) => {
-    const icon = it.type === 'issue' ? '&#9633;' : '&#9678;';
+    const icon = it.type === 'issue' ? '&#9633;' : it.type === 'wiki' ? '&#9782;' : '&#9678;';
     html += '<a href="' + escapeHtml(it.url) + '" class="pal-item flex items-center gap-2 px-4 py-2 text-sm text-ink2 hover:bg-sf rounded-md mx-1 transition-colors" data-idx="' + i + '">' +
       '<span class="text-ink3/50">' + icon + '</span><span class="text-ink3 font-mono text-xs">' + escapeHtml(it.key) + '</span><span>' + escapeHtml(it.title) + '</span></a>';
   });

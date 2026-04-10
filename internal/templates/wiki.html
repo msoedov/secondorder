@@ -25,6 +25,16 @@
     </div>
     {{end}}
 
+    <div class="relative mb-4">
+      <input id="wiki-search" type="text" autocomplete="off"
+        placeholder="Fuzzy search pages...  (press / to focus)"
+        class="w-full bg-card border border-bd rounded-md px-3 py-2 pl-9 text-sm text-ink placeholder-ink3/30 outline-none focus:ring-1 focus:ring-ac focus:border-ac transition-shadow">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink3/40" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+      <kbd id="wiki-search-hint" class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-ink3/30 border border-bd rounded px-1.5 py-0.5 font-mono">/</kbd>
+    </div>
+
+    <div id="wiki-no-results" class="hidden mb-2 text-sm text-ink3/50">No matching pages.</div>
+
     <div class="bg-card border border-bd rounded-lg overflow-hidden">
       <div class="grid grid-cols-12 px-4 py-2 text-[11px] uppercase tracking-wider text-ink3/50 border-b border-bd">
         <div class="col-span-5">Title</div>
@@ -33,9 +43,9 @@
         <div class="col-span-2">Updated By</div>
       </div>
       {{range .Pages}}
-      <a href="/wiki/{{.Slug}}" class="grid grid-cols-12 gap-2 px-4 py-2.5 border-b last:border-b-0 border-sf hover:bg-sf transition-colors">
-        <div class="col-span-5 text-[13px] text-ink font-medium truncate">{{.Title}}</div>
-        <div class="col-span-3 text-[12px] text-ink3 font-mono truncate">{{.Slug}}</div>
+      <a href="/wiki/{{.Slug}}" data-title="{{.Title}}" data-slug="{{.Slug}}" class="wiki-row grid grid-cols-12 gap-2 px-4 py-2.5 border-b last:border-b-0 border-sf hover:bg-sf transition-colors">
+        <div class="col-span-5 text-[13px] text-ink font-medium truncate wiki-title">{{.Title}}</div>
+        <div class="col-span-3 text-[12px] text-ink3 font-mono truncate wiki-slug">{{.Slug}}</div>
         <div class="col-span-2 text-[12px] text-ink3/70 tabular-nums">{{timeAgo .UpdatedAt}}</div>
         <div class="col-span-2 text-[12px] text-ink3 truncate">{{.UpdatedByName}}</div>
       </a>
@@ -45,6 +55,8 @@
       </div>
       {{end}}
     </div>
+
+    {{template "wiki_search_js" .}}
   </div>
 </main>
 {{template "foot" .}}

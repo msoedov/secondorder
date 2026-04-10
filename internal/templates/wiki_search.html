@@ -1,0 +1,96 @@
+{{define "wiki_search_js"}}
+<script>
+(function() {
+  const input = document.getElementById('wiki-search');
+  const hint = document.getElementById('wiki-search-hint');
+  const noResults = document.getElementById('wiki-no-results');
+  const rows = Array.from(document.querySelectorAll('.wiki-row'));
+  let selIdx = -1;
+
+  function fuzzyMatch(text, pattern) {
+    text = text.toLowerCase();
+    pattern = pattern.toLowerCase();
+    let ti = 0, pi = 0, indices = [];
+    while (ti < text.length && pi < pattern.length) {
+      if (text[ti] === pattern[pi]) { indices.push(ti); pi++; }
+      ti++;
+    }
+    return pi === pattern.length ? indices : null;
+  }
+
+  function highlight(text, indices) {
+    if (!indices) return escapeHtml(text);
+    const set = new Set(indices);
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      const ch = escapeHtml(text[i]);
+      if (set.has(i)) result += '<mark class="bg-ac/30 text-ink rounded-sm px-px">' + ch + '</mark>';
+      else result += ch;
+    }
+    return result;
+  }
+
+  function filter() {
+    const q = input.value.trim();
+    let visible = [];
+    rows.forEach(row => {
+      if (!q) {
+        row.classList.remove('hidden', 'ring-1', 'ring-ac', 'bg-sf');
+        row.querySelector('.wiki-title').innerHTML = escapeHtml(row.dataset.title);
+        row.querySelector('.wiki-slug').innerHTML = escapeHtml(row.dataset.slug);
+        visible.push(row);
+        return;
+      }
+      const titleMatch = fuzzyMatch(row.dataset.title, q);
+      const slugMatch = fuzzyMatch(row.dataset.slug, q);
+      if (titleMatch || slugMatch) {
+        row.classList.remove('hidden');
+        row.querySelector('.wiki-title').innerHTML = highlight(row.dataset.title, titleMatch);
+        row.querySelector('.wiki-slug').innerHTML = highlight(row.dataset.slug, slugMatch);
+        visible.push(row);
+      } else {
+        row.classList.add('hidden');
+        row.classList.remove('ring-1', 'ring-ac', 'bg-sf');
+      }
+    });
+    noResults.classList.toggle('hidden', visible.length > 0 || !q);
+    selIdx = visible.length > 0 && q ? 0 : -1;
+    updateSelection(visible);
+  }
+
+  function getVisible() { return rows.filter(r => !r.classList.contains('hidden')); }
+
+  function updateSelection(visible) {
+    visible = visible || getVisible();
+    visible.forEach((r, i) => {
+      r.classList.toggle('ring-1', i === selIdx);
+      r.classList.toggle('ring-ac', i === selIdx);
+      r.classList.toggle('bg-sf', i === selIdx);
+    });
+    if (selIdx >= 0 && visible[selIdx]) {
+      visible[selIdx].scrollIntoView({block: 'nearest'});
+    }
+  }
+
+  input.addEventListener('input', filter);
+
+  input.addEventListener('keydown', function(e) {
+    const visible = getVisible();
+    if (e.key === 'ArrowDown') { e.preventDefault(); selIdx = Math.min(selIdx + 1, visible.length - 1); updateSelection(visible); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); selIdx = Math.max(selIdx - 1, 0); updateSelection(visible); }
+    else if (e.key === 'Enter' && selIdx >= 0 && visible[selIdx]) { e.preventDefault(); visible[selIdx].click(); }
+    else if (e.key === 'Escape') { input.value = ''; filter(); input.blur(); }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === '/' && !e.metaKey && !e.ctrlKey && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      input.focus();
+    }
+  });
+
+  input.addEventListener('focus', function() { hint.classList.add('hidden'); });
+  input.addEventListener('blur', function() { if (!input.value) hint.classList.remove('hidden'); });
+})();
+</script>
+{{end}}

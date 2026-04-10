@@ -1017,6 +1017,18 @@ func (u *UI) SearchIssuesAndAgents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	wikiPages, _ := u.db.ListWikiPageSummaries()
+	for _, p := range wikiPages {
+		if strings.Contains(strings.ToLower(p.Title), q) || strings.Contains(strings.ToLower(p.Slug), q) {
+			results = append(results, map[string]string{
+				"type":  "wiki",
+				"key":   p.Slug,
+				"title": p.Title,
+				"url":   "/wiki/" + p.Slug,
+			})
+		}
+	}
+
 	jsonOK(w, results)
 }
 

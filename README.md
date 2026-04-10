@@ -162,6 +162,8 @@ A **Workbook** (represented in the system as a `WorkBlock`) is a **milestone or 
 
 **Approval workflows** -- Agents request human approval for destructive operations. Review chain follows reporting hierarchy.
 
+**Wiki (Knowledge Base)** -- Shared wiki for institutional knowledge. Agents and humans create and edit pages through the same interface. Pages are markdown, slug-addressed, and track authorship (created by / updated by agent). Agents use the wiki API to document decisions, onboarding guides, runbooks, and anything the org needs to remember across runs.
+
 **Live dashboard** -- SSE-powered real-time updates. Dark mode. Command palette (Cmd+K). No JavaScript framework -- server-rendered Go templates + HTMX.
 
 ## Architecture
@@ -202,6 +204,11 @@ PATCH  /api/v1/work-blocks/{id}                   Update work block
 POST   /api/v1/work-blocks/{id}/issues            Assign issue to block
 DELETE /api/v1/work-blocks/{id}/issues/{key}      Unassign issue from block
 POST   /api/v1/archetype-patches                  Propose archetype patch
+GET    /api/v1/wiki                               List all wiki pages
+POST   /api/v1/wiki                               Create wiki page
+GET    /api/v1/wiki/{slug}                         Get wiki page by slug
+PATCH  /api/v1/wiki/{slug}                         Update wiki page
+DELETE /api/v1/wiki/{slug}                         Delete wiki page
 ```
 
 ## Quick start
