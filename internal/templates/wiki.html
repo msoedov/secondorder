@@ -1,0 +1,135 @@
+{{define "wiki_list"}}
+{{template "head" .}}
+{{template "nav" .}}
+<main class="flex-1 ml-0 md:ml-56 p-8 pt-16 md:pt-8 mt-[3px]">
+  <div class="max-w-layout mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-lg font-semibold text-ink tracking-tight">Wiki / Knowledge Base</h1>
+        <p class="text-[13px] text-ink3/50 mt-0.5">Shared pages and internal docs</p>
+      </div>
+      <a href="/wiki/new" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium bg-ac text-ink hover:bg-ac-h active:scale-[0.97] transition-all">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        New Page
+      </a>
+    </div>
+
+    {{if .Error}}
+    <div class="mb-4 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
+      <span class="text-sm text-red-400">{{.Error}}</span>
+    </div>
+    {{end}}
+    {{if .Success}}
+    <div class="mb-4 bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3">
+      <span class="text-sm text-green-400">{{.Success}}</span>
+    </div>
+    {{end}}
+
+    <div class="bg-card border border-bd rounded-lg overflow-hidden">
+      <div class="grid grid-cols-12 px-4 py-2 text-[11px] uppercase tracking-wider text-ink3/50 border-b border-bd">
+        <div class="col-span-5">Title</div>
+        <div class="col-span-3">Slug</div>
+        <div class="col-span-2">Last Updated</div>
+        <div class="col-span-2">Updated By</div>
+      </div>
+      {{range .Pages}}
+      <a href="/wiki/{{.Slug}}" class="grid grid-cols-12 gap-2 px-4 py-2.5 border-b last:border-b-0 border-sf hover:bg-sf transition-colors">
+        <div class="col-span-5 text-[13px] text-ink font-medium truncate">{{.Title}}</div>
+        <div class="col-span-3 text-[12px] text-ink3 font-mono truncate">{{.Slug}}</div>
+        <div class="col-span-2 text-[12px] text-ink3/70 tabular-nums">{{timeAgo .UpdatedAt}}</div>
+        <div class="col-span-2 text-[12px] text-ink3 truncate">{{.UpdatedByName}}</div>
+      </a>
+      {{else}}
+      <div class="px-4 py-14 text-center text-sm text-ink3/50">
+        No wiki pages yet. Create your first page.
+      </div>
+      {{end}}
+    </div>
+  </div>
+</main>
+{{template "foot" .}}
+{{end}}
+
+{{define "wiki_view"}}
+{{template "head" .}}
+{{template "nav" .}}
+<main class="flex-1 ml-0 md:ml-56 p-8 pt-16 md:pt-8 mt-[3px]">
+  <div class="max-w-layout mx-auto">
+    <div class="flex items-start justify-between gap-3 mb-5">
+      <div>
+        <h1 class="text-xl font-semibold text-ink tracking-tight">{{.Page.Title}}</h1>
+        <div class="mt-2 text-[12px] text-ink3/70 space-x-3">
+          <span>Created {{timeAgo .Page.CreatedAt}} by {{.CreatedBy}}</span>
+          <span>Updated {{timeAgo .Page.UpdatedAt}} by {{.UpdatedBy}}</span>
+        </div>
+      </div>
+      <a href="/wiki/{{.Page.Slug}}/edit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium text-ink3/70 border border-bd hover:bg-sf hover:text-ink transition-colors">
+        Edit
+      </a>
+    </div>
+
+    {{if .Success}}
+    <div class="mb-4 bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3">
+      <span class="text-sm text-green-400">{{.Success}}</span>
+    </div>
+    {{end}}
+
+    <div class="bg-card border border-bd rounded-lg p-5">
+      <article class="prose prose-sm max-w-none prose-headings:text-ink prose-p:text-ink prose-strong:text-ink prose-code:text-ink prose-pre:bg-code prose-pre:text-ink prose-li:text-ink">
+        {{wikiMarkdown .Page.Content}}
+      </article>
+    </div>
+
+    <div class="mt-4">
+      <a href="/wiki" class="text-sm text-ac-t hover:underline">&larr; Back to Wiki</a>
+    </div>
+  </div>
+</main>
+{{template "foot" .}}
+{{end}}
+
+{{define "wiki_new"}}
+{{template "head" .}}
+{{template "nav" .}}
+<main class="flex-1 ml-0 md:ml-56 p-8 pt-16 md:pt-8 mt-[3px]">
+  <div class="max-w-layout mx-auto">
+    <h1 class="text-lg font-semibold text-ink tracking-tight mb-5">New Wiki Page</h1>
+    {{template "wiki_form" .}}
+  </div>
+</main>
+{{template "foot" .}}
+{{end}}
+
+{{define "wiki_edit"}}
+{{template "head" .}}
+{{template "nav" .}}
+<main class="flex-1 ml-0 md:ml-56 p-8 pt-16 md:pt-8 mt-[3px]">
+  <div class="max-w-layout mx-auto">
+    <h1 class="text-lg font-semibold text-ink tracking-tight mb-5">Edit Wiki Page</h1>
+    {{template "wiki_form" .}}
+  </div>
+</main>
+{{template "foot" .}}
+{{end}}
+
+{{define "wiki_form"}}
+{{if .Error}}
+<div class="mb-4 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
+  <span class="text-sm text-red-400">{{.Error}}</span>
+</div>
+{{end}}
+<form method="POST" action="{{.FormAction}}" class="bg-card border border-bd rounded-lg p-5 space-y-4">
+  <div>
+    <label for="wiki-title" class="block text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Title</label>
+    <input id="wiki-title" name="title" type="text" required value="{{if .Page}}{{.Page.Title}}{{end}}" class="w-full bg-sf border border-bd rounded-md px-3 py-2 text-sm text-ink placeholder-ink3/30 outline-none focus:ring-1 focus:ring-ac focus:border-ac transition-shadow" placeholder="Page title">
+  </div>
+  <div>
+    <label for="wiki-content" class="block text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Content (Markdown)</label>
+    <textarea id="wiki-content" name="content" rows="16" class="w-full bg-sf border border-bd rounded-md px-3 py-2 text-sm text-ink placeholder-ink3/30 outline-none focus:ring-1 focus:ring-ac resize-y transition-shadow" placeholder="Write markdown content...">{{if .Page}}{{.Page.Content}}{{end}}</textarea>
+  </div>
+  <div class="flex items-center gap-3">
+    <button type="submit" class="px-4 py-2 rounded-md text-sm font-medium bg-ac text-ink hover:bg-ac-h active:scale-[0.97] transition-all">{{.SubmitLabel}}</button>
+    <a href="{{.BackURL}}" class="text-sm text-ink3 hover:text-ink transition-colors">Cancel</a>
+  </div>
+</form>
+{{end}}

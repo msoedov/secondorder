@@ -306,6 +306,11 @@ func main() {
 	mux.HandleFunc("PATCH /api/v1/work-blocks/{id}", api.Auth(api.UpdateWorkBlock))
 	mux.HandleFunc("POST /api/v1/work-blocks/{id}/issues", api.Auth(api.AssignIssueToBlock))
 	mux.HandleFunc("DELETE /api/v1/work-blocks/{id}/issues/{key}", api.Auth(api.UnassignIssueFromBlock))
+	mux.HandleFunc("GET /api/v1/wiki", api.Auth(api.ListWikiPages))
+	mux.HandleFunc("POST /api/v1/wiki", api.Auth(api.CreateWikiPage))
+	mux.HandleFunc("GET /api/v1/wiki/{slug}", api.Auth(api.GetWikiPage))
+	mux.HandleFunc("PATCH /api/v1/wiki/{slug}", api.Auth(api.UpdateWikiPage))
+	mux.HandleFunc("DELETE /api/v1/wiki/{slug}", api.Auth(api.DeleteWikiPage))
 
 	mux.HandleFunc("GET /api/v1/apex-blocks", api.Auth(api.ListApexBlocks))
 	mux.HandleFunc("GET /api/v1/apex-blocks/{id}", api.Auth(api.GetApexBlock))
