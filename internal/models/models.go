@@ -168,6 +168,15 @@ type Issue struct {
 	CurrentStageID  int          `json:"current_stage_id"`
 }
 
+type WikiPage struct {
+	ID        string    `json:"id"`
+	Slug      string    `json:"slug"`
+	Title     string    `json:"title"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type IssueStage struct {
 	ID     int    `json:"id"`
 	Title  string `json:"title"`
@@ -198,6 +207,17 @@ type Comment struct {
 	Author    string    `json:"author"`
 	Body      string    `json:"body"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type WikiPage struct {
+	ID               string    `json:"id"`
+	Slug             string    `json:"slug"`
+	Title            string    `json:"title"`
+	Content          string    `json:"content"`
+	CreatedByAgentID *string   `json:"created_by_agent_id"`
+	UpdatedByAgentID *string   `json:"updated_by_agent_id"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 type Approval struct {
