@@ -569,6 +569,82 @@ func (d *DB) ListComments(issueKey string) ([]models.Comment, error) {
 	return comments, rows.Err()
 }
 
+// --- Wiki Pages ---
+
+func (d *DB) CreateWikiPage(p *models.WikiPage) error {
+	if p.ID == "" {
+		p.ID = uuid.NewString()
+	}
+	now := time.Now().UTC()
+	p.CreatedAt = now
+	p.UpdatedAt = now
+	_, err := d.Exec(`INSERT INTO wiki_pages (id, slug, title, content, created_by_agent_id, updated_by_agent_id, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		p.ID, p.Slug, p.Title, p.Content, p.CreatedByAgentID, p.UpdatedByAgentID, p.CreatedAt, p.UpdatedAt)
+	return err
+}
+
+func (d *DB) GetWikiPageBySlug(slug string) (*models.WikiPage, error) {
+	p := &models.WikiPage{}
+	err := d.QueryRow(`SELECT id, slug, title, content, created_by_agent_id, updated_by_agent_id, created_at, updated_at
+		FROM wiki_pages WHERE slug=?`, slug).Scan(
+		&p.ID, &p.Slug, &p.Title, &p.Content, &p.CreatedByAgentID, &p.UpdatedByAgentID, &p.CreatedAt, &p.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (d *DB) ListWikiPages() ([]models.WikiPage, error) {
+	rows, err := d.Query(`SELECT id, slug, title, content, created_by_agent_id, updated_by_agent_id, created_at, updated_at
+		FROM wiki_pages ORDER BY updated_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pages []models.WikiPage
+	for rows.Next() {
+		var p models.WikiPage
+		if err := rows.Scan(&p.ID, &p.Slug, &p.Title, &p.Content, &p.CreatedByAgentID, &p.UpdatedByAgentID, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, err
+		}
+		pages = append(pages, p)
+	}
+	return pages, rows.Err()
+}
+
+func (d *DB) ListWikiPageSummaries() ([]models.WikiPageSummary, error) {
+	rows, err := d.Query(`SELECT id, slug, title, updated_at
+		FROM wiki_pages ORDER BY updated_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pages []models.WikiPageSummary
+	for rows.Next() {
+		var p models.WikiPageSummary
+		if err := rows.Scan(&p.ID, &p.Slug, &p.Title, &p.UpdatedAt); err != nil {
+			return nil, err
+		}
+		pages = append(pages, p)
+	}
+	return pages, rows.Err()
+}
+
+func (d *DB) UpdateWikiPage(p *models.WikiPage) error {
+	p.UpdatedAt = time.Now().UTC()
+	_, err := d.Exec(`UPDATE wiki_pages SET slug=?, title=?, content=?, updated_by_agent_id=?, updated_at=? WHERE id=?`,
+		p.Slug, p.Title, p.Content, p.UpdatedByAgentID, p.UpdatedAt, p.ID)
+	return err
+}
+
+func (d *DB) DeleteWikiPage(id string) error {
+	_, err := d.Exec(`DELETE FROM wiki_pages WHERE id=?`, id)
+	return err
+}
+
 // --- API Keys ---
 
 // CreateAPIKey provisions a session-scoped API key bound to a specific run.

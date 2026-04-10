@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -144,6 +145,190 @@ func (u *UI) ListIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u.render(w, "issues", data)
+}
+
+type wikiPageListItem struct {
+	models.WikiPage
+	UpdatedByName string
+}
+
+func (u *UI) WikiList(w http.ResponseWriter, r *http.Request) {
+	pages, err := u.db.ListWikiPages()
+	if err != nil {
+		u.render(w, "wiki_list", map[string]any{
+			"PageTitle": "Wiki / Knowledge Base",
+			"Pages":     []wikiPageListItem{},
+			"Error":     "Failed to load wiki pages.",
+		})
+		return
+	}
+	agents, _ := u.db.ListAgents()
+
+	agentNames := make(map[string]string, len(agents))
+	for _, agent := range agents {
+		agentNames[agent.ID] = agent.Name
+	}
+
+	items := make([]wikiPageListItem, 0, len(pages))
+	for _, page := range pages {
+		updatedBy := wikiAuthorName(page.UpdatedByAgentID, agentNames)
+		items = append(items, wikiPageListItem{WikiPage: page, UpdatedByName: updatedBy})
+	}
+
+	u.render(w, "wiki_list", map[string]any{
+		"PageTitle": "Wiki / Knowledge Base",
+		"Pages":     items,
+		"Error":     r.URL.Query().Get("error"),
+		"Success":   r.URL.Query().Get("success"),
+	})
+}
+
+func (u *UI) WikiView(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	page, err := u.db.GetWikiPageBySlug(slug)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		u.render(w, "not_found", map[string]any{
+			"Title":   "Wiki page not found",
+			"Message": fmt.Sprintf("Wiki page %q does not exist.", slug),
+			"BackURL": "/wiki",
+		})
+		return
+	}
+
+	agents, _ := u.db.ListAgents()
+	agentNames := make(map[string]string, len(agents))
+	for _, agent := range agents {
+		agentNames[agent.ID] = agent.Name
+	}
+
+	u.render(w, "wiki_view", map[string]any{
+		"PageTitle": page.Title,
+		"Page":      page,
+		"CreatedBy": wikiAuthorName(page.CreatedByAgentID, agentNames),
+		"UpdatedBy": wikiAuthorName(page.UpdatedByAgentID, agentNames),
+		"Success":   r.URL.Query().Get("success"),
+	})
+}
+
+func (u *UI) WikiNew(w http.ResponseWriter, r *http.Request) {
+	u.render(w, "wiki_new", map[string]any{
+		"PageTitle":   "New Wiki Page",
+		"FormAction":  "/wiki",
+		"SubmitLabel": "Create Page",
+		"BackURL":     "/wiki",
+		"Error":       r.URL.Query().Get("error"),
+	})
+}
+
+func (u *UI) WikiEdit(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	page, err := u.db.GetWikiPageBySlug(slug)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		u.render(w, "not_found", map[string]any{
+			"Title":   "Wiki page not found",
+			"Message": fmt.Sprintf("Wiki page %q does not exist.", slug),
+			"BackURL": "/wiki",
+		})
+		return
+	}
+
+	u.render(w, "wiki_edit", map[string]any{
+		"PageTitle":   "Edit Wiki Page",
+		"Page":        page,
+		"FormAction":  "/wiki/" + slug,
+		"SubmitLabel": "Save Changes",
+		"BackURL":     "/wiki/" + slug,
+		"Error":       r.URL.Query().Get("error"),
+	})
+}
+
+func (u *UI) WikiCreate(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	title := strings.TrimSpace(r.FormValue("title"))
+	content := r.FormValue("content")
+	if title == "" {
+		http.Redirect(w, r, "/wiki/new?error="+url.QueryEscape("Title is required"), http.StatusSeeOther)
+		return
+	}
+
+	slug := wikiSlug(title)
+	if slug == "" {
+		http.Redirect(w, r, "/wiki/new?error="+url.QueryEscape("Title must contain letters or numbers"), http.StatusSeeOther)
+		return
+	}
+
+	page := &models.WikiPage{Slug: slug, Title: title, Content: content}
+	if ceo, err := u.db.GetCEOAgent(); err == nil {
+		page.CreatedByAgentID = &ceo.ID
+		page.UpdatedByAgentID = &ceo.ID
+	}
+
+	if err := u.db.CreateWikiPage(page); err != nil {
+		http.Redirect(w, r, "/wiki/new?error="+url.QueryEscape("Failed to create wiki page: "+err.Error()), http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/wiki/"+page.Slug+"?success="+url.QueryEscape("Wiki page created"), http.StatusSeeOther)
+}
+
+func (u *UI) WikiUpdate(w http.ResponseWriter, r *http.Request) {
+	currentSlug := r.PathValue("slug")
+	page, err := u.db.GetWikiPageBySlug(currentSlug)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	r.ParseForm()
+	title := strings.TrimSpace(r.FormValue("title"))
+	content := r.FormValue("content")
+	if title == "" {
+		http.Redirect(w, r, "/wiki/"+currentSlug+"/edit?error="+url.QueryEscape("Title is required"), http.StatusSeeOther)
+		return
+	}
+
+	slug := wikiSlug(title)
+	if slug == "" {
+		http.Redirect(w, r, "/wiki/"+currentSlug+"/edit?error="+url.QueryEscape("Title must contain letters or numbers"), http.StatusSeeOther)
+		return
+	}
+
+	if ceo, err := u.db.GetCEOAgent(); err == nil {
+		page.UpdatedByAgentID = &ceo.ID
+	} else {
+		page.UpdatedByAgentID = nil
+	}
+	page.Title = title
+	page.Content = content
+	page.Slug = slug
+
+	if err := u.db.UpdateWikiPage(page); err != nil {
+		http.Redirect(w, r, "/wiki/"+currentSlug+"/edit?error="+url.QueryEscape("Failed to update wiki page: "+err.Error()), http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/wiki/"+slug+"?success="+url.QueryEscape("Wiki page updated"), http.StatusSeeOther)
+}
+
+func wikiAuthorName(agentID *string, names map[string]string) string {
+	if agentID == nil {
+		return "Board"
+	}
+	if name, ok := names[*agentID]; ok {
+		return name
+	}
+	return "Unknown"
+}
+
+var wikiSlugRe = regexp.MustCompile(`[^a-z0-9]+`)
+
+func wikiSlug(title string) string {
+	v := strings.ToLower(strings.TrimSpace(title))
+	v = wikiSlugRe.ReplaceAllString(v, "-")
+	v = strings.Trim(v, "-")
+	return v
 }
 
 func (u *UI) createIssueUI(w http.ResponseWriter, r *http.Request) {
