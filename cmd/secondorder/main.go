@@ -58,17 +58,21 @@ func main() {
 
 	dashboardAuth := false
 
-	// CLI: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [port]
+	// CLI: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [doctor] [port]
 	args := os.Args[1:]
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if arg == "-h" || arg == "--help" {
-			fmt.Println("Usage: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [port]")
+			fmt.Println("Usage: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [doctor] [port]")
 			fmt.Println("  -t, --template  Team template: startup, dev-team, enterprise, saas, agency (default: startup)")
 			fmt.Println("  -m, --model     Default agent runner: claude, gemini, codex, opencode (default: claude)")
 			fmt.Println("  -v              Verbosity: -v info, -vv debug, -vvv debug+cmd")
 			fmt.Println("  --auth          Enable dashboard authentication with auto-generated token")
+			fmt.Println("  doctor          Check that required CLI binaries are available")
 			fmt.Println("  port            HTTP port (default: 3001, or PORT env)")
+			os.Exit(0)
+		} else if arg == "doctor" {
+			runDoctor()
 			os.Exit(0)
 		} else if arg == "-vvv" {
 			verbosity = 3
@@ -131,6 +135,12 @@ func main() {
 		portInt = p
 	}
 	sched := scheduler.New(database, portInt)
+
+	for _, bs := range scheduler.CheckBinaries() {
+		if !bs.Found {
+			slog.Warn("binary not found", "binary", bs.Binary, "runner", bs.Runner)
+		}
+	}
 
 	if modelProvided {
 		runner := resolveRunner(defaultModel)
@@ -648,4 +658,34 @@ func promptFirstRun(database *db.DB, templateName, defaultModel string, template
 
 	fmt.Printf("\nStarting with template=%s runner=%s\n\n", templateName, defaultModel)
 	return templateName, defaultModel
+}
+
+func runDoctor() {
+	fmt.Println("secondorder doctor")
+	fmt.Println("==================")
+	fmt.Println()
+
+	results := scheduler.CheckBinaries()
+
+	allOK := true
+	for _, r := range results {
+		icon := "\u2713"
+		if !r.Found {
+			icon = "\u2717"
+			allOK = false
+		}
+
+		if r.Found {
+			fmt.Printf("  %s  %-12s  %-10s  %s\n", icon, r.Binary, r.Runner, r.Path)
+		} else {
+			fmt.Printf("  %s  %-12s  %-10s  not found in PATH\n", icon, r.Binary, r.Runner)
+		}
+	}
+
+	fmt.Println()
+	if allOK {
+		fmt.Println("All binaries found.")
+	} else {
+		fmt.Println("Some binaries are missing. Install them or ensure they are on your PATH.")
+	}
 }

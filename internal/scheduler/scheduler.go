@@ -237,19 +237,26 @@ func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt strin
 			runner = "claude_code"
 		}
 		slog.Debug("scheduler: executing runner", "runner", runner, "run_id", runID)
-		switch runner {
-		case "codex":
-			stdout, err = s.execCodex(ctx, agent, rawKey, runID, issueKey, prompt)
-		case "gemini":
-			stdout, err = s.execGemini(ctx, agent, rawKey, runID, issueKey, prompt)
-		case "claude_code":
-			stdout, err = s.execClaudeCode(ctx, agent, rawKey, runID, issueKey, prompt)
-		case "copilot":
-			stdout, err = s.execCopilot(ctx, agent, rawKey, runID, issueKey, prompt)
-		case "opencode":
-			stdout, err = s.execOpenCode(ctx, agent, rawKey, runID, issueKey, prompt)
-		default:
-			err = fmt.Errorf("unsupported runner: %s", runner)
+
+		// Pre-flight: verify the required CLI binary is on PATH before executing.
+		if binErr := CheckRunnerBinary(runner); binErr != nil {
+			err = binErr
+			slog.Error("scheduler: binary not found", "runner", runner, "error", binErr)
+		} else {
+			switch runner {
+			case "codex":
+				stdout, err = s.execCodex(ctx, agent, rawKey, runID, issueKey, prompt)
+			case "gemini":
+				stdout, err = s.execGemini(ctx, agent, rawKey, runID, issueKey, prompt)
+			case "claude_code":
+				stdout, err = s.execClaudeCode(ctx, agent, rawKey, runID, issueKey, prompt)
+			case "copilot":
+				stdout, err = s.execCopilot(ctx, agent, rawKey, runID, issueKey, prompt)
+			case "opencode":
+				stdout, err = s.execOpenCode(ctx, agent, rawKey, runID, issueKey, prompt)
+			default:
+				err = fmt.Errorf("unsupported runner: %s", runner)
+			}
 		}
 		elapsed := time.Since(startTime)
 
