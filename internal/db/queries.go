@@ -595,6 +595,10 @@ func (d *DB) GetWikiPageBySlug(slug string) (*models.WikiPage, error) {
 	return p, nil
 }
 
+func (d *DB) GetWikiPage(slug string) (*models.WikiPage, error) {
+	return d.GetWikiPageBySlug(slug)
+}
+
 func (d *DB) ListWikiPages() ([]models.WikiPage, error) {
 	rows, err := d.Query(`SELECT id, slug, title, content, created_by_agent_id, updated_by_agent_id, created_at, updated_at
 		FROM wiki_pages ORDER BY updated_at DESC`)
