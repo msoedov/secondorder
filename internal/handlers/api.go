@@ -146,6 +146,7 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Status             string               `json:"status"`
 		Type               string               `json:"type"`
+		UnblockCondition   string               `json:"unblock_condition"`
 		Comment            string               `json:"comment"`
 		Title              string               `json:"title"`
 		Description        string               `json:"description"`
@@ -225,6 +226,13 @@ func (a *API) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	if err := a.db.UpdateIssue(issue); err != nil {
 		jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if body.Status != "" || strings.TrimSpace(body.UnblockCondition) != "" {
+		if err := a.db.AppendDeploymentGateStatus(issue.Key, issue.Type, issue.Status, body.UnblockCondition, "recheck"); err != nil {
+			jsonError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Re-fetch to get joined fields (AssigneeName, AssigneeSlug)

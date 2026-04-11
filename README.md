@@ -228,8 +228,34 @@ make install
 | `PORT` | `3001` | HTTP listen port |
 | `DB` | `so.db` | SQLite database path |
 | `ARCHETYPES` | `archetypes` | Agent archetype definitions directory |
-| `TELEGRAM_TOKEN` | -- | Telegram bot token for mobile approvals |
-| `TELEGRAM_CHAT_ID` | -- | Telegram chat ID |
+
+
+## Feature flags
+
+Feature flags live in the `settings` table as `feature_<name>` keys. Toggle them from the settings page in the dashboard.
+
+| Flag | Controls |
+|------|----------|
+| `feature_discord` | Discord webhook notifications |
+| `feature_telegram` | Telegram bot notifications |
+| `feature_supermemory` | Supermemory stats/tracking |
+
+Flags are checked at startup and gate the initialization of each subsystem. A flag set to `"true"` enables the feature; anything else disables it.
+
+
+## Runners
+
+Each agent is assigned a runner that controls which CLI executes its prompts. Set the runner and model per-agent in the dashboard.
+
+| Runner | CLI |
+|--------|--------|
+| `claude_code` | `claude` |
+| `gemini` | `gemini` |
+| `codex` | `codex` |
+| `copilot` | GitHub Copilot API |
+| `opencode` | `opencode` |
+
+All runners receive `SECONDORDER_*` env vars (agent ID, run ID, API URL, issue key, artifact docs path, API key) so agents can call back into the secondorder API during execution.
 
 ## Design decisions
 
@@ -239,6 +265,9 @@ make install
 - **Event-driven + heartbeat.** Immediate dispatch on assignment, 5-min heartbeat as safety net.
 - **API keys over JWT.** Per-run provisioned keys, SHA256-hashed. Simple for agent auth.
 - **Budget enforcement at scheduler level.** Checked before every dispatch, not after the bill arrives.
+
+
+[![RepoStars](https://repostars.dev/api/embed?repo=msoedov%2Fsecondorder&theme=sakura)](https://repostars.dev/?repos=msoedov%2Fsecondorder&theme=sakura)
 
 ## License
 

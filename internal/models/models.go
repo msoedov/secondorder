@@ -24,6 +24,25 @@ const (
 	TypeTask    = "task"
 	TypeBug     = "bug"
 	TypeFeature = "feature"
+	TypeRelease = "release"
+	TypeDeploy  = "deployment"
+	// TypeDeployment is kept for compatibility with older references.
+	TypeDeployment = TypeDeploy
+)
+
+// Deployment gate statuses
+const (
+	GateStatusOpen    = "open"
+	GateStatusBlocked = "blocked"
+	GateStatusPassed  = "passed"
+	GateStatusClosed  = "closed"
+)
+
+// Deployment gate unblock states
+const (
+	UnblockStateBlocked   = "blocked"
+	UnblockStateUnblocked = "unblocked"
+	UnblockStateUnknown   = "unknown"
 )
 
 // Run statuses
@@ -147,25 +166,28 @@ type Agent struct {
 }
 
 type Issue struct {
-	ID              string       `json:"id"`
-	Key             string       `json:"key"`
-	Title           string       `json:"title"`
-	Description     string       `json:"description"`
-	Type            string       `json:"type"`
-	Status          string       `json:"status"`
-	Priority        int          `json:"priority"`
-	AssigneeAgentID *string      `json:"assignee_agent_id"`
-	ParentIssueKey  *string      `json:"parent_issue_key"`
-	WorkBlockID     *string      `json:"work_block_id"`
-	AssigneeName    string       `json:"assignee_name,omitempty"`
-	AssigneeSlug    string       `json:"assignee_slug,omitempty"`
-	StartedAt       *time.Time   `json:"started_at"`
-	CompletedAt     *time.Time   `json:"completed_at"`
-	CreatedAt       time.Time    `json:"created_at"`
-	UpdatedAt       time.Time    `json:"updated_at"`
-	Warnings        []string     `json:"warnings,omitempty"`
-	Stages          []IssueStage `json:"stages"`
-	CurrentStageID  int          `json:"current_stage_id"`
+	ID               string       `json:"id"`
+	Key              string       `json:"key"`
+	Title            string       `json:"title"`
+	Description      string       `json:"description"`
+	Type             string       `json:"type"`
+	Status           string       `json:"status"`
+	Priority         int          `json:"priority"`
+	AssigneeAgentID  *string      `json:"assignee_agent_id"`
+	ParentIssueKey   *string      `json:"parent_issue_key"`
+	WorkBlockID      *string      `json:"work_block_id"`
+	AssigneeName     string       `json:"assignee_name,omitempty"`
+	AssigneeSlug     string       `json:"assignee_slug,omitempty"`
+	StartedAt        *time.Time   `json:"started_at"`
+	CompletedAt      *time.Time   `json:"completed_at"`
+	CreatedAt        time.Time    `json:"created_at"`
+	UpdatedAt        time.Time    `json:"updated_at"`
+	Warnings         []string     `json:"warnings,omitempty"`
+	Stages           []IssueStage `json:"stages"`
+	CurrentStageID   int          `json:"current_stage_id"`
+	GateStatus       string       `json:"gate_status,omitempty"`
+	UnblockState     string       `json:"unblock_state,omitempty"`
+	UnblockCondition string       `json:"unblock_condition,omitempty"`
 }
 
 type IssueStage struct {
@@ -173,12 +195,37 @@ type IssueStage struct {
 	Title  string `json:"title"`
 	Status string `json:"status"` // "todo", "done"
 }
+
+type DeploymentGate struct {
+	ID               string    `json:"id"`
+	IssueKey         string    `json:"issue_key"`
+	Status           string    `json:"status"`
+	UnblockState     string    `json:"unblock_state"`
+	UnblockCondition string    `json:"unblock_condition"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+type DeploymentGateEvent struct {
+	ID               string    `json:"id"`
+	GateID           string    `json:"gate_id"`
+	Status           string    `json:"status"`
+	UnblockCondition string    `json:"unblock_condition"`
+	Reason           string    `json:"reason"`
+	CreatedAt        time.Time `json:"created_at"`
+}
 type Run struct {
 	ID                string     `json:"id"`
 	AgentID           string     `json:"agent_id"`
 	IssueKey          *string    `json:"issue_key"`
 	Mode              string     `json:"mode"`
 	Status            string     `json:"status"`
+	RunnerSnapshot    *string    `json:"runner_snapshot,omitempty"`
+	ModelSnapshot     *string    `json:"model_snapshot,omitempty"`
+	GitWorktree       *string    `json:"git_worktree_snapshot,omitempty"`
+	GitBranch         *string    `json:"git_branch_snapshot,omitempty"`
+	GitCommitSHA      *string    `json:"git_commit_sha_snapshot,omitempty"`
+	GateTarget        *string    `json:"gate_target_snapshot,omitempty"`
 	Stdout            string     `json:"stdout"`
 	Diff              string     `json:"diff"`
 	InputTokens       int64      `json:"input_tokens"`

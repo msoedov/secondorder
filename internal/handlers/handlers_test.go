@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -486,6 +487,85 @@ func TestCreateSubIssueUI_Success(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("sub-issue not found in DB after creation")
+	}
+}
+
+func TestCreateIssueUI_ACWarning_RendersOnListPage(t *testing.T) {
+	d := testDB(t)
+	ui := testUI(t, d)
+
+	// api type with no spec fields triggers AC warning
+	form := strings.NewReader("title=New+API+Issue&description=nothing+here&type=api")
+	req := httptest.NewRequest("POST", "/issues", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	ui.ListIssues(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want 303", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if !strings.Contains(loc, "warning=") {
+		t.Fatalf("redirect %q missing warning param", loc)
+	}
+
+	// Follow redirect: GET /issues?success=Created&warning=...
+	req2 := httptest.NewRequest("GET", loc, nil)
+	w2 := httptest.NewRecorder()
+	ui.ListIssues(w2, req2)
+
+	if w2.Code != http.StatusOK {
+		t.Fatalf("GET status = %d, want 200", w2.Code)
+	}
+	body := w2.Body.String()
+	if !strings.Contains(body, "missing some standard acceptance criteria") {
+		t.Errorf("warning banner missing from list page body")
+	}
+}
+
+func TestUpdateIssueUI_ACWarning_RendersOnDetailPage(t *testing.T) {
+	d := testDB(t)
+	ui := testUI(t, d)
+
+	issue := &models.Issue{
+		ID:     uuid.New().String(),
+		Key:    "SO-1",
+		Title:  "Backend Issue",
+		Type:   "backend",
+		Status: models.StatusTodo,
+	}
+	d.CreateIssue(issue)
+
+	// POST update with no spec fields so AC warning fires
+	form := strings.NewReader("title=Backend+Issue&description=nothing+here&type=backend")
+	req := httptest.NewRequest("POST", "/issues/SO-1", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetPathValue("key", "SO-1")
+	w := httptest.NewRecorder()
+
+	ui.IssueDetail(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want 303", w.Code)
+	}
+	loc := w.Header().Get("Location")
+	if !strings.Contains(loc, "warning=") {
+		t.Fatalf("redirect %q missing warning param", loc)
+	}
+
+	// Follow redirect: GET /issues/SO-1?success=...&warning=...
+	req2 := httptest.NewRequest("GET", loc, nil)
+	req2.SetPathValue("key", "SO-1")
+	w2 := httptest.NewRecorder()
+	ui.IssueDetail(w2, req2)
+
+	if w2.Code != http.StatusOK {
+		t.Fatalf("GET status = %d, want 200", w2.Code)
+	}
+	body := w2.Body.String()
+	if !strings.Contains(body, "missing some standard acceptance criteria") {
+		t.Errorf("warning banner missing from issue detail body")
 	}
 }
 
@@ -1527,6 +1607,53 @@ func TestCheckoutIssue_CEOCanCheckoutAssignedToOther(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("status = %d, want 200", w.Code)
+	}
+}
+
+func TestGetIssue_ExposesDeploymentGateFields(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
+
+	owner, ownerKey := createAgentWithKey(t, d, "Release Owner", "release-owner", "backend")
+
+	issue := &models.Issue{Key: "SO-600", Title: "Release Train", Status: "todo", Type: models.TypeDeploy, AssigneeAgentID: &owner.ID}
+	d.CreateIssue(issue)
+
+	patchReq := httptest.NewRequest("PATCH", "/api/v1/issues/SO-600", strings.NewReader(`{"status":"blocked","unblock_condition":"wait for canary metrics"}`))
+	patchReq.Header.Set("Authorization", "Bearer "+ownerKey)
+	patchReq.Header.Set("Content-Type", "application/json")
+	patchReq.SetPathValue("key", "SO-600")
+	patchW := httptest.NewRecorder()
+	api.Auth(api.UpdateIssue)(patchW, patchReq)
+	if patchW.Code != http.StatusOK {
+		t.Fatalf("patch status = %d, want 200; body: %s", patchW.Code, patchW.Body.String())
+	}
+
+	getReq := httptest.NewRequest("GET", "/api/v1/issues/SO-600", nil)
+	getReq.Header.Set("Authorization", "Bearer "+ownerKey)
+	getReq.SetPathValue("key", "SO-600")
+	getW := httptest.NewRecorder()
+	api.Auth(api.GetIssue)(getW, getReq)
+	if getW.Code != http.StatusOK {
+		t.Fatalf("get status = %d, want 200; body: %s", getW.Code, getW.Body.String())
+	}
+
+	var payload struct {
+		Issue models.Issue `json:"issue"`
+	}
+	if err := json.Unmarshal(getW.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal get issue payload: %v", err)
+	}
+	if payload.Issue.GateStatus != "blocked" {
+		t.Fatalf("gate_status = %q, want blocked", payload.Issue.GateStatus)
+	}
+	if payload.Issue.UnblockState != models.UnblockStateBlocked {
+		t.Fatalf("unblock_state = %q, want %q", payload.Issue.UnblockState, models.UnblockStateBlocked)
+	}
+	if payload.Issue.UnblockCondition != "wait for canary metrics" {
+		t.Fatalf("unblock_condition = %q, want wait for canary metrics", payload.Issue.UnblockCondition)
 	}
 }
 

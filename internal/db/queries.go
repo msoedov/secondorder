@@ -154,19 +154,26 @@ func (d *DB) CountAgents() (int, int, error) {
 
 const issueCols = `i.id, i.key, i.title, i.description, i.status, i.type, i.priority, i.assignee_agent_id,
 	i.parent_issue_key, i.work_block_id, i.started_at, i.completed_at, i.created_at, i.updated_at,
-	COALESCE(a.name, ''), COALESCE(a.slug, ''), i.stages, i.current_stage_id`
+	COALESCE(a.name, ''), COALESCE(a.slug, ''), i.stages, i.current_stage_id,
+	COALESCE((SELECT dg.status FROM deployment_gates dg WHERE dg.issue_key = i.key LIMIT 1), ''),
+	COALESCE((SELECT CASE
+		WHEN dg.status = 'blocked' THEN 'blocked'
+		WHEN dg.status IN ('open','passed') THEN 'unblocked'
+		ELSE 'unknown'
+	END FROM deployment_gates dg WHERE dg.issue_key = i.key LIMIT 1), ''),
+	COALESCE((SELECT dg.unblock_condition FROM deployment_gates dg WHERE dg.issue_key = i.key LIMIT 1), '')`
 
 func scanIssue(scanner interface {
 	Scan(dest ...any) error
 }) (*models.Issue, error) {
 	i := &models.Issue{}
-	var stagesJSON string
+	var stagesJSON, gateStatus, unblockState, unblockCondition string
 	var startedAt, completedAt NullDBTime
 	var createdAt, updatedAt DBTime
 	err := scanner.Scan(
 		&i.ID, &i.Key, &i.Title, &i.Description, &i.Status, &i.Type, &i.Priority, &i.AssigneeAgentID,
 		&i.ParentIssueKey, &i.WorkBlockID, &startedAt, &completedAt, &createdAt, &updatedAt,
-		&i.AssigneeName, &i.AssigneeSlug, &stagesJSON, &i.CurrentStageID)
+		&i.AssigneeName, &i.AssigneeSlug, &stagesJSON, &i.CurrentStageID, &gateStatus, &unblockState, &unblockCondition)
 	if err != nil {
 		return nil, err
 	}
@@ -184,6 +191,9 @@ func scanIssue(scanner interface {
 	if i.Stages == nil {
 		i.Stages = []models.IssueStage{}
 	}
+	i.GateStatus = gateStatus
+	i.UnblockState = unblockState
+	i.UnblockCondition = unblockCondition
 	return i, nil
 }
 
@@ -210,7 +220,10 @@ func (d *DB) CreateIssue(i *models.Issue) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		i.ID, i.Key, i.Title, i.Description, i.Status, i.Type, i.Priority, i.AssigneeAgentID,
 		i.ParentIssueKey, i.WorkBlockID, i.StartedAt, i.CompletedAt, i.CreatedAt, i.UpdatedAt, string(stagesJSON), i.CurrentStageID)
-	return err
+	if err != nil {
+		return err
+	}
+	return d.EnsureCanonicalDeploymentGate(i.Key, i.Type, i.Status)
 }
 
 func (d *DB) GetIssue(key string) (*models.Issue, error) {
@@ -298,6 +311,151 @@ func (d *DB) UpdateIssue(i *models.Issue) error {
 		WHERE key=?`,
 		i.Title, i.Description, i.Status, i.Type, i.Priority, i.AssigneeAgentID,
 		i.ParentIssueKey, i.WorkBlockID, i.StartedAt, i.CompletedAt, i.UpdatedAt, string(stagesJSON), i.CurrentStageID, i.Key)
+	if err != nil {
+		return err
+	}
+	return d.EnsureCanonicalDeploymentGate(i.Key, i.Type, i.Status)
+}
+
+func isDeploymentGateIssueType(issueType string) bool {
+	return issueType == models.TypeRelease || issueType == models.TypeDeploy
+}
+
+func deriveGateStatusFromIssueStatus(issueStatus string) string {
+	switch issueStatus {
+	case models.StatusBlocked:
+		return models.GateStatusBlocked
+	case models.StatusDone:
+		return models.GateStatusPassed
+	case models.StatusCancelled, models.StatusWontDo:
+		return models.GateStatusClosed
+	default:
+		return models.GateStatusOpen
+	}
+}
+
+func deriveUnblockStateFromGateStatus(gateStatus string) string {
+	switch gateStatus {
+	case models.GateStatusBlocked:
+		return models.UnblockStateBlocked
+	case models.GateStatusOpen, models.GateStatusPassed:
+		return models.UnblockStateUnblocked
+	default:
+		return models.UnblockStateUnknown
+	}
+}
+
+func defaultUnblockCondition(gateStatus string) string {
+	if gateStatus == models.GateStatusBlocked {
+		return "Resolve blockers and run deployment gate recheck."
+	}
+	return ""
+}
+
+func (d *DB) EnsureCanonicalDeploymentGate(issueKey, issueType, issueStatus string) error {
+	if !isDeploymentGateIssueType(issueType) {
+		return nil
+	}
+
+	gate, err := d.GetDeploymentGateByIssueKey(issueKey)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	gateStatus := deriveGateStatusFromIssueStatus(issueStatus)
+	unblockState := deriveUnblockStateFromGateStatus(gateStatus)
+	unblockCondition := defaultUnblockCondition(gateStatus)
+
+	if err == sql.ErrNoRows {
+		now := time.Now().UTC()
+		gateID := uuid.NewString()
+		if _, err := d.Exec(`INSERT INTO deployment_gates (id, issue_key, status, unblock_condition, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?)`, gateID, issueKey, gateStatus, unblockCondition, now, now); err != nil {
+			return err
+		}
+		_, err = d.Exec(`INSERT INTO deployment_gate_events (id, gate_id, status, unblock_condition, reason, created_at)
+			VALUES (?, ?, ?, ?, ?, ?)`, uuid.NewString(), gateID, gateStatus, unblockCondition, "created", now)
+		return err
+	}
+
+	var eventCount int
+	if err := d.QueryRow(`SELECT COUNT(*) FROM deployment_gate_events WHERE gate_id = ?`, gate.ID).Scan(&eventCount); err != nil {
+		return err
+	}
+	if eventCount == 0 {
+		_, err := d.Exec(`INSERT INTO deployment_gate_events (id, gate_id, status, unblock_condition, reason, created_at)
+			VALUES (?, ?, ?, ?, ?, ?)`, uuid.NewString(), gate.ID, gate.Status, gate.UnblockCondition, "legacy_backfill", time.Now().UTC())
+		return err
+	}
+
+	gate.UnblockState = unblockState
+
+	return nil
+}
+
+func (d *DB) GetDeploymentGateByIssueKey(issueKey string) (*models.DeploymentGate, error) {
+	g := &models.DeploymentGate{}
+	err := d.QueryRow(`SELECT id, issue_key, status, unblock_condition, created_at, updated_at
+		FROM deployment_gates WHERE issue_key = ?`, issueKey).Scan(
+		&g.ID, &g.IssueKey, &g.Status, &g.UnblockCondition, &g.CreatedAt, &g.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	g.UnblockState = deriveUnblockStateFromGateStatus(g.Status)
+	return g, nil
+}
+
+func (d *DB) ListDeploymentGateEvents(gateID string) ([]models.DeploymentGateEvent, error) {
+	rows, err := d.Query(`SELECT id, gate_id, status, unblock_condition, reason, created_at
+		FROM deployment_gate_events WHERE gate_id = ? ORDER BY created_at, id`, gateID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []models.DeploymentGateEvent
+	for rows.Next() {
+		var e models.DeploymentGateEvent
+		if err := rows.Scan(&e.ID, &e.GateID, &e.Status, &e.UnblockCondition, &e.Reason, &e.CreatedAt); err != nil {
+			return nil, err
+		}
+		events = append(events, e)
+	}
+	return events, rows.Err()
+}
+
+func (d *DB) AppendDeploymentGateStatus(issueKey, issueType, issueStatus, unblockCondition, reason string) error {
+	if !isDeploymentGateIssueType(issueType) {
+		return nil
+	}
+	if err := d.EnsureCanonicalDeploymentGate(issueKey, issueType, issueStatus); err != nil {
+		return err
+	}
+
+	gate, err := d.GetDeploymentGateByIssueKey(issueKey)
+	if err != nil {
+		return err
+	}
+
+	gateStatus := deriveGateStatusFromIssueStatus(issueStatus)
+	unblockState := deriveUnblockStateFromGateStatus(gateStatus)
+	if strings.TrimSpace(unblockCondition) == "" {
+		unblockCondition = defaultUnblockCondition(gateStatus)
+	}
+	if reason == "" {
+		reason = "status_update"
+	}
+	now := time.Now().UTC()
+
+	if _, err := d.Exec(`UPDATE deployment_gates SET status = ?, unblock_condition = ?, updated_at = ? WHERE id = ?`,
+		gateStatus, unblockCondition, now, gate.ID); err != nil {
+		return err
+	}
+	gate.UnblockState = unblockState
+
+	_, err = d.Exec(`INSERT INTO deployment_gate_events (id, gate_id, status, unblock_condition, reason, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`, uuid.NewString(), gate.ID, gateStatus, unblockCondition, reason, now)
 	return err
 }
 
@@ -398,10 +556,12 @@ func (d *DB) CreateRun(r *models.Run) error {
 	r.StartedAt = now
 	r.CreatedAt = now
 	_, err := d.Exec(`INSERT INTO runs (id, agent_id, issue_key, mode, status, stdout, diff,
+		runner_snapshot, model_snapshot, git_worktree_snapshot, git_branch_snapshot, git_commit_sha_snapshot, gate_target_snapshot,
 		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd,
 		started_at, completed_at, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )`,
 		r.ID, r.AgentID, r.IssueKey, r.Mode, r.Status, r.Stdout, r.Diff,
+		r.RunnerSnapshot, r.ModelSnapshot, r.GitWorktree, r.GitBranch, r.GitCommitSHA, r.GateTarget,
 		r.InputTokens, r.OutputTokens, r.CacheReadTokens, r.CacheCreateTokens, r.TotalCostUSD,
 		r.StartedAt, r.CompletedAt, r.CreatedAt)
 	return err
@@ -412,11 +572,15 @@ func (d *DB) GetRun(id string) (*models.Run, error) {
 	var startedAt DBTime
 	var completedAt NullDBTime
 	var createdAt DBTime
-	err := d.QueryRow(`SELECT id, agent_id, issue_key, mode, status, stdout, diff,
+	err := d.QueryRow(`SELECT id, agent_id, issue_key, mode, status,
+		runner_snapshot, model_snapshot, git_worktree_snapshot, git_branch_snapshot, git_commit_sha_snapshot, gate_target_snapshot,
+		stdout, diff,
 		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd,
 		started_at, completed_at, created_at
 		FROM runs WHERE id=?`, id).Scan(
-		&r.ID, &r.AgentID, &r.IssueKey, &r.Mode, &r.Status, &r.Stdout, &r.Diff,
+		&r.ID, &r.AgentID, &r.IssueKey, &r.Mode, &r.Status,
+		&r.RunnerSnapshot, &r.ModelSnapshot, &r.GitWorktree, &r.GitBranch, &r.GitCommitSHA, &r.GateTarget,
+		&r.Stdout, &r.Diff,
 		&r.InputTokens, &r.OutputTokens, &r.CacheReadTokens, &r.CacheCreateTokens, &r.TotalCostUSD,
 		&startedAt, &completedAt, &createdAt)
 	if err != nil {
@@ -431,7 +595,9 @@ func (d *DB) GetRun(id string) (*models.Run, error) {
 }
 
 func (d *DB) ListRunsForAgent(agentID string, limit int) ([]models.Run, error) {
-	query := `SELECT id, agent_id, issue_key, mode, status, stdout, diff,
+	query := `SELECT id, agent_id, issue_key, mode, status,
+		runner_snapshot, model_snapshot, git_worktree_snapshot, git_branch_snapshot, git_commit_sha_snapshot, gate_target_snapshot,
+		stdout, diff,
 		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd,
 		started_at, completed_at, created_at
 		FROM runs WHERE agent_id=? ORDER BY created_at DESC`
@@ -451,7 +617,9 @@ func (d *DB) ListRunsForAgent(agentID string, limit int) ([]models.Run, error) {
 }
 
 func (d *DB) ListRunsForIssue(issueKey string) ([]models.Run, error) {
-	rows, err := d.Query(`SELECT id, agent_id, issue_key, mode, status, stdout, diff,
+	rows, err := d.Query(`SELECT id, agent_id, issue_key, mode, status,
+		runner_snapshot, model_snapshot, git_worktree_snapshot, git_branch_snapshot, git_commit_sha_snapshot, gate_target_snapshot,
+		stdout, diff,
 		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd,
 		started_at, completed_at, created_at
 		FROM runs WHERE issue_key=? ORDER BY created_at DESC`, issueKey)
@@ -522,7 +690,9 @@ func scanRuns(rows *sql.Rows) ([]models.Run, error) {
 		var startedAt DBTime
 		var completedAt NullDBTime
 		var createdAt DBTime
-		if err := rows.Scan(&r.ID, &r.AgentID, &r.IssueKey, &r.Mode, &r.Status, &r.Stdout, &r.Diff,
+		if err := rows.Scan(&r.ID, &r.AgentID, &r.IssueKey, &r.Mode, &r.Status,
+			&r.RunnerSnapshot, &r.ModelSnapshot, &r.GitWorktree, &r.GitBranch, &r.GitCommitSHA, &r.GateTarget,
+			&r.Stdout, &r.Diff,
 			&r.InputTokens, &r.OutputTokens, &r.CacheReadTokens, &r.CacheCreateTokens, &r.TotalCostUSD,
 			&startedAt, &completedAt, &createdAt); err != nil {
 			return nil, err

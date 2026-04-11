@@ -298,6 +298,8 @@ func main() {
 	mux.HandleFunc("POST /api/v1/issues", api.Auth(api.CreateIssue))
 	mux.HandleFunc("GET /api/v1/agents", api.Auth(api.ListAgents))
 	mux.HandleFunc("GET /api/v1/agents/me", api.Auth(api.AgentMe))
+	mux.HandleFunc("GET /api/v1/agents/capability-matrix", api.Auth(api.AgentCapabilityMatrix))
+	mux.HandleFunc("GET /api/v1/agents/capability-matrix/contract", api.Auth(api.AgentCapabilityMatrixContract))
 	mux.HandleFunc("GET /api/v1/usage", api.Auth(api.Usage))
 	mux.HandleFunc("POST /api/v1/approvals/{id}/resolve", api.Auth(api.ResolveApproval))
 	mux.HandleFunc("GET /api/v1/work-blocks", api.Auth(api.ListWorkBlocks))

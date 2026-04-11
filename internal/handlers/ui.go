@@ -136,6 +136,7 @@ func (u *UI) ListIssues(w http.ResponseWriter, r *http.Request) {
 		"CurrentStatus": status,
 		"Error":         r.URL.Query().Get("error"),
 		"Success":       r.URL.Query().Get("success"),
+		"Warning":       r.URL.Query().Get("warning"),
 	}
 
 	if r.Header.Get("HX-Request") != "" {
@@ -479,10 +480,10 @@ func (u *UI) updateIssueUI(w http.ResponseWriter, r *http.Request, key string) {
 
 	warningParam := ""
 	if len(warnings) > 0 {
-		warningParam = "&flash=warning&msg=Heads+up:+This+" + issue.Type + "+issue+seems+to+be+missing+some+standard+acceptance+criteria.+This+might+block+your+agents."
+		warningParam = "&warning=Heads+up:+This+" + issue.Type + "+issue+seems+to+be+missing+some+standard+acceptance+criteria.+This+might+block+your+agents."
 	}
 
-	http.Redirect(w, r, "/issues/"+key+"?success=Issue+created"+warningParam, http.StatusSeeOther)
+	http.Redirect(w, r, "/issues/"+key+"?success=Issue+updated"+warningParam, http.StatusSeeOther)
 }
 
 func (u *UI) ListAgents(w http.ResponseWriter, r *http.Request) {

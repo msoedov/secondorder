@@ -130,6 +130,7 @@ func TestRunMigrationsUpdatesLegacyDefaultTimeoutAgents(t *testing.T) {
 	stmts := []string{
 		`CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
 		`CREATE TABLE agents (id TEXT PRIMARY KEY, timeout_sec INTEGER NOT NULL DEFAULT 600)`,
+		`CREATE TABLE issues (id TEXT PRIMARY KEY, key TEXT NOT NULL UNIQUE, status TEXT NOT NULL DEFAULT 'todo', type TEXT NOT NULL DEFAULT 'task')`,
 		`CREATE TABLE runs (id TEXT PRIMARY KEY)`,
 		`CREATE TABLE api_keys (id TEXT PRIMARY KEY, agent_id TEXT, key_hash TEXT, prefix TEXT, revoked_at DATETIME, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
 		`CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
@@ -540,6 +541,141 @@ func TestGetChildIssues(t *testing.T) {
 	}
 	if len(children) != 1 {
 		t.Errorf("got %d, want 1", len(children))
+	}
+}
+
+func TestDeploymentGateCanonicalCreationForDeploymentIssue(t *testing.T) {
+	d := testDB(t)
+	i := makeIssue("SO-700")
+	i.Type = models.TypeDeploy
+	i.Status = models.StatusBlocked
+	if err := d.CreateIssue(i); err != nil {
+		t.Fatalf("create deployment issue: %v", err)
+	}
+
+	gate, err := d.GetDeploymentGateByIssueKey(i.Key)
+	if err != nil {
+		t.Fatalf("get gate: %v", err)
+	}
+	if gate.Status != "blocked" {
+		t.Fatalf("gate status = %q, want blocked", gate.Status)
+	}
+	if gate.UnblockState != models.UnblockStateBlocked {
+		t.Fatalf("gate unblock_state = %q, want %q", gate.UnblockState, models.UnblockStateBlocked)
+	}
+	if gate.UnblockCondition == "" {
+		t.Fatal("expected non-empty unblock condition for blocked gate")
+	}
+
+	events, err := d.ListDeploymentGateEvents(gate.ID)
+	if err != nil {
+		t.Fatalf("list gate events: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("event count = %d, want 1", len(events))
+	}
+}
+
+func TestDeploymentGateRecheckAppendsEventsOnSingleGate(t *testing.T) {
+	d := testDB(t)
+	i := makeIssue("SO-701")
+	i.Type = models.TypeRelease
+	if err := d.CreateIssue(i); err != nil {
+		t.Fatalf("create release issue: %v", err)
+	}
+
+	initialGate, err := d.GetDeploymentGateByIssueKey(i.Key)
+	if err != nil {
+		t.Fatalf("get initial gate: %v", err)
+	}
+
+	if err := d.AppendDeploymentGateStatus(i.Key, i.Type, models.StatusBlocked, "waiting on migration", "recheck"); err != nil {
+		t.Fatalf("append blocked recheck: %v", err)
+	}
+	if err := d.AppendDeploymentGateStatus(i.Key, i.Type, models.StatusInProgress, "", "recheck"); err != nil {
+		t.Fatalf("append open recheck: %v", err)
+	}
+
+	gate, err := d.GetDeploymentGateByIssueKey(i.Key)
+	if err != nil {
+		t.Fatalf("get gate after rechecks: %v", err)
+	}
+	if gate.ID != initialGate.ID {
+		t.Fatalf("gate id changed across rechecks: %s -> %s", initialGate.ID, gate.ID)
+	}
+	if gate.Status != "open" {
+		t.Fatalf("gate status = %q, want open", gate.Status)
+	}
+	if gate.UnblockState != models.UnblockStateUnblocked {
+		t.Fatalf("gate unblock_state = %q, want %q", gate.UnblockState, models.UnblockStateUnblocked)
+	}
+
+	events, err := d.ListDeploymentGateEvents(gate.ID)
+	if err != nil {
+		t.Fatalf("list events: %v", err)
+	}
+	if len(events) != 3 {
+		t.Fatalf("event count = %d, want 3", len(events))
+	}
+}
+
+func TestDeploymentGateLegacyCompatibilityBackfillsHistory(t *testing.T) {
+	d := testDB(t)
+	i := makeIssue("SO-702")
+	i.Type = models.TypeDeploy
+	if err := d.CreateIssue(i); err != nil {
+		t.Fatalf("create deployment issue: %v", err)
+	}
+
+	gate, err := d.GetDeploymentGateByIssueKey(i.Key)
+	if err != nil {
+		t.Fatalf("get gate: %v", err)
+	}
+
+	if _, err := d.Exec(`DELETE FROM deployment_gate_events WHERE gate_id = ?`, gate.ID); err != nil {
+		t.Fatalf("delete gate events to simulate legacy state: %v", err)
+	}
+
+	if err := d.EnsureCanonicalDeploymentGate(i.Key, i.Type, i.Status); err != nil {
+		t.Fatalf("ensure gate compatibility: %v", err)
+	}
+
+	events, err := d.ListDeploymentGateEvents(gate.ID)
+	if err != nil {
+		t.Fatalf("list events: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("event count after backfill = %d, want 1", len(events))
+	}
+	if events[0].Reason != "legacy_backfill" {
+		t.Fatalf("event reason = %q, want legacy_backfill", events[0].Reason)
+	}
+}
+
+func TestGetIssueIncludesCurrentGateFields(t *testing.T) {
+	d := testDB(t)
+	i := makeIssue("SO-703")
+	i.Type = models.TypeDeploy
+	if err := d.CreateIssue(i); err != nil {
+		t.Fatalf("create deployment issue: %v", err)
+	}
+
+	if err := d.AppendDeploymentGateStatus(i.Key, i.Type, models.StatusBlocked, "awaiting QA signoff", "recheck"); err != nil {
+		t.Fatalf("append gate status: %v", err)
+	}
+
+	got, err := d.GetIssue(i.Key)
+	if err != nil {
+		t.Fatalf("get issue: %v", err)
+	}
+	if got.GateStatus != "blocked" {
+		t.Fatalf("gate_status = %q, want blocked", got.GateStatus)
+	}
+	if got.UnblockState != models.UnblockStateBlocked {
+		t.Fatalf("unblock_state = %q, want %q", got.UnblockState, models.UnblockStateBlocked)
+	}
+	if got.UnblockCondition != "awaiting QA signoff" {
+		t.Fatalf("unblock_condition = %q, want awaiting QA signoff", got.UnblockCondition)
 	}
 }
 
