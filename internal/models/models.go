@@ -204,6 +204,16 @@ type WikiPageSummary struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// WikiSearchResult is returned by FTS5 full-text search.
+type WikiSearchResult struct {
+	ID        string    `json:"id"`
+	Slug      string    `json:"slug"`
+	Title     string    `json:"title"`
+	Snippet   string    `json:"snippet,omitempty"`
+	Rank      float64   `json:"rank"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type Approval struct {
 	ID          string     `json:"id"`
 	IssueKey    string     `json:"issue_key"`

@@ -645,6 +645,33 @@ func (d *DB) DeleteWikiPage(id string) error {
 	return err
 }
 
+func (d *DB) SearchWikiPagesFTS(query string, limit int) ([]models.WikiSearchResult, error) {
+	rows, err := d.Query(`
+		SELECT wp.id, wp.slug, wp.title,
+		       snippet(wiki_pages_fts, 2, '**', '**', '…', 32) AS snippet,
+		       rank,
+		       wp.updated_at
+		FROM wiki_pages_fts
+		JOIN wiki_pages wp ON wp.rowid = wiki_pages_fts.rowid
+		WHERE wiki_pages_fts MATCH ?
+		ORDER BY rank
+		LIMIT ?`, query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []models.WikiSearchResult
+	for rows.Next() {
+		var r models.WikiSearchResult
+		if err := rows.Scan(&r.ID, &r.Slug, &r.Title, &r.Snippet, &r.Rank, &r.UpdatedAt); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, rows.Err()
+}
+
 // --- API Keys ---
 
 // CreateAPIKey provisions a session-scoped API key bound to a specific run.
