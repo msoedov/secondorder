@@ -1180,6 +1180,18 @@ func parseTokenUsage(stdout string) tokenUsage {
 				CachedInputTokens int64 `json:"cached_input_tokens"`
 				OutputTokens      int64 `json:"output_tokens"`
 			} `json:"usage"`
+			Part struct {
+				Tokens struct {
+					Input     int64 `json:"input"`
+					Output    int64 `json:"output"`
+					Reasoning int64 `json:"reasoning"`
+					Cache     struct {
+						Read  int64 `json:"read"`
+						Write int64 `json:"write"`
+					} `json:"cache"`
+				} `json:"tokens"`
+				Cost float64 `json:"cost"`
+			} `json:"part"`
 		}
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
 			continue
@@ -1208,6 +1220,13 @@ func parseTokenUsage(stdout string) tokenUsage {
 			usage.InputTokens = msg.Usage.InputTokens
 			usage.CacheReadTokens = msg.Usage.CachedInputTokens
 			usage.OutputTokens = msg.Usage.OutputTokens
+		} else if msg.Type == "step_finish" {
+			// OpenCode: accumulate across multi-turn steps
+			usage.InputTokens += msg.Part.Tokens.Input
+			usage.OutputTokens += msg.Part.Tokens.Output
+			usage.CacheReadTokens += msg.Part.Tokens.Cache.Read
+			usage.CacheCreateTokens += msg.Part.Tokens.Cache.Write
+			usage.TotalCostUSD += msg.Part.Cost
 		}
 	}
 	return usage

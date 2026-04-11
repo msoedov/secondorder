@@ -1,6 +1,11 @@
 package models
 
-import "time"
+import (
+	"log/slog"
+	"os/exec"
+	"strings"
+	"time"
+)
 
 // Issue statuses
 const (
@@ -76,16 +81,7 @@ var RunnerModels = map[string][]string{
 		"gpt-5-mini",
 		"gemini-2.5-pro",
 	},
-	RunnerOpenCode: {
-		"github-copilot/claude-opus-4.6",
-		"github-copilot/claude-sonnet-4.5",
-		"github-copilot/gpt-5.4",
-		"anthropic/claude-sonnet-4-5",
-		"anthropic/claude-opus-4",
-		"openai/gpt-4o",
-		"google/gemini-2.5-pro",
-		"openrouter/auto",
-	},
+	RunnerOpenCode: {},
 }
 
 func IsValidModelForRunner(runner, model string) bool {
@@ -99,6 +95,25 @@ func IsValidModelForRunner(runner, model string) bool {
 		}
 	}
 	return false
+}
+
+func DiscoverOpenCodeModels() {
+	out, err := exec.Command("opencode", "models").Output()
+	if err != nil {
+		slog.Warn("opencode models discovery failed, dropdown will be empty", "error", err)
+		return
+	}
+	var discovered []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			discovered = append(discovered, line)
+		}
+	}
+	if len(discovered) > 0 {
+		RunnerModels[RunnerOpenCode] = discovered
+		slog.Info("discovered opencode models", "count", len(discovered))
+	}
 }
 
 // WorkBlock statuses
