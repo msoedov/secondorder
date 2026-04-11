@@ -1483,6 +1483,12 @@ func (d *DB) DeleteCronJob(id string) error {
 	return err
 }
 
+func (d *DB) TouchCronJobLastRun(id string) error {
+	now := time.Now().UTC()
+	_, err := d.Exec(`UPDATE cron_jobs SET last_run_at=?, updated_at=? WHERE id=?`, now, now, id)
+	return err
+}
+
 // --------------- Settings ---------------
 
 func (d *DB) GetSetting(key string) (string, error) {

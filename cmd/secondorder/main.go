@@ -357,6 +357,9 @@ func main() {
 	// Heartbeat loop
 	sched.StartHeartbeatLoop(1 * time.Hour)
 
+	// Cron job loop
+	sched.StartCronLoop()
+
 	// Dashboard auth
 	var dashToken string
 	if dashboardAuth {
