@@ -1007,7 +1007,13 @@ const workerRules = `RULES:
 - Write any documentation to the artifact-docs/ folder.
 - When your work is ready for review: create a PR (gh pr create --fill), then mark the issue "done" with the PR URL in your comment.
 - Do NOT merge PRs yourself. The QA agent will run gates and merge when approved.
-- Use the wiki for durable shared knowledge (runbooks, decisions, onboarding). Use issue comments for task-specific progress.`
+- Use the wiki for durable shared knowledge (runbooks, decisions, onboarding). Use issue comments for task-specific progress.
+
+WIKI GUIDELINES:
+- Before starting work, search the wiki (wiki_search) for relevant context — past decisions, runbooks, or architecture notes.
+- After completing work that changes a documented process, update the relevant wiki page (wiki_update).
+- When you make a significant decision or discover something the team should remember across runs, create a wiki page (wiki_create).
+- Prefer wiki pages over artifact-docs for knowledge that applies across issues.`
 
 const workerAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
@@ -1018,9 +1024,9 @@ const workerAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   POST   $SECONDORDER_API_URL/api/v1/issues                             - create sub-issue
   GET    $SECONDORDER_API_URL/api/v1/usage                              - your token/cost usage
 
-Wiki (shared knowledge base):
+Wiki (shared knowledge base — FTS5 full-text search):
   GET    $SECONDORDER_API_URL/api/v1/wiki                               - list wiki pages (titles + slugs)
-  GET    $SECONDORDER_API_URL/api/v1/wiki/search?q={pattern}            - fzf-like fuzzy search (add &content=true to search body, &limit=N)
+  GET    $SECONDORDER_API_URL/api/v1/wiki/search?q={terms}              - full-text search (prefix-matching, ranked by relevance)
   POST   $SECONDORDER_API_URL/api/v1/wiki                               - create wiki page: {"title":"...","content":"..."}
   GET    $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - read wiki page
   PATCH  $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - update wiki page: {"title":"...","content":"..."}
@@ -1037,7 +1043,13 @@ const ceoRules = `RULES:
 - When all issues in a block are done, mark the block as "ready" via PATCH.
 - To start new work, propose a work block first. A human must approve it before it becomes active.
 - Only one work block can be active or proposed at a time.
-- Use the wiki for durable shared knowledge (decisions, architecture, onboarding). Use issue comments for task-specific progress.`
+- Use the wiki for durable shared knowledge (decisions, architecture, onboarding). Use issue comments for task-specific progress.
+
+WIKI GUIDELINES:
+- Before planning work, search the wiki (wiki_search) for relevant context — past decisions, architecture docs, or runbooks that might affect your plan.
+- After making strategic decisions, create a wiki page documenting the decision and rationale.
+- When reviewing completed work that affects documented processes, verify the wiki is up to date.
+- Use the wiki to build institutional knowledge that persists across runs.`
 
 const ceoAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
@@ -1054,9 +1066,9 @@ const ceoAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
   POST   $SECONDORDER_API_URL/api/v1/work-blocks/{id}/issues            - assign issue: {"issue_key":"SO-5"}
   DELETE $SECONDORDER_API_URL/api/v1/work-blocks/{id}/issues/{key}      - unassign issue
 
-Wiki (shared knowledge base):
+Wiki (shared knowledge base — FTS5 full-text search):
   GET    $SECONDORDER_API_URL/api/v1/wiki                               - list wiki pages (titles + slugs)
-  GET    $SECONDORDER_API_URL/api/v1/wiki/search?q={pattern}            - fzf-like fuzzy search (add &content=true to search body, &limit=N)
+  GET    $SECONDORDER_API_URL/api/v1/wiki/search?q={terms}              - full-text search (prefix-matching, ranked by relevance)
   POST   $SECONDORDER_API_URL/api/v1/wiki                               - create wiki page: {"title":"...","content":"..."}
   GET    $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - read wiki page
   PATCH  $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - update wiki page: {"title":"...","content":"..."}

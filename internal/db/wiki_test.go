@@ -309,3 +309,108 @@ func TestListWikiPageSummaries(t *testing.T) {
 		}
 	}
 }
+
+// --- FTS5 Full-Text Search Tests ---
+
+func TestSearchWikiPagesFTS(t *testing.T) {
+	d := testDB(t)
+
+	pages := []*models.WikiPage{
+		{Slug: "deploy-runbook", Title: "Deployment Runbook", Content: "Step-by-step guide to deploying the application"},
+		{Slug: "api-auth", Title: "API Authentication", Content: "How to authenticate with API keys and tokens"},
+		{Slug: "onboarding", Title: "New Agent Onboarding", Content: "Getting started guide for new agents"},
+	}
+	for _, p := range pages {
+		if err := d.CreateWikiPage(p); err != nil {
+			t.Fatalf("create page %q: %v", p.Slug, err)
+		}
+	}
+
+	tests := []struct {
+		query   string
+		wantMin int
+		wantMax int
+	}{
+		{`"deploy"*`, 1, 1},
+		{`"api"*`, 1, 1},
+		{`"guide"*`, 2, 3},
+		{`"nonexistent"*`, 0, 0},
+	}
+
+	for _, tt := range tests {
+		results, err := d.SearchWikiPagesFTS(tt.query, 10)
+		if err != nil {
+			t.Fatalf("query=%q: %v", tt.query, err)
+		}
+		if len(results) < tt.wantMin || len(results) > tt.wantMax {
+			t.Errorf("query=%q: got %d results, want %d-%d", tt.query, len(results), tt.wantMin, tt.wantMax)
+		}
+	}
+}
+
+func TestSearchWikiPagesFTSUpdatedContent(t *testing.T) {
+	d := testDB(t)
+
+	p := &models.WikiPage{Slug: "evolving", Title: "Evolving Page", Content: "Original content about databases"}
+	if err := d.CreateWikiPage(p); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	results, err := d.SearchWikiPagesFTS(`"databases"*`, 10)
+	if err != nil {
+		t.Fatalf("search before update: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result before update, got %d", len(results))
+	}
+
+	p.Content = "Updated content about kubernetes"
+	if err := d.UpdateWikiPage(p); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+
+	results, err = d.SearchWikiPagesFTS(`"databases"*`, 10)
+	if err != nil {
+		t.Fatalf("search after update: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("expected 0 results for old content after update, got %d", len(results))
+	}
+
+	results, err = d.SearchWikiPagesFTS(`"kubernetes"*`, 10)
+	if err != nil {
+		t.Fatalf("search new content: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("expected 1 result for new content, got %d", len(results))
+	}
+}
+
+func TestSearchWikiPagesFTSDeletedContent(t *testing.T) {
+	d := testDB(t)
+
+	p := &models.WikiPage{Slug: "ephemeral", Title: "Ephemeral Page", Content: "Temporary knowledge base entry"}
+	if err := d.CreateWikiPage(p); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	results, err := d.SearchWikiPagesFTS(`"ephemeral"*`, 10)
+	if err != nil {
+		t.Fatalf("search before delete: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result before delete, got %d", len(results))
+	}
+
+	if err := d.DeleteWikiPage(p.ID); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+
+	results, err = d.SearchWikiPagesFTS(`"ephemeral"*`, 10)
+	if err != nil {
+		t.Fatalf("search after delete: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("expected 0 results after delete, got %d", len(results))
+	}
+}

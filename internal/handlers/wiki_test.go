@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -606,17 +607,17 @@ func TestSearchWikiPages(t *testing.T) {
 
 	tests := []struct {
 		query     string
-		wantCount int
+		wantMin   int
 		wantFirst string
 	}{
 		{"api", 1, "api-key-rotation"},
-		{"sec", 1, "security-model"},
-		{"de", 2, ""},    // matches deployment + security-model (model has no 'de'... actually deployment-guide)
+		{"security", 1, "security-model"},
+		{"deployment", 1, "deployment-guide"},
 		{"zzz", 0, ""},
 	}
 
 	for _, tt := range tests {
-		req := httptest.NewRequest("GET", "/api/v1/wiki/search?q="+tt.query, nil)
+		req := httptest.NewRequest("GET", "/api/v1/wiki/search?q="+url.QueryEscape(tt.query), nil)
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 		w := httptest.NewRecorder()
 		http.HandlerFunc(api.Auth(api.SearchWikiPages))(w, req)
@@ -627,14 +628,14 @@ func TestSearchWikiPages(t *testing.T) {
 		}
 
 		var results []struct {
-			Slug  string `json:"slug"`
-			Score int    `json:"score"`
+			Slug string  `json:"slug"`
+			Rank float64 `json:"rank"`
 		}
 		if err := json.NewDecoder(w.Body).Decode(&results); err != nil {
 			t.Fatalf("q=%q: decode: %v", tt.query, err)
 		}
-		if len(results) < tt.wantCount {
-			t.Errorf("q=%q: got %d results, want >= %d", tt.query, len(results), tt.wantCount)
+		if len(results) < tt.wantMin {
+			t.Errorf("q=%q: got %d results, want >= %d", tt.query, len(results), tt.wantMin)
 		}
 		if tt.wantFirst != "" && len(results) > 0 && results[0].Slug != tt.wantFirst {
 			t.Errorf("q=%q: first result slug=%q want=%q", tt.query, results[0].Slug, tt.wantFirst)

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -152,6 +153,77 @@ var copilotTools = []map[string]interface{}{
 					"limit": map[string]interface{}{"type": "integer", "description": "Maximum results to return (default: 5)"},
 				},
 				"required": []string{"query"},
+			},
+		},
+	},
+	{
+		"type": "function",
+		"function": map[string]interface{}{
+			"name":        "wiki_search",
+			"description": "Full-text search across all wiki pages (titles, slugs, and content). Returns ranked results with snippets. Use this to find relevant knowledge before starting work.",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"query": map[string]interface{}{"type": "string", "description": "Search terms (e.g. 'deployment runbook', 'auth architecture')"},
+					"limit": map[string]interface{}{"type": "integer", "description": "Maximum results to return (default: 10)"},
+				},
+				"required": []string{"query"},
+			},
+		},
+	},
+	{
+		"type": "function",
+		"function": map[string]interface{}{
+			"name":        "wiki_read",
+			"description": "Read a wiki page by its slug. Returns the full page content.",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"slug": map[string]interface{}{"type": "string", "description": "Page slug (e.g. 'deployment-guide', 'api-key-rotation')"},
+				},
+				"required": []string{"slug"},
+			},
+		},
+	},
+	{
+		"type": "function",
+		"function": map[string]interface{}{
+			"name":        "wiki_list",
+			"description": "List all wiki pages (titles and slugs). Use this to see what knowledge exists before creating new pages.",
+			"parameters": map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+	},
+	{
+		"type": "function",
+		"function": map[string]interface{}{
+			"name":        "wiki_create",
+			"description": "Create a new wiki page. Use this to document decisions, runbooks, architecture, onboarding guides, or any durable knowledge the team should remember across runs.",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"title":   map[string]interface{}{"type": "string", "description": "Page title (slug auto-generated from title)"},
+					"content": map[string]interface{}{"type": "string", "description": "Page content (markdown)"},
+				},
+				"required": []string{"title", "content"},
+			},
+		},
+	},
+	{
+		"type": "function",
+		"function": map[string]interface{}{
+			"name":        "wiki_update",
+			"description": "Update an existing wiki page. Use this to keep wiki pages current when you discover new information, complete work that changes a documented process, or fix outdated content.",
+			"parameters": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"slug":    map[string]interface{}{"type": "string", "description": "Page slug to update"},
+					"title":   map[string]interface{}{"type": "string", "description": "New title (optional, omit to keep current)"},
+					"content": map[string]interface{}{"type": "string", "description": "New content (optional, omit to keep current)"},
+				},
+				"required": []string{"slug"},
 			},
 		},
 	},
@@ -362,9 +434,129 @@ func executeTool(name, argsJSON, workingDir, agentID, runID string, database *db
 		}
 		return result
 
+	case "wiki_search":
+		if database == nil {
+			return "error: wiki not available (no database)"
+		}
+		query := strArg("query")
+		if query == "" {
+			return "error: query is required"
+		}
+		limit := 10
+		if lv, ok := args["limit"]; ok {
+			if lf, ok := lv.(float64); ok && lf > 0 {
+				limit = int(lf)
+			}
+		}
+		// Sanitize for FTS5: quote each token, add prefix wildcard
+		tokens := strings.Fields(query)
+		for i, tok := range tokens {
+			tok = strings.ReplaceAll(tok, `"`, `""`)
+			tokens[i] = `"` + tok + `"` + "*"
+		}
+		ftsQuery := strings.Join(tokens, " ")
+		results, err := database.SearchWikiPagesFTS(ftsQuery, limit)
+		if err != nil {
+			return fmt.Sprintf("error searching wiki: %v", err)
+		}
+		if len(results) == 0 {
+			return "no wiki pages found for: " + query
+		}
+		out, _ := json.Marshal(results)
+		return string(out)
+
+	case "wiki_read":
+		if database == nil {
+			return "error: wiki not available (no database)"
+		}
+		slug := strArg("slug")
+		if slug == "" {
+			return "error: slug is required"
+		}
+		page, err := database.GetWikiPageBySlug(slug)
+		if err != nil {
+			return fmt.Sprintf("error: wiki page %q not found", slug)
+		}
+		out, _ := json.Marshal(page)
+		return string(out)
+
+	case "wiki_list":
+		if database == nil {
+			return "error: wiki not available (no database)"
+		}
+		summaries, err := database.ListWikiPageSummaries()
+		if err != nil {
+			return fmt.Sprintf("error listing wiki: %v", err)
+		}
+		if len(summaries) == 0 {
+			return "no wiki pages exist yet"
+		}
+		out, _ := json.Marshal(summaries)
+		return string(out)
+
+	case "wiki_create":
+		if database == nil {
+			return "error: wiki not available (no database)"
+		}
+		title := strArg("title")
+		if title == "" {
+			return "error: title is required"
+		}
+		slug := copilotWikiSlug(title)
+		if slug == "" {
+			return "error: title must contain letters or numbers"
+		}
+		page := &models.WikiPage{
+			Slug:             slug,
+			Title:            title,
+			Content:          strArg("content"),
+			CreatedByAgentID: &agentID,
+			UpdatedByAgentID: &agentID,
+		}
+		if err := database.CreateWikiPage(page); err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				return fmt.Sprintf("error: wiki page with slug %q already exists", slug)
+			}
+			return fmt.Sprintf("error creating wiki page: %v", err)
+		}
+		return fmt.Sprintf("created wiki page %q (slug: %s)", title, slug)
+
+	case "wiki_update":
+		if database == nil {
+			return "error: wiki not available (no database)"
+		}
+		slug := strArg("slug")
+		if slug == "" {
+			return "error: slug is required"
+		}
+		page, err := database.GetWikiPageBySlug(slug)
+		if err != nil {
+			return fmt.Sprintf("error: wiki page %q not found", slug)
+		}
+		if t := strArg("title"); t != "" {
+			page.Title = t
+		}
+		if c := strArg("content"); c != "" {
+			page.Content = c
+		}
+		page.UpdatedByAgentID = &agentID
+		if err := database.UpdateWikiPage(page); err != nil {
+			return fmt.Sprintf("error updating wiki page: %v", err)
+		}
+		return fmt.Sprintf("updated wiki page %q", slug)
+
 	default:
 		return fmt.Sprintf("unknown tool: %s", name)
 	}
+}
+
+var copilotWikiSlugRe = regexp.MustCompile(`[^a-z0-9]+`)
+
+func copilotWikiSlug(title string) string {
+	v := strings.ToLower(strings.TrimSpace(title))
+	v = copilotWikiSlugRe.ReplaceAllString(v, "-")
+	v = strings.Trim(v, "-")
+	return v
 }
 
 // parseRecallCount extracts N from "Found N memories:\n\n..."

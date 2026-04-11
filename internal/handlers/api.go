@@ -670,30 +670,52 @@ func (a *API) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]string{"deleted": slug})
 }
 
-// SearchWikiPages provides fzf-like fuzzy search over wiki pages.
+// SearchWikiPages searches wiki pages using FTS5 full-text search.
 // Query params:
 //
 //	q       - search pattern (required)
 //	limit   - max results (default 20)
-//	content - if "true", search inside page content too
 func (a *API) SearchWikiPages(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" {
 		jsonOK(w, []any{})
 		return
 	}
-	searchContent := r.URL.Query().Get("content") == "true"
 	limit := 20
 	if n, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && n > 0 && n <= 100 {
 		limit = n
 	}
+
+	// Sanitize query for FTS5: quote terms to avoid syntax errors from
+	// user input containing FTS5 operators. Split on whitespace, wrap
+	// each token in double-quotes, and join with spaces (implicit AND).
+	tokens := strings.Fields(q)
+	for i, tok := range tokens {
+		tok = strings.ReplaceAll(tok, `"`, `""`)
+		tokens[i] = `"` + tok + `"` + "*"
+	}
+	ftsQuery := strings.Join(tokens, " ")
+
+	results, err := a.db.SearchWikiPagesFTS(ftsQuery, limit)
+	if err != nil {
+		// FTS5 query failed — fall back to in-memory fuzzy search
+		a.searchWikiPagesFuzzy(w, r, q, limit)
+		return
+	}
+	if results == nil {
+		results = []models.WikiSearchResult{}
+	}
+	jsonOK(w, results)
+}
+
+func (a *API) searchWikiPagesFuzzy(w http.ResponseWriter, r *http.Request, q string, limit int) {
+	searchContent := r.URL.Query().Get("content") == "true"
 
 	var pages []models.WikiPage
 	var err error
 	if searchContent {
 		pages, err = a.db.ListWikiPages()
 	} else {
-		// Only need summaries but we reuse WikiPage for uniform scoring
 		summaries, e := a.db.ListWikiPageSummaries()
 		err = e
 		for _, s := range summaries {
@@ -707,9 +729,9 @@ func (a *API) SearchWikiPages(w http.ResponseWriter, r *http.Request) {
 
 	type scored struct {
 		models.WikiPage
-		Score    int      `json:"score"`
-		Matches  []string `json:"matches"` // which fields matched
-		Positions []int   `json:"positions,omitempty"`
+		Score     int      `json:"score"`
+		Matches   []string `json:"matches"`
+		Positions []int    `json:"positions,omitempty"`
 	}
 
 	var results []scored
@@ -719,7 +741,6 @@ func (a *API) SearchWikiPages(w http.ResponseWriter, r *http.Request) {
 		var bestPos []int
 
 		if s, pos := fzfScore(p.Title, q); s > 0 {
-			// title matches get a 2x bonus
 			s *= 2
 			if s > best {
 				best = s
@@ -751,7 +772,6 @@ func (a *API) SearchWikiPages(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Sort by score descending
 	for i := 1; i < len(results); i++ {
 		for j := i; j > 0 && results[j].Score > results[j-1].Score; j-- {
 			results[j], results[j-1] = results[j-1], results[j]
