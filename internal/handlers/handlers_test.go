@@ -1657,6 +1657,107 @@ func TestGetIssue_ExposesDeploymentGateFields(t *testing.T) {
 	}
 }
 
+func TestGetIssue_IncludesCanonicalDeploymentGateAndHistory(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
+
+	owner, ownerKey := createAgentWithKey(t, d, "Release Owner", "release-gate-owner", "backend")
+
+	issue := &models.Issue{Key: "SO-601", Title: "Release Gate", Status: models.StatusTodo, Type: models.TypeRelease, AssigneeAgentID: &owner.ID}
+	if err := d.CreateIssue(issue); err != nil {
+		t.Fatalf("create issue: %v", err)
+	}
+
+	patchReq := httptest.NewRequest("PATCH", "/api/v1/issues/SO-601", strings.NewReader(`{"status":"blocked","unblock_condition":"wait for canary metrics"}`))
+	patchReq.Header.Set("Authorization", "Bearer "+ownerKey)
+	patchReq.Header.Set("Content-Type", "application/json")
+	patchReq.SetPathValue("key", "SO-601")
+	patchW := httptest.NewRecorder()
+	api.Auth(api.UpdateIssue)(patchW, patchReq)
+	if patchW.Code != http.StatusOK {
+		t.Fatalf("patch status = %d, want 200; body: %s", patchW.Code, patchW.Body.String())
+	}
+
+	getReq := httptest.NewRequest("GET", "/api/v1/issues/SO-601", nil)
+	getReq.Header.Set("Authorization", "Bearer "+ownerKey)
+	getReq.SetPathValue("key", "SO-601")
+	getW := httptest.NewRecorder()
+	api.Auth(api.GetIssue)(getW, getReq)
+	if getW.Code != http.StatusOK {
+		t.Fatalf("get status = %d, want 200; body: %s", getW.Code, getW.Body.String())
+	}
+
+	var payload struct {
+		Issue                 models.Issue                 `json:"issue"`
+		DeploymentGate        models.DeploymentGate        `json:"deployment_gate"`
+		DeploymentGateHistory []models.DeploymentGateEvent `json:"deployment_gate_history"`
+	}
+	if err := json.Unmarshal(getW.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal deployment gate payload: %v", err)
+	}
+	if payload.Issue.Key != "SO-601" {
+		t.Fatalf("issue.key = %q, want SO-601", payload.Issue.Key)
+	}
+	if payload.DeploymentGate.IssueKey != "SO-601" {
+		t.Fatalf("deployment_gate.issue_key = %q, want SO-601", payload.DeploymentGate.IssueKey)
+	}
+	if payload.DeploymentGate.Status != models.GateStatusBlocked {
+		t.Fatalf("deployment_gate.status = %q, want %q", payload.DeploymentGate.Status, models.GateStatusBlocked)
+	}
+	if payload.DeploymentGate.UnblockState != models.UnblockStateBlocked {
+		t.Fatalf("deployment_gate.unblock_state = %q, want %q", payload.DeploymentGate.UnblockState, models.UnblockStateBlocked)
+	}
+	if payload.DeploymentGate.UnblockCondition != "wait for canary metrics" {
+		t.Fatalf("deployment_gate.unblock_condition = %q, want wait for canary metrics", payload.DeploymentGate.UnblockCondition)
+	}
+	if len(payload.DeploymentGateHistory) < 2 {
+		t.Fatalf("deployment_gate_history length = %d, want >=2", len(payload.DeploymentGateHistory))
+	}
+	last := payload.DeploymentGateHistory[len(payload.DeploymentGateHistory)-1]
+	if last.Status != models.GateStatusBlocked {
+		t.Fatalf("last history status = %q, want %q", last.Status, models.GateStatusBlocked)
+	}
+	if last.Reason != "recheck" {
+		t.Fatalf("last history reason = %q, want recheck", last.Reason)
+	}
+}
+
+func TestGetIssue_DoesNotIncludeDeploymentGateForNonDeploymentIssueType(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
+
+	owner, ownerKey := createAgentWithKey(t, d, "Owner", "task-owner", "backend")
+	issue := &models.Issue{Key: "SO-602", Title: "Regular Task", Status: models.StatusTodo, Type: models.TypeTask, AssigneeAgentID: &owner.ID}
+	if err := d.CreateIssue(issue); err != nil {
+		t.Fatalf("create issue: %v", err)
+	}
+
+	getReq := httptest.NewRequest("GET", "/api/v1/issues/SO-602", nil)
+	getReq.Header.Set("Authorization", "Bearer "+ownerKey)
+	getReq.SetPathValue("key", "SO-602")
+	getW := httptest.NewRecorder()
+	api.Auth(api.GetIssue)(getW, getReq)
+
+	if getW.Code != http.StatusOK {
+		t.Fatalf("get status = %d, want 200", getW.Code)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(getW.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal issue payload: %v", err)
+	}
+	if _, ok := payload["deployment_gate"]; ok {
+		t.Fatal("deployment_gate unexpectedly present for non-deployment issue type")
+	}
+	if _, ok := payload["deployment_gate_history"]; ok {
+		t.Fatal("deployment_gate_history unexpectedly present for non-deployment issue type")
+	}
+}
+
 func TestCreateSubIssueFromUI_DetailForm(t *testing.T) {
 	d := testDB(t)
 	ui := testUI(t, d)

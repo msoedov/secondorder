@@ -83,11 +83,24 @@ func (a *API) GetIssue(w http.ResponseWriter, r *http.Request) {
 	comments, _ := a.db.ListComments(key)
 	children, _ := a.db.GetChildIssues(key)
 
-	jsonOK(w, map[string]any{
+	resp := map[string]any{
 		"issue":    issue,
 		"comments": comments,
 		"children": children,
-	})
+	}
+
+	if issue.Type == models.TypeRelease || issue.Type == models.TypeDeploy || issue.Type == models.TypeDeployment {
+		if err := a.db.EnsureCanonicalDeploymentGate(issue.Key, issue.Type, issue.Status); err == nil {
+			if gate, err := a.db.GetDeploymentGateByIssueKey(issue.Key); err == nil {
+				resp["deployment_gate"] = gate
+				if history, err := a.db.ListDeploymentGateEvents(gate.ID); err == nil {
+					resp["deployment_gate_history"] = history
+				}
+			}
+		}
+	}
+
+	jsonOK(w, resp)
 }
 
 func (a *API) CheckoutIssue(w http.ResponseWriter, r *http.Request) {
