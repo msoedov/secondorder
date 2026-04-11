@@ -1205,6 +1205,84 @@ func captureGitDiff(workingDir string) string {
 	return diff
 }
 
+// StartCronLoop runs a periodic check for active cron jobs and dispatches due ones.
+// The loop ticks every minute and compares each job's frequency against its last_run_at.
+func (s *Scheduler) StartCronLoop() {
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				s.mu.Lock()
+				if s.stopped {
+					s.mu.Unlock()
+					return
+				}
+				s.mu.Unlock()
+				if s.IsPaused() {
+					continue
+				}
+				s.runCronJobs()
+			}
+		}
+	}()
+}
+
+func parseCronFrequency(freq string) time.Duration {
+	switch freq {
+	case "1m":
+		return 1 * time.Minute
+	case "20m":
+		return 20 * time.Minute
+	case "1h":
+		return 1 * time.Hour
+	case "2h":
+		return 2 * time.Hour
+	case "1d":
+		return 24 * time.Hour
+	default:
+		return 1 * time.Hour
+	}
+}
+
+func (s *Scheduler) runCronJobs() {
+	jobs, err := s.db.ListCronJobs()
+	if err != nil {
+		slog.Error("scheduler: failed to list cron jobs", "error", err)
+		return
+	}
+	now := time.Now()
+	for i := range jobs {
+		job := &jobs[i]
+		if !job.Active {
+			continue
+		}
+
+		interval := parseCronFrequency(job.Frequency)
+		if job.LastRunAt != nil && now.Sub(*job.LastRunAt) < interval {
+			continue
+		}
+
+		agent, err := s.db.GetAgent(job.AgentID)
+		if err != nil || !agent.Active {
+			continue
+		}
+
+		over, _ := s.db.IsAgentOverBudget(agent.ID)
+		if over {
+			slog.Warn("scheduler: agent over budget, skipping cron job", "agent", agent.Name, "cron_id", job.ID)
+			continue
+		}
+
+		slog.Info("scheduler: dispatching cron job", "agent", agent.Name, "cron_id", job.ID, "task", job.Task, "frequency", job.Frequency)
+		if err := s.db.TouchCronJobLastRun(job.ID); err != nil {
+			slog.Error("scheduler: failed to update cron last_run_at", "cron_id", job.ID, "error", err)
+		}
+		s.spawnAgent(agent, "", "cron", job.Task)
+	}
+}
+
 // StartAPIKeyExpiryLoop runs a periodic sweep to expire stale session-scoped API keys.
 // This enforces the idle-timeout (AC#3): keys with expires_at in the past are revoked.
 // Recommended interval: 1 minute. The loop stops when the scheduler is stopped.
