@@ -990,6 +990,125 @@ func (a *API) AgentMe(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, agent)
 }
 
+// SetBusinessType persists the organization's business type setting. The CEO
+// reads this on every run to inform catalog browsing and hiring decisions.
+func (a *API) SetBusinessType(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Value string `json:"value"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonError(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	if err := a.db.SetSetting("business_type", strings.TrimSpace(body.Value)); err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, map[string]string{"business_type": body.Value})
+}
+
+// GetBusinessType reads the current business type setting.
+func (a *API) GetBusinessType(w http.ResponseWriter, r *http.Request) {
+	v, _ := a.db.GetSetting("business_type")
+	jsonOK(w, map[string]string{"business_type": v})
+}
+
+// ListArchetypes returns the full catalog of available archetypes.
+// Supports ?division=<name> and ?source=<builtin|agency> filters so the CEO
+// can narrow the pool when hiring for a specific business function.
+func (a *API) ListArchetypes(w http.ResponseWriter, r *http.Request) {
+	catalog, err := archetypes.Catalog()
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	division := r.URL.Query().Get("division")
+	source := r.URL.Query().Get("source")
+	filtered := catalog[:0]
+	for _, e := range catalog {
+		if division != "" && e.Division != division {
+			continue
+		}
+		if source != "" && e.Source != source {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	jsonOK(w, filtered)
+}
+
+// CreateAgent lets the CEO (or any privileged caller) hire a new specialist
+// by naming a slug and referencing an archetype from the catalog.
+func (a *API) CreateAgent(w http.ResponseWriter, r *http.Request) {
+	caller := agentFromContext(r.Context())
+	if caller == nil || caller.ArchetypeSlug != "ceo" {
+		jsonError(w, "only the CEO may create agents", http.StatusForbidden)
+		return
+	}
+	var body struct {
+		Name             string `json:"name"`
+		Slug             string `json:"slug"`
+		ArchetypeSlug    string `json:"archetype_slug"`
+		Model            string `json:"model"`
+		Runner           string `json:"runner"`
+		HeartbeatEnabled bool   `json:"heartbeat_enabled"`
+		ChromeEnabled    bool   `json:"chrome_enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonError(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	body.Name = strings.TrimSpace(body.Name)
+	body.Slug = strings.TrimSpace(body.Slug)
+	body.ArchetypeSlug = strings.TrimSpace(body.ArchetypeSlug)
+	if body.Name == "" || body.Slug == "" || body.ArchetypeSlug == "" {
+		jsonError(w, "name, slug, and archetype_slug are required", http.StatusBadRequest)
+		return
+	}
+	if !archetypes.Exists(body.ArchetypeSlug) {
+		jsonError(w, "archetype not found: "+body.ArchetypeSlug, http.StatusBadRequest)
+		return
+	}
+	if existing, _ := a.db.GetAgentBySlug(body.Slug); existing != nil {
+		jsonError(w, "agent with this slug already exists", http.StatusConflict)
+		return
+	}
+	runner := body.Runner
+	if runner == "" {
+		runner = models.RunnerClaudeCode
+	}
+	model := body.Model
+	if model == "" {
+		if m, ok := models.RunnerModels[runner]; ok && len(m) > 0 {
+			model = m[0]
+		}
+	}
+	if !models.IsValidModelForRunner(runner, model) {
+		jsonError(w, fmt.Sprintf("invalid model %q for runner %q", model, runner), http.StatusBadRequest)
+		return
+	}
+	agent := &models.Agent{
+		ID:               uuid.New().String(),
+		Name:             body.Name,
+		Slug:             body.Slug,
+		ArchetypeSlug:    body.ArchetypeSlug,
+		Model:            model,
+		Runner:           runner,
+		WorkingDir:       ".",
+		MaxTurns:         50,
+		TimeoutSec:       models.DefaultAgentTimeoutSec,
+		HeartbeatEnabled: body.HeartbeatEnabled,
+		ChromeEnabled:    body.ChromeEnabled,
+		Active:           true,
+	}
+	if err := a.db.CreateAgent(agent); err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+	jsonOK(w, agent)
+}
+
 func (a *API) Usage(w http.ResponseWriter, r *http.Request) {
 	agent := agentFromContext(r.Context())
 	todayTokens, todayCost, totalTokens, totalCost, err := a.db.GetAgentUsage(agent.ID)
