@@ -554,6 +554,338 @@ func TestAgentCapabilityMatrixVerificationMetadataPresent(t *testing.T) {
 	}
 }
 
+// TestAgentCapabilityMatrixChromeMCPVerifiedWhenEnabled confirms that
+// chrome_enabled=true results in a "verified" chrome_mcp_access status.
+func TestAgentCapabilityMatrixChromeMCPVerifiedWhenEnabled(t *testing.T) {
+	d := capabilityTestDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+
+	agent := &models.Agent{
+		Name:          "Chrome Agent",
+		Slug:          "chrome-agent",
+		ArchetypeSlug: "backend-engineer",
+		Runner:        models.RunnerOpenCode,
+		Model:         "default",
+		ApiKeyEnv:     "CHROME_AGENT_TOKEN",
+		WorkingDir:    t.TempDir(),
+		MaxTurns:      50,
+		TimeoutSec:    1200,
+		ChromeEnabled: true, // explicitly enabled
+		Active:        true,
+	}
+	t.Setenv("CHROME_AGENT_TOKEN", "present")
+	if err := d.CreateAgent(agent); err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+
+	rawKey := "so_test_chrome_verified_key"
+	h := sha256.Sum256([]byte(rawKey))
+	if err := d.CreateAPIKey(agent.ID, "run-chrome-1", hex.EncodeToString(h[:]), "so_test", time.Hour); err != nil {
+		t.Fatalf("create api key: %v", err)
+	}
+
+	api := NewAPI(d, hub, nil, nil, &capabilityStubTelegram{}, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/capability-matrix", nil)
+	req.Header.Set("Authorization", "Bearer "+rawKey)
+	w := httptest.NewRecorder()
+
+	handler := api.Auth(api.AgentCapabilityMatrix)
+	handler(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp capabilityMatrixResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	row := findAgentRow(t, resp.Agents, "chrome-agent")
+	chrome := findCapability(t, row.EnvironmentCapabilities, "chrome_mcp_access")
+	if chrome.Status != "verified" {
+		t.Fatalf("chrome_mcp_access status = %q, want verified when chrome_enabled=true", chrome.Status)
+	}
+	if len(chrome.ReasonCodes) != 0 {
+		t.Fatalf("expected no reason_codes when chrome verified, got %v", chrome.ReasonCodes)
+	}
+}
+
+// TestAgentCapabilityMatrixRunContextFields validates required run context fields
+// including generated_at_utc, instance_name, and running_runs_count.
+func TestAgentCapabilityMatrixRunContextFields(t *testing.T) {
+	d := capabilityTestDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+
+	if err := d.SetSetting("instance_name", "qa-test-instance"); err != nil {
+		t.Fatalf("set instance setting: %v", err)
+	}
+
+	agent := &models.Agent{
+		Name:          "Run Context Agent",
+		Slug:          "run-context-agent",
+		ArchetypeSlug: "backend-engineer",
+		Runner:        models.RunnerOpenCode,
+		Model:         "default",
+		ApiKeyEnv:     "RC_AGENT_TOKEN",
+		WorkingDir:    t.TempDir(),
+		MaxTurns:      50,
+		TimeoutSec:    1200,
+		Active:        true,
+	}
+	t.Setenv("RC_AGENT_TOKEN", "present")
+	if err := d.CreateAgent(agent); err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+
+	rawKey := "so_test_run_context_key"
+	h := sha256.Sum256([]byte(rawKey))
+	if err := d.CreateAPIKey(agent.ID, "run-rc-1", hex.EncodeToString(h[:]), "so_test", time.Hour); err != nil {
+		t.Fatalf("create api key: %v", err)
+	}
+
+	api := NewAPI(d, hub, nil, nil, &capabilityStubTelegram{}, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/capability-matrix", nil)
+	req.Header.Set("Authorization", "Bearer "+rawKey)
+	w := httptest.NewRecorder()
+
+	handler := api.Auth(api.AgentCapabilityMatrix)
+	handler(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp capabilityMatrixResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	// Validate run context fields
+	if resp.Run.InstanceName != "qa-test-instance" {
+		t.Fatalf("instance_name = %q, want qa-test-instance", resp.Run.InstanceName)
+	}
+	if resp.Run.GeneratedAtUTC == "" {
+		t.Fatalf("generated_at_utc must be non-empty")
+	}
+	// Validate it parses as RFC3339
+	if _, err := time.Parse(time.RFC3339, resp.Run.GeneratedAtUTC); err != nil {
+		t.Fatalf("generated_at_utc %q is not valid RFC3339: %v", resp.Run.GeneratedAtUTC, err)
+	}
+	// running_runs_count must be ≥0 (zero in test env is valid)
+	if resp.Run.RunningRunsCount < 0 {
+		t.Fatalf("running_runs_count = %d, must not be negative", resp.Run.RunningRunsCount)
+	}
+}
+
+// TestAgentCapabilityMatrixCredentialRefsInCapabilities verifies that capability
+// entries that depend on a credential include a non-empty credential_refs list.
+func TestAgentCapabilityMatrixCredentialRefsInCapabilities(t *testing.T) {
+	d := capabilityTestDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+
+	agent := &models.Agent{
+		Name:          "Cred Ref Agent",
+		Slug:          "cred-ref-agent",
+		ArchetypeSlug: "backend-engineer",
+		Runner:        models.RunnerOpenCode,
+		Model:         "default",
+		ApiKeyEnv:     "CREDREF_AGENT_TOKEN",
+		WorkingDir:    t.TempDir(),
+		MaxTurns:      50,
+		TimeoutSec:    1200,
+		ChromeEnabled: false,
+		Active:        true,
+	}
+	t.Setenv("CREDREF_AGENT_TOKEN", "present")
+	if err := d.CreateAgent(agent); err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+
+	rawKey := "so_test_credref_key"
+	h := sha256.Sum256([]byte(rawKey))
+	if err := d.CreateAPIKey(agent.ID, "run-credref-1", hex.EncodeToString(h[:]), "so_test", time.Hour); err != nil {
+		t.Fatalf("create api key: %v", err)
+	}
+
+	api := NewAPI(d, hub, nil, nil, &capabilityStubTelegram{}, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/capability-matrix", nil)
+	req.Header.Set("Authorization", "Bearer "+rawKey)
+	w := httptest.NewRecorder()
+
+	handler := api.Auth(api.AgentCapabilityMatrix)
+	handler(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp capabilityMatrixResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	row := findAgentRow(t, resp.Agents, "cred-ref-agent")
+
+	// archetype_patch_submission requires credentials so must have non-empty credential_refs
+	patchAction := findCapability(t, row.Capabilities, "archetype_patch_submission")
+	if len(patchAction.CredentialRefs) == 0 {
+		t.Fatalf("archetype_patch_submission should have credential_refs, got none")
+	}
+	// Verify credential ref format: must be cred:<slug>:<key>
+	for _, ref := range patchAction.CredentialRefs {
+		if !startsWith(ref, "cred:") {
+			t.Fatalf("credential_ref %q does not use expected sanitized format cred:<slug>:<key>", ref)
+		}
+	}
+}
+
+// TestAgentCapabilityMatrixMultiAgentAllAppear confirms that when multiple agents
+// exist, all of them appear in the matrix response.
+func TestAgentCapabilityMatrixMultiAgentAllAppear(t *testing.T) {
+	d := capabilityTestDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+
+	agentSlugs := []string{"agent-alpha", "agent-beta", "agent-gamma"}
+	for i, slug := range agentSlugs {
+		envKey := "MULTI_AGENT_TOKEN_" + slug
+		agent := &models.Agent{
+			Name:          "Agent " + slug,
+			Slug:          slug,
+			ArchetypeSlug: "backend-engineer",
+			Runner:        models.RunnerOpenCode,
+			Model:         "default",
+			ApiKeyEnv:     envKey,
+			WorkingDir:    t.TempDir(),
+			MaxTurns:      50,
+			TimeoutSec:    1200,
+			Active:        true,
+		}
+		t.Setenv(envKey, "present")
+		if err := d.CreateAgent(agent); err != nil {
+			t.Fatalf("create agent %d: %v", i, err)
+		}
+	}
+
+	// Use first agent for auth
+	requesterEnv := "MULTI_REQUESTER_TOKEN"
+	requester := &models.Agent{
+		Name:          "Requester",
+		Slug:          "multi-requester",
+		ArchetypeSlug: "backend-engineer",
+		Runner:        models.RunnerOpenCode,
+		Model:         "default",
+		ApiKeyEnv:     requesterEnv,
+		WorkingDir:    t.TempDir(),
+		MaxTurns:      50,
+		TimeoutSec:    1200,
+		Active:        true,
+	}
+	t.Setenv(requesterEnv, "present")
+	if err := d.CreateAgent(requester); err != nil {
+		t.Fatalf("create requester: %v", err)
+	}
+
+	rawKey := "so_test_multi_agent_key"
+	h := sha256.Sum256([]byte(rawKey))
+	if err := d.CreateAPIKey(requester.ID, "run-multi-1", hex.EncodeToString(h[:]), "so_test", time.Hour); err != nil {
+		t.Fatalf("create api key: %v", err)
+	}
+
+	api := NewAPI(d, hub, nil, nil, &capabilityStubTelegram{}, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/capability-matrix", nil)
+	req.Header.Set("Authorization", "Bearer "+rawKey)
+	w := httptest.NewRecorder()
+
+	handler := api.Auth(api.AgentCapabilityMatrix)
+	handler(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp capabilityMatrixResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	// All created agents plus the requester should appear
+	if len(resp.Agents) < len(agentSlugs)+1 {
+		t.Fatalf("expected at least %d agents in response, got %d", len(agentSlugs)+1, len(resp.Agents))
+	}
+
+	// Verify each named agent is present
+	for _, slug := range agentSlugs {
+		_ = findAgentRow(t, resp.Agents, slug)
+	}
+}
+
+// TestAgentCapabilityMatrixWorkspaceUnknownWhenWorkingDirEmpty confirms that
+// an agent with an empty working_dir gets "unknown" status for workspace_access.
+func TestAgentCapabilityMatrixWorkspaceUnknownWhenWorkingDirEmpty(t *testing.T) {
+	d := capabilityTestDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+
+	agent := &models.Agent{
+		Name:          "No Dir Agent",
+		Slug:          "no-dir-agent",
+		ArchetypeSlug: "backend-engineer",
+		Runner:        models.RunnerOpenCode,
+		Model:         "default",
+		ApiKeyEnv:     "NO_DIR_TOKEN",
+		WorkingDir:    "", // empty working dir
+		MaxTurns:      50,
+		TimeoutSec:    1200,
+		Active:        true,
+	}
+	t.Setenv("NO_DIR_TOKEN", "present")
+	if err := d.CreateAgent(agent); err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+
+	rawKey := "so_test_no_dir_key"
+	h := sha256.Sum256([]byte(rawKey))
+	if err := d.CreateAPIKey(agent.ID, "run-nodir-1", hex.EncodeToString(h[:]), "so_test", time.Hour); err != nil {
+		t.Fatalf("create api key: %v", err)
+	}
+
+	api := NewAPI(d, hub, nil, nil, &capabilityStubTelegram{}, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/capability-matrix", nil)
+	req.Header.Set("Authorization", "Bearer "+rawKey)
+	w := httptest.NewRecorder()
+
+	handler := api.Auth(api.AgentCapabilityMatrix)
+	handler(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp capabilityMatrixResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	row := findAgentRow(t, resp.Agents, "no-dir-agent")
+	workspace := findCapability(t, row.EnvironmentCapabilities, "workspace_access")
+	if workspace.Status != "unknown" {
+		t.Fatalf("workspace_access status = %q, want unknown when working_dir is empty", workspace.Status)
+	}
+	if len(workspace.ReasonCodes) == 0 || workspace.ReasonCodes[0] != "working_dir_not_set" {
+		t.Fatalf("expected reason_code working_dir_not_set, got %v", workspace.ReasonCodes)
+	}
+}
+
+// startsWith is a simple prefix check helper.
+func startsWith(s, prefix string) bool {
+	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
+}
+
 // contains is a simple substring check helper for secret-leak tests.
 func contains(s, sub string) bool {
 	return len(sub) > 0 && len(s) >= len(sub) && (s == sub || len(s) > 0 && containsHelper(s, sub))
