@@ -1279,7 +1279,9 @@ func (s *Scheduler) runCronJobs() {
 		if err := s.db.TouchCronJobLastRun(job.ID); err != nil {
 			slog.Error("scheduler: failed to update cron last_run_at", "cron_id", job.ID, "error", err)
 		}
-		s.spawnAgent(agent, "", "cron", job.Task)
+		runID := s.spawnAgent(agent, "", "cron", job.Task)
+		details := fmt.Sprintf("Cron job dispatched: %s (run: %s, frequency: %s)", job.Task, runID, job.Frequency)
+		s.logActivity("cron_dispatch", "cron_job", job.ID, &agent.ID, details)
 	}
 }
 
