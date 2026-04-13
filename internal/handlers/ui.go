@@ -548,6 +548,32 @@ func (u *UI) updateIssueUI(w http.ResponseWriter, r *http.Request, key string) {
 
 	action := r.FormValue("action")
 	switch action {
+	case "ping":
+		terminalStatuses := map[string]bool{
+			models.StatusDone:      true,
+			models.StatusCancelled: true,
+			models.StatusWontDo:    true,
+		}
+		if terminalStatuses[issue.Status] {
+			http.Redirect(w, r, "/issues/"+key+"?error=Cannot+ping+a+terminal+issue", http.StatusSeeOther)
+			return
+		}
+		if issue.AssigneeAgentID == nil {
+			http.Redirect(w, r, "/issues/"+key+"?error=No+assignee+to+ping", http.StatusSeeOther)
+			return
+		}
+		pingComment := &models.Comment{
+			ID:       uuid.New().String(),
+			IssueKey: key,
+			Author:   "Board",
+			Body:     "Ping: Please self-assess the current state of this issue. Why might it be stuck? Check for failed runs, blockers, or missing information. Report back with a diagnosis comment and update the status accordingly.",
+		}
+		u.db.CreateComment(pingComment)
+		if a, err := u.db.GetAgent(*issue.AssigneeAgentID); err == nil && u.wake != nil {
+			go u.wake(a, issue)
+		}
+		http.Redirect(w, r, "/issues/"+key+"?success=Agent+pinged", http.StatusSeeOther)
+		return
 	case "restart":
 		issue.Status = models.StatusTodo
 		issue.StartedAt = nil

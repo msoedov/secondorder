@@ -351,9 +351,14 @@
         </div>
 
         <div class="bg-card border border-bd rounded-lg p-3">
-          <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Status</div>
-          <form method="POST" action="/issues/{{.Issue.Key}}">
-            <select name="status" onchange="this.form.submit()" class="w-full bg-sf border border-bd rounded-md px-2.5 py-1.5 text-xs text-ink outline-none focus:ring-1 focus:ring-ac cursor-pointer">
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider">Status</div>
+            <span id="status-saved-indicator" class="text-[10px] text-emerald-400 opacity-0 transition-opacity duration-300">saved</span>
+          </div>
+          <form hx-post="/issues/{{.Issue.Key}}"
+                hx-swap="none"
+                hx-on::after-request="var el=document.getElementById('status-saved-indicator'); el.style.opacity='1'; setTimeout(function(){el.style.opacity='0';},2000)">
+            <select name="status" onchange="this.form.requestSubmit()" class="w-full bg-sf border border-bd rounded-md px-2.5 py-1.5 text-xs text-ink outline-none focus:ring-1 focus:ring-ac cursor-pointer">
               <option value="todo" {{if eq .Issue.Status "todo"}}selected{{end}}>Todo</option>
               <option value="in_progress" {{if eq .Issue.Status "in_progress"}}selected{{end}}>In Progress</option>
               <option value="in_review" {{if eq .Issue.Status "in_review"}}selected{{end}}>In Review</option>
@@ -411,6 +416,18 @@
 
         <!-- Actions -->
         <div class="space-y-1.5">
+          {{if .Assignee}}
+          {{$st := .Issue.Status}}
+          {{if and (ne $st "done") (ne $st "cancelled") (ne $st "wont_do")}}
+          <form method="POST" action="/issues/{{.Issue.Key}}" id="ping-issue-form">
+            <input type="hidden" name="action" value="ping">
+            <button type="submit" title="Ping agent (P)" class="w-full flex items-center justify-center gap-1.5 bg-sf border border-bd hover:bg-amber-950/40 hover:border-amber-800/50 hover:text-amber-400 active:scale-[0.97] text-ink2 text-xs px-3 py-2 rounded-md transition-all">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+              Ping
+            </button>
+          </form>
+          {{end}}
+          {{end}}
           <form method="POST" action="/issues/{{.Issue.Key}}">
             <input type="hidden" name="action" value="restart">
             <button type="submit" class="w-full flex items-center justify-center gap-1.5 bg-sf border border-bd hover:bg-bd active:scale-[0.97] text-ink2 text-xs px-3 py-2 rounded-md transition-all">
@@ -459,5 +476,12 @@ function handleCancelClick() {
     document.getElementById('cancel-issue-form').submit();
   }
 }
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+  if (e.key === 'p' || e.key === 'P') {
+    var form = document.getElementById('ping-issue-form');
+    if (form) form.submit();
+  }
+});
 </script>
 {{template "foot" .}}
