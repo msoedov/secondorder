@@ -755,6 +755,41 @@ func TestClaudeCodeDisableSlashCommands(t *testing.T) {
 	}
 }
 
+// TestClaudeCodeDisableSkills verifies --disable-slash-commands flag is passed when DisableSkills is enabled.
+func TestClaudeCodeDisableSkills(t *testing.T) {
+	d := testDB(t)
+	s := New(d, 9001)
+
+	binDir := t.TempDir()
+	makeStub(t, binDir, "claude")
+	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
+
+	tests := []struct {
+		name          string
+		disableSkills bool
+		wantFlag      bool
+	}{
+		{name: "disabled by default", disableSkills: false, wantFlag: false},
+		{name: "enabled", disableSkills: true, wantFlag: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			agent := &models.Agent{
+				Name: "Worker", Slug: "worker", ArchetypeSlug: "worker",
+				Runner: "claude_code", Model: "sonnet",
+				WorkingDir: t.TempDir(), MaxTurns: 10, TimeoutSec: 10,
+				DisableSkills: tt.disableSkills,
+			}
+			out, _ := s.execClaudeCode(t.Context(), agent, "key", "run1", "SO-1", "task")
+			has := strings.Contains(out, "--disable-slash-commands")
+			if has != tt.wantFlag {
+				t.Errorf("--disable-slash-commands present=%v, want %v; args: %s", has, tt.wantFlag, out)
+			}
+		})
+	}
+}
+
 // TestTokenZeroingForNonClaude verifies token counts are zeroed for non-Claude runners.
 func TestTokenZeroingForNonClaude(t *testing.T) {
 	tests := []struct {
