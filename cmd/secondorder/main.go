@@ -349,6 +349,9 @@ func main() {
 	mux.HandleFunc("PATCH /api/v1/apex-blocks/{id}", api.Auth(api.UpdateApexBlock))
 	mux.HandleFunc("POST /api/v1/archetype-patches", api.Auth(api.CreateArchetypePatch))
 
+	// Version check (no auth required)
+	mux.HandleFunc("GET /api/check-for-updates", ui.CheckForUpdates)
+
 	// Webhook routes (no auth required, uses HMAC signature)
 	webhookAPI := handlers.NewWebhookAPI(database, sse)
 	mux.HandleFunc("POST /api/v1/webhooks/{source}/issues", webhookAPI.WebhookAuth(webhookAPI.HandleIssues))

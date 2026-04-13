@@ -1532,6 +1532,7 @@ func (u *UI) Settings(w http.ResponseWriter, r *http.Request) {
 	u.render(w, "settings", map[string]any{
 		"Settings":      settings,
 		"Version":       version,
+		"BuildDate":     models.BuildDate,
 		"GoVersion":     goVersion,
 		"SQLiteVersion": sqliteVersion,
 		"GitHubURL":     gitHubURL,

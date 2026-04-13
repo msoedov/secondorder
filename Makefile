@@ -1,10 +1,12 @@
 BINARY_NAME=secondorder
 BUILD_DIR=.
+BUILD_DATE=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+LDFLAGS=-X github.com/msoedov/secondorder/internal/models.BuildDate=$(BUILD_DATE)
 
 .PHONY: build test run clean lint scan install i
 
 build:
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/secondorder
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/secondorder
 
 test:
 	go test ./...

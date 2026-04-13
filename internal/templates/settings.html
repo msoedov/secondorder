@@ -130,12 +130,16 @@
     </script>
 
     <!-- About -->
-    <div class="bg-card border border-bd rounded-lg p-5">
+    <div class="bg-card border border-bd rounded-lg p-5 mb-6">
       <h2 class="text-sm font-medium text-ink mb-4">About</h2>
       <div class="space-y-2.5 text-sm">
         <div class="flex items-center justify-between">
           <span class="text-ink3/50">App Version</span>
           <span class="text-ink2 font-mono text-xs">{{.Version}}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-ink3/50">Build Date</span>
+          <span class="text-ink2 font-mono text-xs">{{.BuildDate}}</span>
         </div>
         <div class="flex items-center justify-between">
           <span class="text-ink3/50">Go Version</span>
@@ -151,6 +155,49 @@
         </div>
       </div>
     </div>
+
+    <!-- Updates -->
+    <div class="bg-card border border-bd rounded-lg p-5">
+      <h2 class="text-sm font-medium text-ink mb-4">Updates</h2>
+      <div class="flex items-center justify-between">
+        <p class="text-[11px] text-ink3/40">Check if a newer version is available on GitHub.</p>
+        <button
+          onclick="checkForUpdates(this)"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium bg-ac text-ink hover:bg-ac-h active:scale-[0.97] transition-all">
+          Check for Updates
+        </button>
+      </div>
+      <div id="update-result" class="mt-3 hidden text-[13px]"></div>
+    </div>
+    <script>
+    function checkForUpdates(btn) {
+      btn.disabled = true;
+      btn.textContent = 'Checking...';
+      var el = document.getElementById('update-result');
+      el.className = 'mt-3 text-[13px]';
+      el.textContent = '';
+      fetch('/api/check-for-updates')
+        .then(function(r){ return r.json(); })
+        .then(function(d) {
+          btn.disabled = false;
+          btn.textContent = 'Check for Updates';
+          if (d.error) {
+            el.innerHTML = '<span class="text-red-400">' + d.error + '</span>';
+            return;
+          }
+          if (d.up_to_date) {
+            el.innerHTML = '<span class="text-emerald-400">Up to date</span> &mdash; latest commit <span class="font-mono">' + d.latest_sha + '</span> (' + d.latest_date + ')';
+          } else {
+            el.innerHTML = '<span class="text-yellow-400">Update available</span> &mdash; latest commit <span class="font-mono">' + d.latest_sha + '</span> (' + d.latest_date + '). Your build: ' + (d.current_date || 'unknown') + '. <a href="https://github.com/msoedov/secondorder" target="_blank" rel="noopener noreferrer" class="text-ac-t underline">View on GitHub</a>';
+          }
+        })
+        .catch(function(err) {
+          btn.disabled = false;
+          btn.textContent = 'Check for Updates';
+          el.innerHTML = '<span class="text-red-400">Request failed: ' + err.message + '</span>';
+        });
+    }
+    </script>
 
   </div>
 </main>
