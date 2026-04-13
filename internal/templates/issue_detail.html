@@ -353,7 +353,7 @@
         <div class="bg-card border border-bd rounded-lg p-3">
           <div class="text-[11px] font-medium text-ink3/50 uppercase tracking-wider mb-1.5">Status</div>
           <form method="POST" action="/issues/{{.Issue.Key}}">
-            <select name="status" class="w-full bg-sf border border-bd rounded-md px-2.5 py-1.5 text-xs text-ink outline-none focus:ring-1 focus:ring-ac cursor-pointer">
+            <select name="status" onchange="this.form.submit()" class="w-full bg-sf border border-bd rounded-md px-2.5 py-1.5 text-xs text-ink outline-none focus:ring-1 focus:ring-ac cursor-pointer">
               <option value="todo" {{if eq .Issue.Status "todo"}}selected{{end}}>Todo</option>
               <option value="in_progress" {{if eq .Issue.Status "in_progress"}}selected{{end}}>In Progress</option>
               <option value="in_review" {{if eq .Issue.Status "in_review"}}selected{{end}}>In Review</option>
@@ -363,7 +363,6 @@
               <option value="cancelled" {{if eq .Issue.Status "cancelled"}}selected{{end}}>Cancelled</option>
               <option value="wont_do" {{if eq .Issue.Status "wont_do"}}selected{{end}}>Won't Do</option>
             </select>
-            <button type="submit" class="mt-1.5 w-full px-2.5 py-1.5 rounded-md text-xs font-medium bg-bd text-ink hover:bg-ink3/40 active:scale-[0.97] transition-all">Update</button>
           </form>
         </div>
 
