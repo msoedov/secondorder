@@ -75,9 +75,16 @@
           <span>Updated {{timeAgo .Page.UpdatedAt}} by {{.UpdatedBy}}</span>
         </div>
       </div>
-      <a href="/wiki/{{.Page.Slug}}/edit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium text-ink3/70 border border-bd hover:bg-sf hover:text-ink transition-colors">
-        Edit
-      </a>
+      <div class="flex items-center gap-2">
+        <a href="/wiki/{{.Page.Slug}}/edit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium text-ink3/70 border border-bd hover:bg-sf hover:text-ink transition-colors">
+          Edit
+        </a>
+        <form method="POST" action="/wiki/{{.Page.Slug}}/delete" onsubmit="return confirmSubmit(this, 'Delete &quot;{{.Page.Title}}&quot;? This cannot be undone.')">
+          <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium text-red-400/80 border border-bd hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors">
+            Delete
+          </button>
+        </form>
+      </div>
     </div>
 
     {{if .Success}}

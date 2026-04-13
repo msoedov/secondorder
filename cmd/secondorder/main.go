@@ -267,6 +267,7 @@ func main() {
 	mux.HandleFunc("GET /wiki/{slug}", ui.WikiView)
 	mux.HandleFunc("GET /wiki/{slug}/edit", ui.WikiEdit)
 	mux.HandleFunc("POST /wiki/{slug}", ui.WikiUpdate)
+	mux.HandleFunc("POST /wiki/{slug}/delete", ui.WikiDelete)
 	mux.HandleFunc("GET /issues/{key}", ui.IssueDetail)
 	mux.HandleFunc("POST /issues/{key}", ui.IssueDetail)
 	mux.HandleFunc("GET /issues/{key}/pr-status", ui.IssuePRStatus)

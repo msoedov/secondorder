@@ -326,6 +326,20 @@ func (u *UI) WikiUpdate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/wiki/"+slug+"?success="+url.QueryEscape("Wiki page updated"), http.StatusSeeOther)
 }
 
+func (u *UI) WikiDelete(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	page, err := u.db.GetWikiPageBySlug(slug)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := u.db.DeleteWikiPage(page.ID); err != nil {
+		http.Redirect(w, r, "/wiki/"+slug+"?error="+url.QueryEscape("Failed to delete wiki page: "+err.Error()), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/wiki?success="+url.QueryEscape("Wiki page deleted"), http.StatusSeeOther)
+}
+
 func wikiAuthorName(agentID *string, names map[string]string) string {
 	if agentID == nil {
 		return "Board"
