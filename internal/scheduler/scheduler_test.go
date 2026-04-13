@@ -659,6 +659,67 @@ func TestCodexEnvVars(t *testing.T) {
 	}
 }
 
+// TestClaudeCodeDisallowedTools verifies --disallowedTools flags are passed per tool.
+func TestClaudeCodeDisallowedTools(t *testing.T) {
+	d := testDB(t)
+	s := New(d, 9001)
+
+	binDir := t.TempDir()
+	makeStub(t, binDir, "claude")
+	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
+
+	tests := []struct {
+		name            string
+		disallowedTools []string
+		wantArgs        []string
+		notWantArgs     []string
+	}{
+		{
+			name:            "no tools",
+			disallowedTools: nil,
+			notWantArgs:     []string{"--disallowedTools"},
+		},
+		{
+			name:            "single tool",
+			disallowedTools: []string{"git"},
+			wantArgs:        []string{"--disallowedTools git"},
+		},
+		{
+			name:            "multiple tools",
+			disallowedTools: []string{"git", "Bash"},
+			wantArgs:        []string{"--disallowedTools git", "--disallowedTools Bash"},
+		},
+		{
+			name:            "empty strings filtered",
+			disallowedTools: []string{"", "git", ""},
+			wantArgs:        []string{"--disallowedTools git"},
+			notWantArgs:     []string{"--disallowedTools  "},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			agent := &models.Agent{
+				Name: "Worker", Slug: "worker", ArchetypeSlug: "worker",
+				Runner: "claude_code", Model: "sonnet",
+				WorkingDir: t.TempDir(), MaxTurns: 10, TimeoutSec: 10,
+				DisallowedTools: tt.disallowedTools,
+			}
+			out, _ := s.execClaudeCode(t.Context(), agent, "key", "run1", "SO-1", "task")
+			for _, want := range tt.wantArgs {
+				if !strings.Contains(out, want) {
+					t.Errorf("expected %q in args, got: %s", want, out)
+				}
+			}
+			for _, notWant := range tt.notWantArgs {
+				if strings.Contains(out, notWant) {
+					t.Errorf("did not expect %q in args, got: %s", notWant, out)
+				}
+			}
+		})
+	}
+}
+
 // TestTokenZeroingForNonClaude verifies token counts are zeroed for non-Claude runners.
 func TestTokenZeroingForNonClaude(t *testing.T) {
 	tests := []struct {
