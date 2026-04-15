@@ -368,7 +368,7 @@ func (s *Scheduler) execClaudeCode(ctx context.Context, agent *models.Agent, api
 	}
 
 	if agent.ArchetypeSlug != "" {
-		if tmpFile, cleanup, err := archetypes.WriteToTemp(agent.ArchetypeSlug); err == nil {
+		if tmpFile, cleanup, err := s.writeSystemPromptTemp(agent); err == nil {
 			defer cleanup()
 			args = append(args, "--append-system-prompt-file", tmpFile)
 		}
@@ -1363,4 +1363,33 @@ func (s *Scheduler) StartAPIKeyExpiryLoop(interval time.Duration) {
 			}
 		}
 	}()
+}
+
+// writeSystemPromptTemp writes the archetype content to a temp file, augmented
+// with business context for CEO agents (so the CEO sees business_type at runtime
+// without needing to re-read ceo.md on every restart).
+func (s *Scheduler) writeSystemPromptTemp(agent *models.Agent) (string, func(), error) {
+	data, err := archetypes.Read(agent.ArchetypeSlug)
+	if err != nil {
+		return "", nil, err
+	}
+	content := string(data)
+	if agent.ArchetypeSlug == "ceo" {
+		if bt, err := s.db.GetSetting("business_type"); err == nil && strings.TrimSpace(bt) != "" {
+			content += "\n\n## Current business context\n\nThe organization you are running has been configured with:\n\n- **Business type:** " + strings.TrimSpace(bt) + "\n\nUse this to inform your catalog browsing, hiring, and delegation decisions. You do not need to ask the user to confirm this — it has been set explicitly.\n"
+		}
+	}
+	safe := strings.ReplaceAll(agent.ArchetypeSlug, "/", "-")
+	tmpFile, err := os.CreateTemp("", safe+"-*.md")
+	if err != nil {
+		return "", nil, err
+	}
+	if _, err := tmpFile.Write([]byte(content)); err != nil {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
+		return "", nil, err
+	}
+	tmpFile.Close()
+	cleanup := func() { os.Remove(tmpFile.Name()) }
+	return tmpFile.Name(), cleanup, nil
 }
