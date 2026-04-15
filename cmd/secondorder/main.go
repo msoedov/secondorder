@@ -146,7 +146,7 @@ func main() {
 
 	for _, bs := range scheduler.CheckBinaries() {
 		if !bs.Found {
-			slog.Warn("binary not found", "binary", bs.Binary, "runner", bs.Runner)
+			slog.Debug("binary not found", "binary", bs.Binary, "runner", bs.Runner)
 		}
 	}
 

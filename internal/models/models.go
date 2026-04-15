@@ -100,7 +100,7 @@ func IsValidModelForRunner(runner, model string) bool {
 func DiscoverOpenCodeModels() {
 	out, err := exec.Command("opencode", "models").Output()
 	if err != nil {
-		slog.Warn("opencode models discovery failed, dropdown will be empty", "error", err)
+		slog.Debug("opencode models discovery failed, dropdown will be empty", "error", err)
 		return
 	}
 	var discovered []string
