@@ -381,7 +381,7 @@ func main() {
 	if t := os.Getenv("DASHBOARD_TOKEN"); t != "" {
 		dashToken = t
 	}
-	handler := handlers.DashboardAuth(dashToken, mux)
+	handler := handlers.AccessLog(handlers.DashboardAuth(dashToken, mux))
 
 	// HTTP server
 	srv := &http.Server{
