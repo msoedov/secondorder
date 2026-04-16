@@ -30,18 +30,6 @@ On first run, bootstraps a default org with 6 agents (CEO, engineer, product, de
 | **Agent roles** | 21 archetypes | Custom | 19 agents | 12 (Tang Dynasty) | Custom | Custom | 38 roles | 14 personas | Unlimited |
 | **Org templates** | 6 (startup, saas, ...) | Portable templates | Team presets | Single template | None | None | 6 templates | Single template | 100+ templates |
 
-### Runners & model support
-
-| | Mesa | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
-|--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
-| **Claude** | Yes | Yes | Yes (primary) | Yes | Yes | Yes | Via ClawAPI | Yes (primary) | Yes |
-| **Codex (OpenAI)** | Yes | Yes | Yes | No | Yes | Yes | Yes | No | Yes |
-| **Gemini** | Yes | No | Yes | No | Yes | No | Yes | No | Yes |
-| **GitHub Copilot** | Yes | Yes | No | No | No | No | No | No | No |
-| **OpenCode** | Yes | No | No | No | No | No | No | No | No |
-| **Ollama / local** | No | No | No | No | Yes | No | Yes | No | No |
-| **Model routing** | Per-agent | Per-agent | Auto (Haiku/Opus) | Per-agent | Per-agent | Per-agent | Auto (Opus/Flash) | Fixed | Per-step |
-| **200+ models** | No | No | No | No | Via providers | No | No | No | Yes |
 
 ### Governance & autonomy
 
@@ -56,19 +44,6 @@ On first run, bootstraps a default org with 6 agents (CEO, engineer, product, de
 | **Budget enforcement** | Per-agent daily limits (hard) | Per-agent monthly (hard) | Token analytics | No | No | No | Cost routing | No | Usage-based |
 | **Human intervention** | Approval gates + dashboard | Pause/override/terminate | Manual | Stop/cancel/resume | Optional | No | No | Zero (fully autonomous) | Checkpoints |
 
-### Integrations & interface
-
-| | Mesa | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
-|--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
-| **Dashboard** | SSE + HTMX (real-time) | Web UI | HUD statusline (TUI) | React (10 panels) | Optional | TUI + web portal | WebChat | None | Visual IDE |
-| **Discord** | Yes | No | Yes | No | No | Yes | Yes | No | No |
-| **Telegram** | Yes (approvals) | No | Yes | Yes (Feishu) | No | Yes | Yes | No | No |
-| **Slack** | No | No | Yes | No | No | No | No | No | No |
-| **GitHub** | Copilot runner + webhooks | Yes | No | Gitee + GitHub | No | No | No | No | No |
-| **Webhooks** | Inbound + outbound | No | Yes | No | No | No | No | No | Yes |
-| **Wiki / knowledge base** | Built-in (agent + human) | No | Skill files | Skills + templates | No | No | 4-layer memory | consensus.md | No |
-| **REST API** | 18+ endpoints | Yes | No (CLI only) | Yes | Python SDK | No | No | No | Yes |
-| **Docker** | Yes | Yes | No (tmux) | Yes | Yes | Yes | No | No | N/A |
 
 ### Trade-offs & who it's for
 
