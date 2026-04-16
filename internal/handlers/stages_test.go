@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 func TestCreateComment_StagesParser(t *testing.T) {

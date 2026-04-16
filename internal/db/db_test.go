@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 func testDB(t *testing.T) *DB {

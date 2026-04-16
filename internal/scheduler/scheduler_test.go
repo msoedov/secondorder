@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msoedov/secondorder/internal/archetypes"
-	"github.com/msoedov/secondorder/internal/db"
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/archetypes"
+	"github.com/msoedov/mesa/internal/db"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 // makeStub writes a shell script to dir/name that echoes its args and selected env vars.
@@ -160,8 +160,8 @@ func TestRunAudit(t *testing.T) {
 		t.Errorf("expected explicit runner/model, got %s/%s", ar2.Runner, ar2.Model)
 	}
 
-	// 3. Configuration file support (.secondorder.json)
-	jsonPath := ".secondorder.json"
+	// 3. Configuration file support (.mesa.json)
+	jsonPath := ".mesa.json"
 	jsonContent := `{"audit": {"runner": "codex", "model": "gpt-5.4-thinking"}}`
 	os.WriteFile(jsonPath, []byte(jsonContent), 0644)
 	t.Cleanup(func() { os.Remove(jsonPath) })
@@ -176,8 +176,8 @@ func TestRunAudit(t *testing.T) {
 	}
 	os.Remove(jsonPath) // Remove to test yaml fallback
 
-	// 3b. Configuration file support (.secondorder.yml fallback)
-	ymlPath := ".secondorder.yml"
+	// 3b. Configuration file support (.mesa.yml fallback)
+	ymlPath := ".mesa.yml"
 	ymlContent := `{"audit": {"runner": "gemini", "model": "gemini-3.1-pro"}}`
 	os.WriteFile(ymlPath, []byte(ymlContent), 0644)
 	t.Cleanup(func() { os.Remove(ymlPath) })

@@ -17,10 +17,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/msoedov/secondorder/internal/archetypes"
-	"github.com/msoedov/secondorder/internal/db"
-	"github.com/msoedov/secondorder/internal/models"
-	acvalidator "github.com/msoedov/secondorder/internal/validator"
+	"github.com/msoedov/mesa/internal/archetypes"
+	"github.com/msoedov/mesa/internal/db"
+	"github.com/msoedov/mesa/internal/models"
+	acvalidator "github.com/msoedov/mesa/internal/validator"
 )
 
 type UI struct {
@@ -1526,7 +1526,7 @@ func (u *UI) Settings(w http.ResponseWriter, r *http.Request) {
 
 	gitHubURL := settings["github_url"]
 	if gitHubURL == "" {
-		gitHubURL = "https://github.com/msoedov/secondorder"
+		gitHubURL = "https://github.com/msoedov/mesa"
 	}
 
 	u.render(w, "settings", map[string]any{

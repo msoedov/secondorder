@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 func TestRunDetail_Breadcrumb(t *testing.T) {

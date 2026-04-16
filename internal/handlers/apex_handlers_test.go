@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-	"github.com/msoedov/secondorder/internal/models"
-	"github.com/msoedov/secondorder/internal/templates"
+	"github.com/msoedov/mesa/internal/models"
+	"github.com/msoedov/mesa/internal/templates"
 )
 
 func TestApexBlockHandlers(t *testing.T) {

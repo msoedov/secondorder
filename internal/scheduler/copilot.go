@@ -16,9 +16,9 @@ import (
 
 	"log/slog"
 
-	"github.com/msoedov/secondorder/internal/archetypes"
-	"github.com/msoedov/secondorder/internal/db"
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/archetypes"
+	"github.com/msoedov/mesa/internal/db"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 const copilotAPIURL = "https://api.githubcopilot.com/chat/completions"
@@ -318,7 +318,7 @@ func executeTool(name, argsJSON, workingDir, agentID, runID string, database *db
 				}
 			}
 		}
-		tags = append(tags, "secondorder")
+		tags = append(tags, "mesa")
 		payload := map[string]interface{}{"content": content, "tags": tags}
 		body, _ := json.Marshal(payload)
 		req, err := http.NewRequest("POST", "https://api.supermemory.ai/v3/documents", bytes.NewReader(body))
@@ -598,10 +598,10 @@ func (s *Scheduler) execCopilot(ctx context.Context, agent *models.Agent, soAPIK
 		systemParts = append(systemParts, "## Working Memory\n\n"+string(data))
 	}
 
-	// Inject secondorder API connection info
-	systemParts = append(systemParts, fmt.Sprintf(`## secondorder API
+	// Inject mesa API connection info
+	systemParts = append(systemParts, fmt.Sprintf(`## mesa API
 
-You have access to the secondorder task board via REST API at %s.
+You have access to the mesa task board via REST API at %s.
 Your API key: %s
 Your agent ID: %s
 Current issue key: %s

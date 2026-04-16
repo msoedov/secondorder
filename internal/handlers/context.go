@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 type ctxKey string

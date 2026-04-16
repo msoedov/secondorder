@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/msoedov/secondorder/internal/db"
+	"github.com/msoedov/mesa/internal/db"
 )
 
 func TestSupermemoryEventsRoundtrip(t *testing.T) {

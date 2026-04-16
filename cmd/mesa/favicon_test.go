@@ -4,7 +4,7 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/msoedov/secondorder/static"
+	"github.com/msoedov/mesa/static"
 )
 
 func TestStaticFS(t *testing.T) {

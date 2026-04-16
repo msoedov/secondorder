@@ -15,10 +15,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/msoedov/secondorder/internal/archetypes"
-	"github.com/msoedov/secondorder/internal/db"
-	"github.com/msoedov/secondorder/internal/models"
-	acvalidator "github.com/msoedov/secondorder/internal/validator"
+	"github.com/msoedov/mesa/internal/archetypes"
+	"github.com/msoedov/mesa/internal/db"
+	"github.com/msoedov/mesa/internal/models"
+	acvalidator "github.com/msoedov/mesa/internal/validator"
 	"html/template"
 )
 

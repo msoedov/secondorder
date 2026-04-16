@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/models"
 )
 
-const githubCommitsAPI = "https://api.github.com/repos/msoedov/secondorder/commits/main"
+const githubCommitsAPI = "https://api.github.com/repos/msoedov/mesa/commits/main"
 
 type versionCheckResult struct {
 	CurrentDate string `json:"current_date"`

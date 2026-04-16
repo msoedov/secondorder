@@ -6,8 +6,8 @@ import (
 	"html/template"
 	"time"
 
-	"github.com/msoedov/secondorder/internal/db"
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/db"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 func LogActivityAndBroadcast(database *db.DB, sse *SSEHub, tmpl *template.Template, action, entityType, entityID string, agentID *string, details string) error {

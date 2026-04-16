@@ -18,5 +18,5 @@ Transition all agents currently configured with 'o3' to use the 'gpt-4o' model. 
 
 ## Consequences
 - Agents will now use 'gpt-4o' by default.
-- DevOps must update all relevant `.secondorder.json` or system configuration files.
+- DevOps must update all relevant `.mesa.json` or system configuration files.
 - Any model-specific features of 'o3' will not be available until support is re-evaluated.

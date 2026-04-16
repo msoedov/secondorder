@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the design and implementation of the PR review status indicator added to the secondorder issue detail view.
+This document describes the design and implementation of the PR review status indicator added to the mesa issue detail view.
 
 ## Problem
 
@@ -74,7 +74,7 @@ Browser ──GET /issues/{key}──► IssueDetail (ui.go)
 ```
 ┌─────────────────────────────┐
 │  PR STATUS                  │
-│  ↗ msoedov/secondorder#17   │
+│  ↗ msoedov/mesa#17   │
 │  ✅ Approved (2)            │
 └─────────────────────────────┘
 ```
@@ -83,7 +83,7 @@ Browser ──GET /issues/{key}──► IssueDetail (ui.go)
 ```
 ┌────────────────────────────────────────┐
 │  PR STATUS                             │
-│  ↗ msoedov/secondorder#17             │
+│  ↗ msoedov/mesa#17             │
 │  ⚠️ Changes Requested                 │
 │  ⚠ coderabbitai has blocking comments │
 └────────────────────────────────────────┘
@@ -93,7 +93,7 @@ Browser ──GET /issues/{key}──► IssueDetail (ui.go)
 ```
 ┌────────────────────────────────┐
 │  PR STATUS                     │
-│  ↗ msoedov/secondorder#17     │
+│  ↗ msoedov/mesa#17     │
 │  ⚠ PR status unavailable      │
 └────────────────────────────────┘
 ```

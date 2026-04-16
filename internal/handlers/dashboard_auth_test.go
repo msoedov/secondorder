@@ -111,7 +111,7 @@ func TestDashboardAuth_LoginPageRendersTemplate(t *testing.T) {
 	handler.ServeHTTP(w, req)
 
 	body := w.Body.String()
-	for _, want := range []string{"Dashboard Access", "Access Token", "auth.html", "Second Order"} {
+	for _, want := range []string{"Dashboard Access", "Access Token", "auth.html", "Mesa"} {
 		if want == "auth.html" {
 			// just verify it's not the old inline HTML (no "auth.html" literal expected)
 			continue

@@ -32,7 +32,7 @@ func TestExtractPRURLs_NoPRs(t *testing.T) {
 
 func TestExtractPRURLs_SinglePR(t *testing.T) {
 	bodies := []string{
-		"See https://github.com/msoedov/secondorder/pull/17 for the fix.",
+		"See https://github.com/msoedov/mesa/pull/17 for the fix.",
 	}
 	prs := ExtractPRURLs(bodies)
 	if len(prs) != 1 {
@@ -42,13 +42,13 @@ func TestExtractPRURLs_SinglePR(t *testing.T) {
 	if pr.Owner != "msoedov" {
 		t.Errorf("Owner = %q, want msoedov", pr.Owner)
 	}
-	if pr.Repo != "secondorder" {
-		t.Errorf("Repo = %q, want secondorder", pr.Repo)
+	if pr.Repo != "mesa" {
+		t.Errorf("Repo = %q, want mesa", pr.Repo)
 	}
 	if pr.Number != 17 {
 		t.Errorf("Number = %d, want 17", pr.Number)
 	}
-	if pr.URL != "https://github.com/msoedov/secondorder/pull/17" {
+	if pr.URL != "https://github.com/msoedov/mesa/pull/17" {
 		t.Errorf("URL = %q unexpected", pr.URL)
 	}
 }

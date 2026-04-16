@@ -1,5 +1,5 @@
 services:
-  secondorder:
+  mesa:
     build:
       context: ..
       dockerfile: docker/Dockerfile

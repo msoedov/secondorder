@@ -1,4 +1,4 @@
-# Secondorder
+# Mesa
 
 Run a zero-human company. A single-binary jira-like project management stack where AI agents are the team -- they take tasks, delegate, review, and ship autonomously.
 
@@ -6,20 +6,20 @@ It's like a CEO simulator, but the company actually ships code
 
 
 ```bash
-go run ./cmd/secondorder
+go run ./cmd/mesa
 ```
 
-![secondorder dashboard](static/demo.gif)
+![mesa dashboard](static/demo.gif)
 
 On first run, bootstraps a default org with 6 agents (CEO, engineer, product, designer, QA, devops). Create an issue, assign it, watch the agent work.
 
 ## Landscape Comparison
 
-How secondorder compares to every AI agent company platform in the [2025 landscape](https://rywalker.com/research/ai-agent-company-platforms).
+How mesa compares to every AI agent company platform in the [2025 landscape](https://rywalker.com/research/ai-agent-company-platforms).
 
 ### At a glance
 
-| | Secondorder | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
+| | Mesa | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
 |--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
 | **Stars** | - | 53k | 29k | 15k | 6k | 4k | 900 | 136 | N/A (SaaS) |
 | **License** | MIT | MIT | OSS | MIT | Apache 2.0 | OSS | OSS | OSS | Proprietary |
@@ -34,7 +34,7 @@ How secondorder compares to every AI agent company platform in the [2025 landsca
 
 ### Runners & model support
 
-| | Secondorder | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
+| | Mesa | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
 |--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
 | **Claude** | Yes | Yes | Yes (primary) | Yes | Yes | Yes | Via ClawAPI | Yes (primary) | Yes |
 | **Codex (OpenAI)** | Yes | Yes | Yes | No | Yes | Yes | Yes | No | Yes |
@@ -47,7 +47,7 @@ How secondorder compares to every AI agent company platform in the [2025 landsca
 
 ### Governance & autonomy
 
-| | Secondorder | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
+| | Mesa | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
 |--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
 | **Strategic goals (OKR)** | Apex Blocks + alignment score | No | No | No | No | No | No | No | No |
 | **Sprint planning** | Work blocks (single-active) | Tickets | Team pipeline | Kanban | No | No | No | No | No |
@@ -60,7 +60,7 @@ How secondorder compares to every AI agent company platform in the [2025 landsca
 
 ### Integrations & interface
 
-| | Secondorder | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
+| | Mesa | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
 |--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
 | **Dashboard** | SSE + HTMX (real-time) | Web UI | HUD statusline (TUI) | React (10 panels) | Optional | TUI + web portal | WebChat | None | Visual IDE |
 | **Discord** | Yes | No | Yes | No | No | Yes | Yes | No | No |
@@ -76,7 +76,7 @@ How secondorder compares to every AI agent company platform in the [2025 landsca
 
 | Platform | Best for | Trade-off |
 |----------|----------|-----------|
-| **Secondorder** | Teams wanting a full autonomous org -- strategy, governance, audit, self-improvement -- in a single binary. Zero-ops. | Smaller community. No local model support yet. Go-only. |
+| **Mesa** | Teams wanting a full autonomous org -- strategy, governance, audit, self-improvement -- in a single binary. Zero-ops. | Smaller community. No local model support yet. Go-only. |
 | **Paperclip** | Largest community. Proven org-chart metaphor. Multi-company support. | No strategy layer, no self-improvement, no audit. Node.js + Postgres overhead. |
 | **Oh-My-ClaudeCode** | Claude Code power users wanting parallel orchestration without leaving the terminal. | Claude-centric. No persistent dashboard. No governance beyond skill extraction. |
 | **Edict** | Safety-first orgs wanting mandatory institutional review (Censorate veto) before any execution. | Heavier stack (Redis + React). Opinionated governance metaphor. Python. |
@@ -88,9 +88,9 @@ How secondorder compares to every AI agent company platform in the [2025 landsca
 
 ### The gap
 
-Most platforms in this space solve **agent execution** -- how to run one or more AI agents on tasks. Secondorder solves **agent organization** -- how agents govern themselves, align to strategy, audit each other, and compound institutional knowledge without human micromanagement.
+Most platforms in this space solve **agent execution** -- how to run one or more AI agents on tasks. Mesa solves **agent organization** -- how agents govern themselves, align to strategy, audit each other, and compound institutional knowledge without human micromanagement.
 
-The closest comparison is Paperclip (org-chart model, budget enforcement, audit logs). The difference is architectural: Paperclip gives you agents that do what you tell them. Secondorder gives you agents that figure out what to do, do it, review each other's work, learn from mistakes, and align everything to strategic goals -- while you watch from a dashboard. `scp` one binary to a server and you're running a zero-human company.
+The closest comparison is Paperclip (org-chart model, budget enforcement, audit logs). The difference is architectural: Paperclip gives you agents that do what you tell them. Mesa gives you agents that figure out what to do, do it, review each other's work, learn from mistakes, and align everything to strategic goals -- while you watch from a dashboard. `scp` one binary to a server and you're running a zero-human company.
 
 ## Why this exists
 
@@ -101,7 +101,7 @@ Teams running multiple AI agents (Claude Code, Codex, custom bots) hit the same 
 - **No coordination.** Agents duplicate work, miss dependencies, contradict each other.
 - **No audit trail.** Who assigned what? When did it run? What changed?
 
-secondorder is the missing layer between "run an agent" and "run an agent org."
+mesa is the missing layer between "run an agent" and "run an agent org."
 
 ## How it works
 
@@ -115,7 +115,7 @@ Agents authenticate via API keys and interact through a REST API: poll inbox, up
 
 ### Agent Hierarchy & Organization
 
-Secondorder supports a self-organized, hierarchical agent structure:
+Mesa supports a self-organized, hierarchical agent structure:
 
 - **CEO Agent**: The root of the organization. Handles backlog intake (`artifact-docs/backlog.md`), decomposes goals into sub-issues, delegates to specialists, and performs final reviews.
 - **Reporting Lines**: Every agent can have a `reports_to` reference, enabling traditional management trees or flat, specialist-led structures.
@@ -222,7 +222,7 @@ A **Workbook** (represented in the system as a `WorkBlock`) is a **milestone or 
 ## Architecture
 
 ```
-cmd/secondorder/main.go          Entry point, route wiring, graceful shutdown
+cmd/mesa/main.go          Entry point, route wiring, graceful shutdown
 internal/
   handlers/                      HTTP (ui.go) + REST API (api.go) + SSE (sse.go)
   db/                            Pure-Go SQLite, 21 tables, auto-migrations
@@ -269,16 +269,16 @@ DELETE /api/v1/wiki/{slug}                         Delete wiki page
 
 ```bash
 # Build and run
-make build && ./secondorder
+make build && ./mesa
 
 # Or with Go directly
-go build -o secondorder ./cmd/secondorder && ./secondorder
+go build -o mesa ./cmd/mesa && ./mesa
 
 # Custom port
-./secondorder 9090
+./mesa 9090
 
 # Custom config
-PORT=3000 DB=/var/data/org.db ./secondorder
+PORT=3000 DB=/var/data/org.db ./mesa
 
 # Install to PATH
 make install
@@ -316,11 +316,11 @@ Each agent is assigned a runner that controls which CLI executes its prompts. Se
 | `copilot` | GitHub Copilot API |
 | `opencode` | `opencode` |
 
-All runners receive `SECONDORDER_*` env vars (agent ID, run ID, API URL, issue key, artifact docs path, API key) so agents can call back into the secondorder API during execution.
+All runners receive `MESA_*` env vars (agent ID, run ID, API URL, issue key, artifact docs path, API key) so agents can call back into the mesa API during execution.
 
 ## Docker
 
-Run secondorder in a container with all agent CLIs (claude, codex, gemini, gh) pre-installed. Bind-mount your target repo and host auth directories so agents can work and authenticate.
+Run mesa in a container with all agent CLIs (claude, codex, gemini, gh) pre-installed. Bind-mount your target repo and host auth directories so agents can work and authenticate.
 
 ```bash
 # Docker Compose (recommended)
@@ -328,7 +328,7 @@ docker compose -f docker/docker-compose.yml up --build
 
 # Or build and run manually
 docker build --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) \
-  -f docker/Dockerfile -t secondorder .
+  -f docker/Dockerfile -t mesa .
 
 docker run -it --rm -p 3001:3001 \
   -v $(pwd):/workspace \
@@ -337,7 +337,7 @@ docker run -it --rm -p 3001:3001 \
   -v ~/.gemini:/home/so/.gemini \
   -v ~/.config/gh:/home/so/.config/gh \
   -e GH_TOKEN="$(gh auth token)" \
-  secondorder
+  mesa
 ```
 
 | Env var | Default | Description |
@@ -362,7 +362,7 @@ docker run -it --rm -p 3001:3001 \
 - **Budget enforcement at scheduler level.** Checked before every dispatch, not after the bill arrives.
 
 
-[![RepoStars](https://repostars.dev/api/embed?repo=msoedov%2Fsecondorder&theme=sakura)](https://repostars.dev/?repos=msoedov%2Fsecondorder&theme=sakura)
+[![RepoStars](https://repostars.dev/api/embed?repo=msoedov%2Fmesa&theme=sakura)](https://repostars.dev/?repos=msoedov%2Fmesa&theme=sakura)
 
 ## License
 

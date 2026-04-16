@@ -1,6 +1,6 @@
 # Retro: Audit & Self-Improvement
 
-The retro system is SecondOrder's self-improvement loop. It reviews completed work, identifies performance patterns, produces short actionable policies, and proposes archetype updates -- all with human approval gates.
+The retro system is Mesa's self-improvement loop. It reviews completed work, identifies performance patterns, produces short actionable policies, and proposes archetype updates -- all with human approval gates.
 
 ## Concept
 
@@ -25,7 +25,7 @@ Navigate to `/policies` and click **Run Audit**. Configure:
 - **Focus** (optional) -- Free-text prompt guiding what the auditor should focus on (e.g. "Focus on backend agent retry rates and missing test coverage")
 
 ### Configuration File
-You can also configure the default audit runner and model via a `.secondorder.yml` (or `.secondorder.json`) file in the project root:
+You can also configure the default audit runner and model via a `.mesa.yml` (or `.mesa.json`) file in the project root:
 
 ```json
 {
@@ -165,7 +165,7 @@ The auditor agent must exist in the agents table:
 {"name": "Auditor", "slug": "auditor", "archetype_slug": "auditor", "model": "sonnet"}
 ```
 
-It is included in the default startup template (`cmd/secondorder/templates/startup.json`). If agents were created before the auditor was added, create it manually via `/agents` or direct DB insert.
+It is included in the default startup template (`cmd/mesa/templates/startup.json`). If agents were created before the auditor was added, create it manually via `/agents` or direct DB insert.
 
 ## Design Principles
 

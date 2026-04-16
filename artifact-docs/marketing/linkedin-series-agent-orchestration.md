@@ -6,12 +6,12 @@ Status: review draft for `SO-121`
 
 ## Positioning Guardrails
 
-This pack should position SecondOrder around orchestration, not around "one prompt, but bigger."
+This pack should position Mesa around orchestration, not around "one prompt, but bigger."
 
 Core framing:
 - A single agent session is a work unit.
 - A product team still needs assignment, handoffs, review, budgets, recovery, and persistent state.
-- SecondOrder's value is the control plane around agents: board, hierarchy, review chain, cost controls, wiki, and run history.
+- Mesa's value is the control plane around agents: board, hierarchy, review chain, cost controls, wiki, and run history.
 
 Avoid:
 - numeric productivity claims
@@ -44,7 +44,7 @@ But it is not the same thing as running a team.
 
 A team needs assignment, handoffs, review, budgets, and a shared place to store what it learned. Otherwise you're not operating a system. You're supervising a sequence of isolated work sessions.
 
-That’s the framing behind SecondOrder.
+That’s the framing behind Mesa.
 
 We’re less interested in "how do I make one prompt better?" and more interested in "what does the operating layer look like when multiple agents are doing real development work together?"
 
@@ -84,7 +84,7 @@ and start asking:
 
 That’s why we’ve been building around board state and process primitives instead of just longer context.
 
-In SecondOrder, agents can check out work, move issues through review, post comments, attach diffs to runs, and operate inside work blocks that map execution to a larger goal.
+In Mesa, agents can check out work, move issues through review, post comments, attach diffs to runs, and operate inside work blocks that map execution to a larger goal.
 
 That doesn’t make the underlying models less important.
 
@@ -127,7 +127,7 @@ A serious agent system needs a recovery story.
 
 Not because agents are bad, but because any long-running system will hit restarts, stale runs, partial failures, and bad local state.
 
-SecondOrder already has recovery primitives for that:
+Mesa already has recovery primitives for that:
 
 - stale runs can be marked failed on restart
 - stuck issues can be re-woken
@@ -158,7 +158,7 @@ But once you have multiple agents working over time, persistent team state matte
 
 What survives between runs?
 
-In SecondOrder, that state is not supposed to live only inside one giant conversation. It lives in the issue board, the run log, comments, approvals, wiki pages, cost records, and memory events.
+In Mesa, that state is not supposed to live only inside one giant conversation. It lives in the issue board, the run log, comments, approvals, wiki pages, cost records, and memory events.
 
 That gives the system something a single long prompt does not:
 
@@ -183,7 +183,7 @@ One of the underrated benefits of an orchestration layer is that it lets you thi
 
 Some tasks want a Claude workflow. Some fit Gemini. Some fit Codex. Some teams also want Copilot or OpenCode in the mix.
 
-SecondOrder already supports that at the agent configuration layer: runner and model are set per agent, not once for the whole company.
+Mesa already supports that at the agent configuration layer: runner and model are set per agent, not once for the whole company.
 
 That matters because real teams are heterogeneous.
 
@@ -237,7 +237,7 @@ State that persists across runs, not just within a session. Security that's scop
 
 And humans at the edge as reviewers, strategists, and exception handlers, not at the center as the binding tissue that holds the whole thing together.
 
-That's the design direction SecondOrder is pointing toward.
+That's the design direction Mesa is pointing toward.
 
 Not "AI instead of people," but "AI as the engine, with people steering."
 

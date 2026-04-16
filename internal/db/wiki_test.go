@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 // --- Wiki Pages CRUD Tests ---

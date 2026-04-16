@@ -1,10 +1,10 @@
-# SecondOrder v2 Architecture: Simplified Agent Orchestration
+# Mesa v2 Architecture: Simplified Agent Orchestration
 
 ## Overview
 
-SecondOrder is a lean orchestration layer for autonomous AI agents. A CEO agent handles triage, delegation, and review -- it never does implementation work itself. All other agents are fire-and-forget subprocesses that communicate exclusively through API callbacks. Token usage is minimized because context lives in files (archetypes + artifact-docs), not in prompts. All agents have Chrome browser automation available via `--chrome`.
+Mesa is a lean orchestration layer for autonomous AI agents. A CEO agent handles triage, delegation, and review -- it never does implementation work itself. All other agents are fire-and-forget subprocesses that communicate exclusively through API callbacks. Token usage is minimized because context lives in files (archetypes + artifact-docs), not in prompts. All agents have Chrome browser automation available via `--chrome`.
 
-https://github.com/msoedov/secondorder
+https://github.com/msoedov/mesa
 
 
 ## Core Principles
@@ -136,7 +136,7 @@ The agent receives:
 ```
 POST /api/v1/issues/{key}/checkout
 Authorization: Bearer $SO_API_KEY
-{ "agentId": "$SECONDORDER_AGENT_ID", "expectedStatuses": ["todo", "backlog"] }
+{ "agentId": "$MESA_AGENT_ID", "expectedStatuses": ["todo", "backlog"] }
 ```
 
 Atomic: fails if issue is not in expected status (prevents double-checkout). Sets status to `in_progress`.
@@ -282,20 +282,20 @@ Includes issue title, description, recent comments (last 5), plus the role-speci
 ## Environment Variables (Agent Subprocess)
 
 ```
-SECONDORDER_AGENT_ID={agent-uuid}
-SECONDORDER_AGENT_NAME={agent-name}
-SECONDORDER_RUN_ID={run-uuid}
-SECONDORDER_API_URL=http://localhost:{port}
-SECONDORDER_ISSUE_KEY={issue-key}
-SECONDORDER_ARTIFACT_DOCS={working_dir}/artifact-docs
+MESA_AGENT_ID={agent-uuid}
+MESA_AGENT_NAME={agent-name}
+MESA_RUN_ID={run-uuid}
+MESA_API_URL=http://localhost:{port}
+MESA_ISSUE_KEY={issue-key}
+MESA_ARTIFACT_DOCS={working_dir}/artifact-docs
 SO_API_KEY={auto-provisioned-raw-key}
 ```
 
 ## File Structure
 
 ```
-secondorder/
-  cmd/secondorder/
+mesa/
+  cmd/mesa/
     main.go                # entry point, template application, logrus init
     templates/             # org templates (startup.json, dev-team.json, etc.)
   internal/
@@ -400,7 +400,7 @@ A work block is a shippable unit of work -- analogous to a sprint in Agile but s
 - A work block contains a set of issues that together form a complete, deployable increment
 - The CEO delegates and orchestrates issues within a work block toward a single shippable goal
 - Each block has a clear definition of done: all grouped issues completed, reviewed, and approved
-- Deployment is handled **outside** the system -- SecondOrder produces the work, humans ship it
+- Deployment is handled **outside** the system -- Mesa produces the work, humans ship it
 
 ### Lifecycle
 
@@ -420,7 +420,7 @@ Board creates work block (title, goal, issues)
 - **Atomic scope**: a block should be small enough to demo or deploy in one shot
 - **Human gate**: blocks require explicit human approval before deployment -- agents produce, humans ship
 - **Iterative**: each block is a complete iteration, not a partial milestone. If something isn't done, it stays in the next block
-- **No deployment automation**: SecondOrder orchestrates the work, not the release. Deployment tooling, CI/CD, and release processes live outside the system
+- **No deployment automation**: Mesa orchestrates the work, not the release. Deployment tooling, CI/CD, and release processes live outside the system
 
 ### Relationship to Issues
 
@@ -457,7 +457,7 @@ PATCH /api/v1/wiki/deployment-runbook
 {"content": "## Updated Steps\n1. ..."}
 ```
 
-The wiki complements artifact-docs: artifact-docs live in the project repo (git-tracked, per-project), while wiki pages live in the secondorder database (cross-project, queryable, UI-editable).
+The wiki complements artifact-docs: artifact-docs live in the project repo (git-tracked, per-project), while wiki pages live in the mesa database (cross-project, queryable, UI-editable).
 
 ## Browser Automation
 

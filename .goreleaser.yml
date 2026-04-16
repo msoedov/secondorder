@@ -5,9 +5,9 @@ before:
     - go mod tidy
 
 builds:
-  - id: secondorder
-    main: ./cmd/secondorder
-    binary: secondorder
+  - id: mesa
+    main: ./cmd/mesa
+    binary: mesa
     env:
       - CGO_ENABLED=0
     goos:
@@ -39,6 +39,6 @@ changelog:
 release:
   github:
     owner: msoedov
-    name: secondorder
+    name: mesa
   draft: false
   prerelease: auto

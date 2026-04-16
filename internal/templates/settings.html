@@ -188,7 +188,7 @@
           if (d.up_to_date) {
             el.innerHTML = '<span class="text-emerald-400">Up to date</span> &mdash; latest commit <span class="font-mono">' + d.latest_sha + '</span> (' + d.latest_date + ')';
           } else {
-            el.innerHTML = '<span class="text-yellow-400">Update available</span> &mdash; latest commit <span class="font-mono">' + d.latest_sha + '</span> (' + d.latest_date + '). Your build: ' + (d.current_date || 'unknown') + '. <a href="https://github.com/msoedov/secondorder" target="_blank" rel="noopener noreferrer" class="text-ac-t underline">View on GitHub</a>';
+            el.innerHTML = '<span class="text-yellow-400">Update available</span> &mdash; latest commit <span class="font-mono">' + d.latest_sha + '</span> (' + d.latest_date + '). Your build: ' + (d.current_date || 'unknown') + '. <a href="https://github.com/msoedov/mesa" target="_blank" rel="noopener noreferrer" class="text-ac-t underline">View on GitHub</a>';
           }
         })
         .catch(function(err) {

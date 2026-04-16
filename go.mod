@@ -1,4 +1,4 @@
-module github.com/msoedov/secondorder
+module github.com/msoedov/mesa
 
 go 1.26.1
 

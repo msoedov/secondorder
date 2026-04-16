@@ -1,7 +1,7 @@
 # Decision: API Key Rotation and Manual Status Updates
 
 ## Context
-During the heartbeat check on 2026-04-03, the CEO agent encountered an `invalid api key` error when attempting to call the SecondOrder API. Investigation of the `api_keys` table revealed that the API key for the CEO agent (`ca45a966-cc30-4610-998d-c2829271eeed`) had been rotated, but the environment variable `SECONDORDER_API_KEY` was not updated in the current session.
+During the heartbeat check on 2026-04-03, the CEO agent encountered an `invalid api key` error when attempting to call the Mesa API. Investigation of the `api_keys` table revealed that the API key for the CEO agent (`ca45a966-cc30-4610-998d-c2829271eeed`) had been rotated, but the environment variable `MESA_API_KEY` was not updated in the current session.
 
 ## Decision
 Due to being blocked by the API key rotation, the CEO agent performed the following actions manually via direct database access:

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/msoedov/secondorder/internal/templates"
+	"github.com/msoedov/mesa/internal/templates"
 )
 
 // clientIP returns the best-guess remote address, honoring X-Forwarded-For

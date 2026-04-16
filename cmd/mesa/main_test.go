@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/msoedov/secondorder/internal/db"
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/db"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 func TestApplyStartupTemplateUsesDefaultAgentTimeout(t *testing.T) {

@@ -3,7 +3,7 @@ package validator
 import (
 	"testing"
 
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 func TestValidateStages(t *testing.T) {

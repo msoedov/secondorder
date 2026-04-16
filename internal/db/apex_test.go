@@ -2,7 +2,7 @@ package db
 
 import (
 	"testing"
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 func TestApexBlockCRUD(t *testing.T) {

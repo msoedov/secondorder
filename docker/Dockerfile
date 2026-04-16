@@ -5,7 +5,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o /secondorder ./cmd/secondorder
+RUN CGO_ENABLED=0 go build -o /mesa ./cmd/mesa
 
 # Stage 2: Runtime image
 FROM debian:bookworm-slim
@@ -46,7 +46,7 @@ RUN groupadd --gid ${USER_GID} so \
     && useradd --uid ${USER_UID} --gid ${USER_GID} --create-home --shell /bin/bash so
 
 # Copy the compiled binary
-COPY --from=builder /secondorder /usr/local/bin/secondorder
+COPY --from=builder /mesa /usr/local/bin/mesa
 
 # Pre-create auth mount points owned by so
 RUN mkdir -p \

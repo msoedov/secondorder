@@ -1,11 +1,11 @@
-# Contributing to secondorder
+# Contributing to mesa
 
 ## Quick start
 
 ```bash
-go build -o secondorder ./cmd/secondorder
+go build -o mesa ./cmd/mesa
 go test ./...
-./secondorder
+./mesa
 ```
 
 Open `http://localhost:3001`. On first run, a default org (CEO + 5 agents) is bootstrapped automatically.
@@ -13,7 +13,7 @@ Open `http://localhost:3001`. On first run, a default org (CEO + 5 agents) is bo
 ## Project structure
 
 ```
-cmd/secondorder/
+cmd/mesa/
   main.go                 Entry point, env config, route wiring
   templates/              Bootstrap org templates (dev-team.json, startup.json)
 internal/
@@ -31,7 +31,7 @@ artifact-docs/            Generated documentation artifacts
 
 ## How it works
 
-secondorder is a single-binary Go application. Server-rendered HTML (Go templates + HTMX), pure-Go SQLite (modernc.org/sqlite), SSE for real-time updates. No JavaScript framework, no external database, no build pipeline.
+mesa is a single-binary Go application. Server-rendered HTML (Go templates + HTMX), pure-Go SQLite (modernc.org/sqlite), SSE for real-time updates. No JavaScript framework, no external database, no build pipeline.
 
 **Recursive governance:** The system governs itself. A CEO agent triages and delegates. An auditor agent reviews performance across runs, identifies failure patterns, and proposes archetype patches. Agents review other agents' work up the reporting chain. Humans approve structural changes but don't need to diagnose problems.
 

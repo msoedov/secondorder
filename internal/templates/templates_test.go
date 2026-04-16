@@ -41,7 +41,7 @@ func TestExtractProject(t *testing.T) {
 		{"fix(ui): activity feed timeAgo timestamps freeze", "ui"},
 		{"fix(scheduler): auto-cleanup stale runs", "scheduler"},
 		// bare prefix (no verb)
-		{"secondorder: update config", "secondorder"},
+		{"mesa: update config", "mesa"},
 		// no scope → empty
 		{"add something without scope", ""},
 		{"SO-55: some issue", ""},

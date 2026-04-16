@@ -1,6 +1,6 @@
 # Issue Lifecycle
 
-This document describes the lifecycle of an issue within SecondOrder, including its states, transitions, and the operations that trigger them.
+This document describes the lifecycle of an issue within Mesa, including its states, transitions, and the operations that trigger them.
 
 ## State Diagram (ASCII)
 

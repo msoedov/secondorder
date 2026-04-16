@@ -1,4 +1,4 @@
-# SecondOrder Brand System
+# Mesa Brand System
 ## Design Tokens & UI Architecture Reference
 _Updated: 2026-04-09 | Replaces SO-10 version (2026-03-28)_
 
@@ -144,23 +144,15 @@ The compressed scale (10–14px) is intentional for a dense task management tool
 
 ### Name and wordmark
 
-Brand: **2ND Order**
+Brand: **Mesa**
 Tagline: **Zero human company**
 
 The wordmark is rendered inline in the nav header using HTML/CSS — no image asset:
 
 ```html
-<h1 class="text-sm font-semibold tracking-tight text-ink leading-none">
-  <span class="inline-flex items-baseline">
-    <span class="text-[17px] font-bold tabular-nums">2</span>
-    <sup class="text-[12px] font-bold text-ac-t relative" style="top:-0.7em">ND</sup>
-  </span>
-  <span class="ml-[2px]" style="font-size:15px">Order</span>
-</h1>
+<h1 class="text-[17px] font-bold tracking-tight text-ink leading-none">Mesa</h1>
 <p class="text-[10px] text-ink3/[0.50] mt-1 tracking-widest uppercase">Zero human company</p>
 ```
-
-The superscript "ND" uses `text-ac-t` (accent text color), giving the wordmark a single accent touch point.
 
 ### Favicon
 

@@ -17,10 +17,23 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-	"github.com/msoedov/secondorder/internal/archetypes"
-	"github.com/msoedov/secondorder/internal/db"
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/archetypes"
+	"github.com/msoedov/mesa/internal/db"
+	"github.com/msoedov/mesa/internal/models"
 )
+
+// agentEnv returns MESA_* env vars injected into agent subprocesses.
+func agentEnv(agentID, agentName, runID, apiURL, issueKey, artifactDocs, apiKey string) []string {
+	return []string{
+		"MESA_AGENT_ID=" + agentID,
+		"MESA_AGENT_NAME=" + agentName,
+		"MESA_RUN_ID=" + runID,
+		"MESA_API_URL=" + apiURL,
+		"MESA_ISSUE_KEY=" + issueKey,
+		"MESA_ARTIFACT_DOCS=" + artifactDocs,
+		"MESA_API_KEY=" + apiKey,
+	}
+}
 
 type Scheduler struct {
 	db             *db.DB
@@ -396,15 +409,9 @@ func (s *Scheduler) execClaudeCode(ctx context.Context, agent *models.Agent, api
 	cmd := exec.CommandContext(ctx, "claude", args...)
 	slog.Debug("scheduler: exec", "run_id", runID, "cmd", cmd.String())
 	cmd.Dir = agent.WorkingDir
-	cmd.Env = append(os.Environ(),
-		fmt.Sprintf("SECONDORDER_AGENT_ID=%s", agent.ID),
-		fmt.Sprintf("SECONDORDER_AGENT_NAME=%s", agent.Name),
-		fmt.Sprintf("SECONDORDER_RUN_ID=%s", runID),
-		fmt.Sprintf("SECONDORDER_API_URL=http://localhost:%d", s.port),
-		fmt.Sprintf("SECONDORDER_ISSUE_KEY=%s", issueKey),
-		fmt.Sprintf("SECONDORDER_ARTIFACT_DOCS=%s", filepath.Join(agent.WorkingDir, "artifact-docs")),
-		fmt.Sprintf("SECONDORDER_API_KEY=%s", apiKey),
-	)
+	cmd.Env = append(os.Environ(), agentEnv(agent.ID, agent.Name, runID,
+		fmt.Sprintf("http://localhost:%d", s.port), issueKey,
+		filepath.Join(agent.WorkingDir, "artifact-docs"), apiKey)...)
 
 	// Use liveWriter to stream stdout to DB
 	lw := &liveWriter{
@@ -438,15 +445,9 @@ func (s *Scheduler) execCodex(ctx context.Context, agent *models.Agent, apiKey, 
 	cmd.Dir = agent.WorkingDir
 
 	env := os.Environ()
-	env = append(env,
-		fmt.Sprintf("SECONDORDER_AGENT_ID=%s", agent.ID),
-		fmt.Sprintf("SECONDORDER_AGENT_NAME=%s", agent.Name),
-		fmt.Sprintf("SECONDORDER_RUN_ID=%s", runID),
-		fmt.Sprintf("SECONDORDER_API_URL=http://localhost:%d", s.port),
-		fmt.Sprintf("SECONDORDER_ISSUE_KEY=%s", issueKey),
-		fmt.Sprintf("SECONDORDER_ARTIFACT_DOCS=%s", filepath.Join(agent.WorkingDir, "artifact-docs")),
-		fmt.Sprintf("SECONDORDER_API_KEY=%s", apiKey),
-	)
+	env = append(env, agentEnv(agent.ID, agent.Name, runID,
+		fmt.Sprintf("http://localhost:%d", s.port), issueKey,
+		filepath.Join(agent.WorkingDir, "artifact-docs"), apiKey)...)
 
 	// Handle API key env override
 	if agent.ApiKeyEnv != "" {
@@ -498,15 +499,9 @@ func (s *Scheduler) execGemini(ctx context.Context, agent *models.Agent, apiKey,
 	cmd.Dir = agent.WorkingDir
 
 	env := os.Environ()
-	env = append(env,
-		fmt.Sprintf("SECONDORDER_AGENT_ID=%s", agent.ID),
-		fmt.Sprintf("SECONDORDER_AGENT_NAME=%s", agent.Name),
-		fmt.Sprintf("SECONDORDER_RUN_ID=%s", runID),
-		fmt.Sprintf("SECONDORDER_API_URL=http://localhost:%d", s.port),
-		fmt.Sprintf("SECONDORDER_ISSUE_KEY=%s", issueKey),
-		fmt.Sprintf("SECONDORDER_ARTIFACT_DOCS=%s", filepath.Join(agent.WorkingDir, "artifact-docs")),
-		fmt.Sprintf("SECONDORDER_API_KEY=%s", apiKey),
-	)
+	env = append(env, agentEnv(agent.ID, agent.Name, runID,
+		fmt.Sprintf("http://localhost:%d", s.port), issueKey,
+		filepath.Join(agent.WorkingDir, "artifact-docs"), apiKey)...)
 
 	// Handle API key env override
 	if agent.ApiKeyEnv != "" {
@@ -712,12 +707,19 @@ func (s *Scheduler) RunAudit(maxBlocks, maxIssues int, focus, runner, model stri
 		return "", fmt.Errorf("no auditor agent found -- create one with archetype 'auditor'")
 	}
 
-	// Configuration file support (.secondorder.json or .secondorder.yml)
+	// Configuration file support (.mesa.json or .mesa.yml, with .secondorder.* fallback)
 	if runner == "" || model == "" {
 		var data []byte
 		var err error
-		if data, err = os.ReadFile(".secondorder.json"); err != nil {
-			data, err = os.ReadFile(".secondorder.yml")
+		if data, err = os.ReadFile(".mesa.json"); err != nil {
+			if data, err = os.ReadFile(".mesa.yml"); err != nil {
+				// backward compat: try old config names
+				if data, err = os.ReadFile(".secondorder.json"); err == nil {
+					slog.Warn("deprecated config file .secondorder.json -- rename to .mesa.json")
+				} else if data, err = os.ReadFile(".secondorder.yml"); err == nil {
+					slog.Warn("deprecated config file .secondorder.yml -- rename to .mesa.yml")
+				}
+			}
 		}
 
 		if err == nil {
@@ -896,22 +898,22 @@ INSTRUCTIONS:
    Write background/rationale separately to decisions/.
 
 4. For each archetype that needs improvement, propose a patch via:
-   POST $SECONDORDER_API_URL/api/v1/archetype-patches
-   Headers: Authorization: Bearer $SECONDORDER_API_KEY, X-Audit-Run-ID: %s
+   POST $MESA_API_URL/api/v1/archetype-patches
+   Headers: Authorization: Bearer $MESA_API_KEY, X-Audit-Run-ID: %s
    Body: {"agent_slug": "...", "proposed_content": "...full new archetype content..."}
 
 5. Create feature requests for workflow improvements you identify. Use:
-   POST $SECONDORDER_API_URL/api/v1/issues
+   POST $MESA_API_URL/api/v1/issues
    Body: {"title": "Feature: ...", "description": "...", "priority": 2}
-   These are improvements to the SecondOrder system itself, not project work.
+   These are improvements to the Mesa system itself, not project work.
 
 6. Review artifact-docs for stale or contradictory documentation. Clean up.
 
-SO API (Authorization: Bearer $SECONDORDER_API_KEY):
-  POST   $SECONDORDER_API_URL/api/v1/archetype-patches  - propose archetype change
-  POST   $SECONDORDER_API_URL/api/v1/issues              - create feature request
-  GET    $SECONDORDER_API_URL/api/v1/agents              - list team
-  GET    $SECONDORDER_API_URL/api/v1/work-blocks         - list work blocks
+SO API (Authorization: Bearer $MESA_API_KEY):
+  POST   $MESA_API_URL/api/v1/archetype-patches  - propose archetype change
+  POST   $MESA_API_URL/api/v1/issues              - create feature request
+  GET    $MESA_API_URL/api/v1/agents              - list team
+  GET    $MESA_API_URL/api/v1/work-blocks         - list work blocks
 
 BASE_URL: http://localhost:%d
 `, auditRunID, s.port))
@@ -1029,22 +1031,22 @@ WIKI GUIDELINES:
 - When you make a significant decision or discover something the team should remember across runs, create a wiki page (wiki_create).
 - Prefer wiki pages over artifact-docs for knowledge that applies across issues.`
 
-const workerAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
-  GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
-  GET    $SECONDORDER_API_URL/api/v1/issues/{key}                       - issue detail + comments
-  POST   $SECONDORDER_API_URL/api/v1/issues/{key}/checkout              - claim issue
-  PATCH  $SECONDORDER_API_URL/api/v1/issues/{key}                       - update status, comment, or reassignment ({"status":"...","comment":"...","assignee_slug":"..."})
-  POST   $SECONDORDER_API_URL/api/v1/issues/{key}/comments              - add comment
-  POST   $SECONDORDER_API_URL/api/v1/issues                             - create sub-issue
-  GET    $SECONDORDER_API_URL/api/v1/usage                              - your token/cost usage
+const workerAPIRef = `SO API (Authorization: Bearer $MESA_API_KEY):
+  GET    $MESA_API_URL/api/v1/inbox                              - your assigned issues
+  GET    $MESA_API_URL/api/v1/issues/{key}                       - issue detail + comments
+  POST   $MESA_API_URL/api/v1/issues/{key}/checkout              - claim issue
+  PATCH  $MESA_API_URL/api/v1/issues/{key}                       - update status, comment, or reassignment ({"status":"...","comment":"...","assignee_slug":"..."})
+  POST   $MESA_API_URL/api/v1/issues/{key}/comments              - add comment
+  POST   $MESA_API_URL/api/v1/issues                             - create sub-issue
+  GET    $MESA_API_URL/api/v1/usage                              - your token/cost usage
 
 Wiki (shared knowledge base — FTS5 full-text search):
-  GET    $SECONDORDER_API_URL/api/v1/wiki                               - list wiki pages (titles + slugs)
-  GET    $SECONDORDER_API_URL/api/v1/wiki/search?q={terms}              - full-text search (prefix-matching, ranked by relevance)
-  POST   $SECONDORDER_API_URL/api/v1/wiki                               - create wiki page: {"title":"...","content":"..."}
-  GET    $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - read wiki page
-  PATCH  $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - update wiki page: {"title":"...","content":"..."}
-  DELETE $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - delete wiki page`
+  GET    $MESA_API_URL/api/v1/wiki                               - list wiki pages (titles + slugs)
+  GET    $MESA_API_URL/api/v1/wiki/search?q={terms}              - full-text search (prefix-matching, ranked by relevance)
+  POST   $MESA_API_URL/api/v1/wiki                               - create wiki page: {"title":"...","content":"..."}
+  GET    $MESA_API_URL/api/v1/wiki/{slug}                        - read wiki page
+  PATCH  $MESA_API_URL/api/v1/wiki/{slug}                        - update wiki page: {"title":"...","content":"..."}
+  DELETE $MESA_API_URL/api/v1/wiki/{slug}                        - delete wiki page`
 
 const ceoRules = `RULES:
 - You are fully autonomous. Do NOT ask questions interactively.
@@ -1065,28 +1067,28 @@ WIKI GUIDELINES:
 - When reviewing completed work that affects documented processes, verify the wiki is up to date.
 - Use the wiki to build institutional knowledge that persists across runs.`
 
-const ceoAPIRef = `SO API (Authorization: Bearer $SECONDORDER_API_KEY):
-  GET    $SECONDORDER_API_URL/api/v1/inbox                              - your assigned issues
-  GET    $SECONDORDER_API_URL/api/v1/issues/{key}                       - issue detail + comments
-  PATCH  $SECONDORDER_API_URL/api/v1/issues/{key}                       - update status, comment, or reassignment ({"status":"...","comment":"...","assignee_slug":"..."})
-  POST   $SECONDORDER_API_URL/api/v1/issues/{key}/comments              - add comment
-  POST   $SECONDORDER_API_URL/api/v1/issues                             - create & assign: {"title":"...","assignee_slug":"...","parent_issue_key":"..."}
-  GET    $SECONDORDER_API_URL/api/v1/agents                             - list team (slug, name, archetype)
-  POST   $SECONDORDER_API_URL/api/v1/approvals/{id}/resolve             - review: {"status":"approved","comment":"..."}
-  GET    $SECONDORDER_API_URL/api/v1/work-blocks                        - list work blocks
-  GET    $SECONDORDER_API_URL/api/v1/work-blocks/{id}                   - block detail + issues + metrics
-  POST   $SECONDORDER_API_URL/api/v1/work-blocks                        - propose block: {"title":"...","goal":"..."}
-  PATCH  $SECONDORDER_API_URL/api/v1/work-blocks/{id}                   - update status: {"status":"ready"}
-  POST   $SECONDORDER_API_URL/api/v1/work-blocks/{id}/issues            - assign issue: {"issue_key":"SO-5"}
-  DELETE $SECONDORDER_API_URL/api/v1/work-blocks/{id}/issues/{key}      - unassign issue
+const ceoAPIRef = `SO API (Authorization: Bearer $MESA_API_KEY):
+  GET    $MESA_API_URL/api/v1/inbox                              - your assigned issues
+  GET    $MESA_API_URL/api/v1/issues/{key}                       - issue detail + comments
+  PATCH  $MESA_API_URL/api/v1/issues/{key}                       - update status, comment, or reassignment ({"status":"...","comment":"...","assignee_slug":"..."})
+  POST   $MESA_API_URL/api/v1/issues/{key}/comments              - add comment
+  POST   $MESA_API_URL/api/v1/issues                             - create & assign: {"title":"...","assignee_slug":"...","parent_issue_key":"..."}
+  GET    $MESA_API_URL/api/v1/agents                             - list team (slug, name, archetype)
+  POST   $MESA_API_URL/api/v1/approvals/{id}/resolve             - review: {"status":"approved","comment":"..."}
+  GET    $MESA_API_URL/api/v1/work-blocks                        - list work blocks
+  GET    $MESA_API_URL/api/v1/work-blocks/{id}                   - block detail + issues + metrics
+  POST   $MESA_API_URL/api/v1/work-blocks                        - propose block: {"title":"...","goal":"..."}
+  PATCH  $MESA_API_URL/api/v1/work-blocks/{id}                   - update status: {"status":"ready"}
+  POST   $MESA_API_URL/api/v1/work-blocks/{id}/issues            - assign issue: {"issue_key":"SO-5"}
+  DELETE $MESA_API_URL/api/v1/work-blocks/{id}/issues/{key}      - unassign issue
 
 Wiki (shared knowledge base — FTS5 full-text search):
-  GET    $SECONDORDER_API_URL/api/v1/wiki                               - list wiki pages (titles + slugs)
-  GET    $SECONDORDER_API_URL/api/v1/wiki/search?q={terms}              - full-text search (prefix-matching, ranked by relevance)
-  POST   $SECONDORDER_API_URL/api/v1/wiki                               - create wiki page: {"title":"...","content":"..."}
-  GET    $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - read wiki page
-  PATCH  $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - update wiki page: {"title":"...","content":"..."}
-  DELETE $SECONDORDER_API_URL/api/v1/wiki/{slug}                        - delete wiki page
+  GET    $MESA_API_URL/api/v1/wiki                               - list wiki pages (titles + slugs)
+  GET    $MESA_API_URL/api/v1/wiki/search?q={terms}              - full-text search (prefix-matching, ranked by relevance)
+  POST   $MESA_API_URL/api/v1/wiki                               - create wiki page: {"title":"...","content":"..."}
+  GET    $MESA_API_URL/api/v1/wiki/{slug}                        - read wiki page
+  PATCH  $MESA_API_URL/api/v1/wiki/{slug}                        - update wiki page: {"title":"...","content":"..."}
+  DELETE $MESA_API_URL/api/v1/wiki/{slug}                        - delete wiki page
 
 Your team:
 %s`

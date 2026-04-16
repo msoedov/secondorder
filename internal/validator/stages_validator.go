@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/msoedov/secondorder/internal/models"
+	"github.com/msoedov/mesa/internal/models"
 )
 
 // ValidateStages enforces the linear checkpoint model used by issue stages.

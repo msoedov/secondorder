@@ -8,7 +8,7 @@
 *.out
 
 # Project binary
-/secondorder
+/mesa
 
 # Database
 so.db

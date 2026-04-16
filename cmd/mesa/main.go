@@ -20,15 +20,15 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/lmittmann/tint"
-	"github.com/msoedov/secondorder/internal/archetypes"
-	"github.com/msoedov/secondorder/internal/db"
-	"github.com/msoedov/secondorder/internal/discord"
-	"github.com/msoedov/secondorder/internal/handlers"
-	"github.com/msoedov/secondorder/internal/models"
-	"github.com/msoedov/secondorder/internal/scheduler"
-	"github.com/msoedov/secondorder/internal/telegram"
-	"github.com/msoedov/secondorder/internal/templates"
-	"github.com/msoedov/secondorder/static"
+	"github.com/msoedov/mesa/internal/archetypes"
+	"github.com/msoedov/mesa/internal/db"
+	"github.com/msoedov/mesa/internal/discord"
+	"github.com/msoedov/mesa/internal/handlers"
+	"github.com/msoedov/mesa/internal/models"
+	"github.com/msoedov/mesa/internal/scheduler"
+	"github.com/msoedov/mesa/internal/telegram"
+	"github.com/msoedov/mesa/internal/templates"
+	"github.com/msoedov/mesa/static"
 	"golang.org/x/term"
 )
 
@@ -59,12 +59,12 @@ func main() {
 
 	dashboardAuth := false
 
-	// CLI: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [doctor|wiki-search] [port]
+	// CLI: mesa [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [doctor|wiki-search] [port]
 	args := os.Args[1:]
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if arg == "-h" || arg == "--help" {
-			fmt.Println("Usage: secondorder [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [doctor|wiki-search] [port]")
+			fmt.Println("Usage: mesa [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [doctor|wiki-search] [port]")
 			fmt.Println("  -t, --template  Team template: startup, dev-team, enterprise, saas, agency (default: startup)")
 			fmt.Println("  -m, --model     Default agent runner: claude, gemini, codex, opencode (default: claude)")
 			fmt.Println("  -v              Verbosity: -v info, -vv debug, -vvv debug+cmd")
@@ -396,7 +396,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "\n  Dashboard auth enabled\n")
 			fmt.Fprintf(os.Stderr, "  Open: http://localhost:%s/dashboard?token=%s\n\n", port, dashToken)
 		}
-		slog.Info("secondorder running", "url", "http://localhost:"+port)
+		slog.Info("mesa running", "url", "http://localhost:"+port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("http server error", "error", err)
 			os.Exit(1)
@@ -683,7 +683,7 @@ func promptFirstRun(database *db.DB, templateName, defaultModel string, template
 
 func runWikiSearch(dbPath, query string) {
 	if query == "" {
-		fmt.Fprintln(os.Stderr, "usage: secondorder wiki-search <query>")
+		fmt.Fprintln(os.Stderr, "usage: mesa wiki-search <query>")
 		os.Exit(1)
 	}
 	database, err := db.Open(dbPath)
@@ -712,7 +712,7 @@ func runWikiSearch(dbPath, query string) {
 }
 
 func runDoctor() {
-	fmt.Println("\033[1msecondorder doctor\033[0m")
+	fmt.Println("\033[1mmesa doctor\033[0m")
 	fmt.Println("==================")
 	fmt.Println()
 

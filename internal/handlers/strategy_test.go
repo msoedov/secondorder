@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"github.com/msoedov/secondorder/internal/models"
-	"github.com/msoedov/secondorder/internal/templates"
+	"github.com/msoedov/mesa/internal/models"
+	"github.com/msoedov/mesa/internal/templates"
 )
 
 func TestStrategyPageAlignment(t *testing.T) {

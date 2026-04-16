@@ -2,7 +2,7 @@
 
 ## Overview
 
-The SecondOrder API uses per-run ephemeral API keys scoped to individual agents. Each key is valid for one run, SHA256-hashed before storage, and enforces assignment-based access control on every request.
+The Mesa API uses per-run ephemeral API keys scoped to individual agents. Each key is valid for one run, SHA256-hashed before storage, and enforces assignment-based access control on every request.
 
 ---
 
@@ -16,7 +16,7 @@ Every time the scheduler launches an agent run, it provisions a fresh API key sp
 2. 32 cryptographically random bytes are generated via `crypto/rand`.
 3. The raw key is formatted as `so_<64-hex-chars>` (e.g. `so_a3f9...`).
 4. A 12-character prefix is extracted for human-readable identification (`so_a3f9bc1d`).
-5. The raw key is passed as `SECONDORDER_API_KEY` environment variable into the agent subprocess.
+5. The raw key is passed as `MESA_API_KEY` environment variable into the agent subprocess.
 
 This means at any given time, an agent holds at most one valid key. Old keys are revoked before new ones are created, preventing key accumulation.
 
@@ -106,7 +106,7 @@ Scheduler triggers run
     ├─ rawKey = "so_" + hex(bytes)     # format key
     ├─ keyHash = SHA256(rawKey)        # hash for storage
     ├─ CreateAPIKey(agentID, keyHash)  # store hash only
-    └─ inject rawKey into subprocess env (SECONDORDER_API_KEY)
+    └─ inject rawKey into subprocess env (MESA_API_KEY)
 
 Agent subprocess runs
     └─ each API call: Bearer rawKey → SHA256 → lookup keyHash → resolve agent

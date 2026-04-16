@@ -17,7 +17,7 @@ Agents call `supermemory_store` and `supermemory_recall` during task execution v
 
 ## 2. Where Supermemory Calls Happen Today
 
-| Runner | How supermemory tools are invoked | Interceptable by secondorder? |
+| Runner | How supermemory tools are invoked | Interceptable by mesa? |
 |--------|-----------------------------------|-------------------------------|
 | `copilot.go` | `executeTool()` intercepts tool calls and makes HTTP requests to `api.supermemory.ai` | **YES — full control** |
 | `claude_code` | MCP supermemory plugin (external subprocess) | NO — opaque subprocess |
