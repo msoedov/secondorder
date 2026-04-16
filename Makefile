@@ -1,12 +1,12 @@
-BINARY_NAME=secondorder
+BINARY_NAME=mesa
 BUILD_DIR=.
 BUILD_DATE=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)
-LDFLAGS=-X github.com/msoedov/secondorder/internal/models.BuildDate=$(BUILD_DATE)
+LDFLAGS=-X github.com/msoedov/mesa/internal/models.BuildDate=$(BUILD_DATE)
 
 .PHONY: build test run clean lint scan install i
 
 build:
-	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/secondorder
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/mesa
 
 test:
 	go test ./...

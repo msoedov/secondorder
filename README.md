@@ -15,8 +15,6 @@ On first run, bootstraps a default org with 6 agents (CEO, engineer, product, de
 
 ## Landscape Comparison
 
-How mesa compares to every AI agent company platform in the [2025 landscape](https://rywalker.com/research/ai-agent-company-platforms).
-
 ### At a glance
 
 | | Mesa | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |

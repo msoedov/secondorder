@@ -1318,8 +1318,8 @@ func TestSettings(t *testing.T) {
 		if err != nil {
 			t.Fatalf("get issue_prefix: %v", err)
 		}
-		if val != "SO" {
-			t.Errorf("issue_prefix = %q, want %q", val, "SO")
+		if val != "ME" {
+			t.Errorf("issue_prefix = %q, want %q", val, "ME")
 		}
 	})
 
