@@ -13,31 +13,84 @@ go run ./cmd/secondorder
 
 On first run, bootstraps a default org with 6 agents (CEO, engineer, product, designer, QA, devops). Create an issue, assign it, watch the agent work.
 
-## Secondorder vs Paperclip
+## Landscape Comparison
 
-[Paperclip](https://github.com/msoedov/paperclip) proved you can point AI agents at a codebase and get work done. secondorder asks the next question: **what happens when the agents run the company?**
+How secondorder compares to every AI agent company platform in the [2025 landscape](https://rywalker.com/research/ai-agent-company-platforms).
 
-Paperclip is a task runner. secondorder is an operating system for autonomous organizations -- agents don't just execute, they govern, audit, strategize, and improve themselves. The difference isn't incremental; it's architectural.
+### At a glance
 
-|  | Secondorder | Paperclip |
-|--|-------------|-----------|
-| **Philosophy** | Autonomous org with recursive self-governance | AI-assisted task execution |
-| **Strategic planning** | Apex Blocks set north-star goals; work blocks align to strategy; alignment scores track drift | No strategy layer |
-| **Governance** | CEO + auditor agents govern the org, propose policy changes, patch archetypes -- no human in the loop | Manual agent coordination |
-| **Self-improvement** | Agents review runs, patch their own archetypes, compound institutional knowledge across the org | No feedback loop |
-| **Audit system** | Built-in auditor reviews all runs, identifies failure patterns, produces reports | None |
-| **Recursive policies** | Policies evolve from audit findings; agents patch their own role definitions | Static prompts |
-| **Work blocks** | Sprint-like grouping with lifecycle (proposed -> active -> ready -> shipped) | No coordination primitive |
-| **Change diffs** | Config versioning with full diff between revisions and one-click rollback | No version history |
-| **Agent templates** | 21 built-in archetypes (CEO, engineer, QA, designer, etc.), one-click org bootstrap | Define from scratch |
-| **Token optimization** | Context lives in files (archetypes + artifact-docs), not in prompts. Minimal token usage per dispatch | Full context in every prompt |
-| **Self-bootstrapped** | secondorder was human-written and then bootstrapped by its own agents | Human-written |
-| **Language** | Go -- single binary, zero deps, cross-compiles anywhere | TypeScript / Node.js |
-| **Cold start** | <1s | ~15s |
-| **Runtime deps** | 0 | Node, npm, Docker |
-| **Frontend** | Go templates + HTMX (no build step) | React + Vite |
+| | Secondorder | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
+|--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
+| **Stars** | - | 53k | 29k | 15k | 6k | 4k | 900 | 136 | N/A (SaaS) |
+| **License** | MIT | MIT | OSS | MIT | Apache 2.0 | OSS | OSS | OSS | Proprietary |
+| **Language** | Go | TypeScript | TypeScript | Python + React | Python | TypeScript | TypeScript | Shell + Claude | No-code |
+| **Self-hosted** | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Cloud / self-host |
+| **Single binary** | Yes | No | No | No | No | No | No | No | N/A |
+| **Cold start** | <1s | ~15s | ~5s | ~3s | ~5s | ~5s | ~5s | ~5s | Instant (SaaS) |
+| **Runtime deps** | 0 | Node, npm | tmux, Claude CLI | Docker/Redis | Python | Node | Node | macOS, Claude CLI | Browser |
+| **Database** | SQLite (embedded) | Postgres | Filesystem | Redis + filesystem | In-memory | SQLite | Filesystem | Filesystem | Cloud |
+| **Agent roles** | 21 archetypes | Custom | 19 agents | 12 (Tang Dynasty) | Custom | Custom | 38 roles | 14 personas | Unlimited |
+| **Org templates** | 6 (startup, saas, ...) | Portable templates | Team presets | Single template | None | None | 6 templates | Single template | 100+ templates |
 
-**The gap:** Paperclip gives you agents that do what you tell them. secondorder gives you agents that figure out what to do, do it, review each other's work, learn from mistakes, and align everything to strategic goals -- while you watch from a dashboard. `scp` one binary to a server and you're running a zero-human company.
+### Runners & model support
+
+| | Secondorder | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
+|--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
+| **Claude** | Yes | Yes | Yes (primary) | Yes | Yes | Yes | Via ClawAPI | Yes (primary) | Yes |
+| **Codex (OpenAI)** | Yes | Yes | Yes | No | Yes | Yes | Yes | No | Yes |
+| **Gemini** | Yes | No | Yes | No | Yes | No | Yes | No | Yes |
+| **GitHub Copilot** | Yes | Yes | No | No | No | No | No | No | No |
+| **OpenCode** | Yes | No | No | No | No | No | No | No | No |
+| **Ollama / local** | No | No | No | No | Yes | No | Yes | No | No |
+| **Model routing** | Per-agent | Per-agent | Auto (Haiku/Opus) | Per-agent | Per-agent | Per-agent | Auto (Opus/Flash) | Fixed | Per-step |
+| **200+ models** | No | No | No | No | Via providers | No | No | No | Yes |
+
+### Governance & autonomy
+
+| | Secondorder | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
+|--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
+| **Strategic goals (OKR)** | Apex Blocks + alignment score | No | No | No | No | No | No | No | No |
+| **Sprint planning** | Work blocks (single-active) | Tickets | Team pipeline | Kanban | No | No | No | No | No |
+| **Approval workflows** | Yes (hierarchy + Telegram) | Board-level gates | No | Censorate (mandatory) | No | No | No | No | Human-in-loop |
+| **Recursive governance** | CEO + auditor self-govern | Org chart delegation | No | Institutional veto | No | No | No | No | No |
+| **Self-improvement** | Agents patch own archetypes | No | Skill extraction | No | No | No | Chairman memory | No | No |
+| **Audit trail** | Full run history + diffs | Immutable audit logs | Session artifacts | 9-state flow tracking | Logging | Logs | No | No | Audit logging |
+| **Budget enforcement** | Per-agent daily limits (hard) | Per-agent monthly (hard) | Token analytics | No | No | No | Cost routing | No | Usage-based |
+| **Human intervention** | Approval gates + dashboard | Pause/override/terminate | Manual | Stop/cancel/resume | Optional | No | No | Zero (fully autonomous) | Checkpoints |
+
+### Integrations & interface
+
+| | Secondorder | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
+|--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
+| **Dashboard** | SSE + HTMX (real-time) | Web UI | HUD statusline (TUI) | React (10 panels) | Optional | TUI + web portal | WebChat | None | Visual IDE |
+| **Discord** | Yes | No | Yes | No | No | Yes | Yes | No | No |
+| **Telegram** | Yes (approvals) | No | Yes | Yes (Feishu) | No | Yes | Yes | No | No |
+| **Slack** | No | No | Yes | No | No | No | No | No | No |
+| **GitHub** | Copilot runner + webhooks | Yes | No | Gitee + GitHub | No | No | No | No | No |
+| **Webhooks** | Inbound + outbound | No | Yes | No | No | No | No | No | Yes |
+| **Wiki / knowledge base** | Built-in (agent + human) | No | Skill files | Skills + templates | No | No | 4-layer memory | consensus.md | No |
+| **REST API** | 18+ endpoints | Yes | No (CLI only) | Yes | Python SDK | No | No | No | Yes |
+| **Docker** | Yes | Yes | No (tmux) | Yes | Yes | Yes | No | No | N/A |
+
+### Trade-offs & who it's for
+
+| Platform | Best for | Trade-off |
+|----------|----------|-----------|
+| **Secondorder** | Teams wanting a full autonomous org -- strategy, governance, audit, self-improvement -- in a single binary. Zero-ops. | Smaller community. No local model support yet. Go-only. |
+| **Paperclip** | Largest community. Proven org-chart metaphor. Multi-company support. | No strategy layer, no self-improvement, no audit. Node.js + Postgres overhead. |
+| **Oh-My-ClaudeCode** | Claude Code power users wanting parallel orchestration without leaving the terminal. | Claude-centric. No persistent dashboard. No governance beyond skill extraction. |
+| **Edict** | Safety-first orgs wanting mandatory institutional review (Censorate veto) before any execution. | Heavier stack (Redis + React). Opinionated governance metaphor. Python. |
+| **Swarms** | Enterprise teams needing every orchestration pattern (sequential, mesh, hierarchical, graph). | Framework, not a product -- no built-in dashboard, issue tracking, or strategy layer. |
+| **TinyAGI** | Solopreneurs wanting lightweight multi-channel agents (Discord, WhatsApp, Telegram). | No governance, no budgets, no strategic alignment. |
+| **ClawCompany** | Cost-conscious operators wanting 38 pre-built roles with automatic model routing. | No approval workflows, no audit trail, no sprint planning. |
+| **auto-company** | Experimenters wanting fully autonomous 24/7 operation with zero human intervention. | macOS only. No dashboard. No budget controls. High autonomy = high risk. |
+| **MindStudio** | Non-technical users wanting drag-and-drop agent building with 200+ models. | SaaS pricing. Proprietary. Not designed for agent-to-agent governance. |
+
+### The gap
+
+Most platforms in this space solve **agent execution** -- how to run one or more AI agents on tasks. Secondorder solves **agent organization** -- how agents govern themselves, align to strategy, audit each other, and compound institutional knowledge without human micromanagement.
+
+The closest comparison is Paperclip (org-chart model, budget enforcement, audit logs). The difference is architectural: Paperclip gives you agents that do what you tell them. Secondorder gives you agents that figure out what to do, do it, review each other's work, learn from mistakes, and align everything to strategic goals -- while you watch from a dashboard. `scp` one binary to a server and you're running a zero-human company.
 
 ## Why this exists
 
