@@ -58,17 +58,19 @@ func main() {
 	verbosity := 0
 
 	dashboardAuth := false
+	externalAPIKey := ""
 
-	// CLI: mesa [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [doctor|wiki-search] [port]
+	// CLI: mesa [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [--api-key <key>] [doctor|wiki-search] [port]
 	args := os.Args[1:]
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if arg == "-h" || arg == "--help" {
-			fmt.Println("Usage: mesa [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [doctor|wiki-search] [port]")
+			fmt.Println("Usage: mesa [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [--api-key <key>] [doctor|wiki-search] [port]")
 			fmt.Println("  -t, --template  Team template: startup, dev-team, enterprise, saas, agency (default: startup)")
 			fmt.Println("  -m, --model     Default agent runner: claude, gemini, codex, opencode (default: claude)")
 			fmt.Println("  -v              Verbosity: -v info, -vv debug, -vvv debug+cmd")
 			fmt.Println("  --auth          Enable dashboard authentication with auto-generated token")
+			fmt.Println("  --api-key       Static API key for external access (non-expiring, not agent-scoped)")
 			fmt.Println("  doctor          Check that required CLI binaries are available")
 			fmt.Println("  wiki-search     Search wiki pages (usage: wiki-search <query>)")
 			fmt.Println("  port            HTTP port (default: 3001, or PORT env)")
@@ -104,9 +106,21 @@ func main() {
 			modelProvided = true
 		} else if arg == "--auth" {
 			dashboardAuth = true
+		} else if arg == "--api-key" {
+			if i+1 >= len(args) {
+				fmt.Fprintln(os.Stderr, "error: --api-key requires a value")
+				os.Exit(1)
+			}
+			i++
+			externalAPIKey = args[i]
 		} else {
 			port = arg
 		}
+	}
+
+	// Also allow env override for external API key
+	if k := os.Getenv("MESA_API_KEY_EXTERNAL"); k != "" {
+		externalAPIKey = k
 	}
 
 	switch {
@@ -250,6 +264,9 @@ func main() {
 
 	// Handlers
 	api := handlers.NewAPI(database, sse, tmpl, wake, tg, dc)
+	if externalAPIKey != "" {
+		api.SetExternalKey(externalAPIKey)
+	}
 	ui := handlers.NewUI(database, sse, tmpl, wake, sched)
 	// Routes
 	mux := http.NewServeMux()
@@ -320,6 +337,7 @@ func main() {
 
 	// API routes (auth-wrapped)
 	mux.HandleFunc("GET /api/v1/inbox", api.Auth(api.Inbox))
+	mux.HandleFunc("GET /api/v1/issues", api.Auth(api.ListIssues))
 	mux.HandleFunc("GET /api/v1/issues/{key}", api.Auth(api.GetIssue))
 	mux.HandleFunc("POST /api/v1/issues/{key}/checkout", api.Auth(api.CheckoutIssue))
 	mux.HandleFunc("PATCH /api/v1/issues/{key}", api.Auth(api.UpdateIssue))
@@ -395,6 +413,10 @@ func main() {
 		if dashToken != "" {
 			fmt.Fprintf(os.Stderr, "\n  Dashboard auth enabled\n")
 			fmt.Fprintf(os.Stderr, "  Open: http://localhost:%s/dashboard?token=%s\n\n", port, dashToken)
+		}
+		if externalAPIKey != "" {
+			fmt.Fprintf(os.Stderr, "  External API key enabled\n")
+			fmt.Fprintf(os.Stderr, "  Usage: curl -H 'Authorization: Bearer %s' http://localhost:%s/api/v1/issues\n\n", externalAPIKey, port)
 		}
 		slog.Info("mesa running", "url", "http://localhost:"+port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

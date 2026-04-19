@@ -33,19 +33,43 @@ type DiscordNotifier interface {
 }
 
 type API struct {
-	db       *db.DB
-	sse      *SSEHub
-	tmpl     *template.Template
-	wake     func(agent *models.Agent, issue *models.Issue)
-	telegram TelegramNotifier
-	discord  DiscordNotifier
+	db              *db.DB
+	sse             *SSEHub
+	tmpl            *template.Template
+	wake            func(agent *models.Agent, issue *models.Issue)
+	telegram        TelegramNotifier
+	discord         DiscordNotifier
+	externalKeyHash string // SHA-256 hex of the --api-key value; empty = disabled
 }
 
 func NewAPI(database *db.DB, sse *SSEHub, tmpl *template.Template, wake func(*models.Agent, *models.Issue), tg TelegramNotifier, dc DiscordNotifier) *API {
 	return &API{db: database, sse: sse, tmpl: tmpl, wake: wake, telegram: tg, discord: dc}
 }
 
-// Auth middleware extracts agent from API key
+// SetExternalKey configures a static API key for external access.
+// The key is hashed and compared against Bearer tokens in the Auth middleware.
+func (a *API) SetExternalKey(rawKey string) {
+	if rawKey == "" {
+		return
+	}
+	hash := sha256.Sum256([]byte(rawKey))
+	a.externalKeyHash = hex.EncodeToString(hash[:])
+}
+
+// externalAgent returns a synthetic agent used for external API key access.
+// It has a fixed ID and name so that endpoints requiring agent context work correctly.
+func externalAgent() *models.Agent {
+	return &models.Agent{
+		ID:            "external",
+		Name:          "External",
+		Slug:          "external",
+		ArchetypeSlug: "external",
+		Active:        true,
+	}
+}
+
+// Auth middleware extracts agent from API key.
+// If an external API key is configured (via --api-key), it is checked first.
 func (a *API) Auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
@@ -55,6 +79,14 @@ func (a *API) Auth(next http.HandlerFunc) http.HandlerFunc {
 		}
 		hash := sha256.Sum256([]byte(token))
 		keyHash := hex.EncodeToString(hash[:])
+
+		// Check external key first (non-expiring, not agent-scoped)
+		if a.externalKeyHash != "" && keyHash == a.externalKeyHash {
+			r = r.WithContext(withAgent(r.Context(), externalAgent()))
+			next(w, r)
+			return
+		}
+
 		agent, err := a.db.GetAgentByAPIKey(keyHash)
 		if err != nil {
 			http.Error(w, `{"error":"invalid api key"}`, http.StatusUnauthorized)
@@ -68,6 +100,24 @@ func (a *API) Auth(next http.HandlerFunc) http.HandlerFunc {
 func (a *API) Inbox(w http.ResponseWriter, r *http.Request) {
 	agent := agentFromContext(r.Context())
 	issues, err := a.db.GetAgentInbox(agent.ID)
+	if err != nil {
+		jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, issues)
+}
+
+// ListIssues returns all issues, optionally filtered by ?status= and ?limit=.
+// Available to any authenticated caller (including external API keys).
+func (a *API) ListIssues(w http.ResponseWriter, r *http.Request) {
+	status := r.URL.Query().Get("status")
+	limit := 100
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	issues, err := a.db.ListIssues(status, limit)
 	if err != nil {
 		jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
