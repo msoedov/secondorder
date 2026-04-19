@@ -243,6 +243,81 @@ func TestAuthValidKey(t *testing.T) {
 	}
 }
 
+func TestAuthExternalKey(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
+	api.SetExternalKey("my-external-key")
+
+	var gotAgent *models.Agent
+	handler := api.Auth(func(w http.ResponseWriter, r *http.Request) {
+		gotAgent = agentFromContext(r.Context())
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer my-external-key")
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+	if gotAgent == nil {
+		t.Fatal("expected agent in context")
+	}
+	if gotAgent.ID != "external" {
+		t.Errorf("agent ID = %q, want external", gotAgent.ID)
+	}
+	if gotAgent.Slug != "external" {
+		t.Errorf("agent slug = %q, want external", gotAgent.Slug)
+	}
+}
+
+func TestAuthExternalKeyWrongValue(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
+	api.SetExternalKey("my-external-key")
+
+	handler := api.Auth(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer wrong-key")
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
+func TestAuthExternalKeyNotSet(t *testing.T) {
+	d := testDB(t)
+	hub := NewSSEHub()
+	defer hub.Close()
+	api := NewAPI(d, hub, nil, nil, &stubTelegram{}, nil)
+	// No SetExternalKey called
+
+	handler := api.Auth(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer some-key")
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	// Should fail because no external key is set and "some-key" isn't a valid DB key
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
 // --- SSE ServeHTTP ---
 
 func TestSSEServeHTTP(t *testing.T) {
