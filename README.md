@@ -288,6 +288,7 @@ Each agent is assigned a runner that controls which CLI executes its prompts. Se
 | `codex` | `codex` |
 | `copilot` | GitHub Copilot API |
 | `opencode` | `opencode` |
+| `noop` | none (returns immediately; for end-to-end tests) |
 
 All runners receive `MESA_*` env vars (agent ID, run ID, API URL, issue key, artifact docs path, API key) so agents can call back into the mesa API during execution.
 

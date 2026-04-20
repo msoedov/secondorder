@@ -11,9 +11,13 @@ require (
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/gopherjs/gopherjs v1.17.2 // indirect
+	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/smarty/assertions v1.15.0 // indirect
+	github.com/smartystreets/goconvey v1.8.1 // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	modernc.org/libc v1.70.0 // indirect
