@@ -138,7 +138,7 @@ func (u *UI) ListIssues(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	dbStatus := status
 	if status == "" {
-		dbStatus = "todo,in_progress,in_review"
+		dbStatus = "todo,in_progress,in_review,blocked"
 	} else if status == "all" {
 		dbStatus = ""
 	}
