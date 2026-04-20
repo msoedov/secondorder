@@ -273,6 +273,8 @@ func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt strin
 				stdout, err = s.execOpenCode(ctx, agent, rawKey, runID, issueKey, prompt)
 			case "noop":
 				stdout, err = s.execNoop(ctx, agent, rawKey, runID, issueKey, prompt)
+			case "dry_run":
+				stdout, err = s.execDryRun(ctx, agent, rawKey, runID, issueKey, prompt)
 			default:
 				err = fmt.Errorf("unsupported runner: %s", runner)
 			}

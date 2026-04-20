@@ -42,6 +42,7 @@ const (
 	RunnerCopilot          = "copilot"
 	RunnerOpenCode         = "opencode"
 	RunnerNoop             = "noop"
+	RunnerDryRun           = "dry_run"
 	DefaultAgentTimeoutSec = 1200
 )
 
@@ -84,6 +85,7 @@ var RunnerModels = map[string][]string{
 	},
 	RunnerOpenCode: {},
 	RunnerNoop:     {"noop"},
+	RunnerDryRun:   {"dry_run"},
 }
 
 func IsValidModelForRunner(runner, model string) bool {

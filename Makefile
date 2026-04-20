@@ -9,7 +9,7 @@ build:
 	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/mesa
 
 test:
-	go test ./...
+	go test ./... -v
 t: test
 
 run: build
