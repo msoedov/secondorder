@@ -41,6 +41,7 @@ const (
 	RunnerCodex            = "codex"
 	RunnerCopilot          = "copilot"
 	RunnerOpenCode         = "opencode"
+	RunnerNoop             = "noop"
 	DefaultAgentTimeoutSec = 1200
 )
 
@@ -82,6 +83,7 @@ var RunnerModels = map[string][]string{
 		"gemini-2.5-pro",
 	},
 	RunnerOpenCode: {},
+	RunnerNoop:     {"noop"},
 }
 
 func IsValidModelForRunner(runner, model string) bool {
