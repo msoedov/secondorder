@@ -380,6 +380,34 @@ func (d *DB) CountIssues() (int, int, error) {
 	return total, open, err
 }
 
+// IssueTitleRow is a lightweight projection used for similarity scanning.
+type IssueTitleRow struct {
+	Key   string
+	Title string
+}
+
+// ListActiveIssueTitles returns key+title for all non-terminal issues
+// (todo, in_progress, in_review, blocked, board_review).
+func (d *DB) ListActiveIssueTitles() ([]IssueTitleRow, error) {
+	rows, err := d.Query(`SELECT key, title FROM issues
+		WHERE status NOT IN ('done','cancelled','wont_do')
+		ORDER BY created_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []IssueTitleRow
+	for rows.Next() {
+		var r IssueTitleRow
+		if err := rows.Scan(&r.Key, &r.Title); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
 func (d *DB) GetChildIssues(parentKey string) ([]models.Issue, error) {
 	rows, err := d.Query(fmt.Sprintf(`SELECT %s
 		FROM issues i LEFT JOIN agents a ON i.assignee_agent_id = a.id

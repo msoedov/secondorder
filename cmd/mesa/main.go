@@ -343,6 +343,7 @@ func main() {
 	mux.HandleFunc("PATCH /api/v1/issues/{key}", api.Auth(api.UpdateIssue))
 	mux.HandleFunc("DELETE /api/v1/issues/{key}", api.Auth(api.DeleteIssue))
 	mux.HandleFunc("POST /api/v1/issues/{key}/comments", api.Auth(api.CreateComment))
+	mux.HandleFunc("POST /api/v1/issues/similarity", api.Auth(api.SimilarIssues))
 	mux.HandleFunc("POST /api/v1/issues", api.Auth(api.CreateIssue))
 	mux.HandleFunc("GET /api/v1/agents", api.Auth(api.ListAgents))
 	mux.HandleFunc("GET /api/v1/agents/me", api.Auth(api.AgentMe))
