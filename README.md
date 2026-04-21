@@ -63,7 +63,7 @@ On first run, bootstraps a default org with 6 agents (CEO, engineer, product, de
 
 Most platforms in this space solve **agent execution** -- how to run one or more AI agents on tasks. Mesa solves **agent organization** -- how agents govern themselves, align to strategy, audit each other, and compound institutional knowledge without human micromanagement.
 
-The closest comparison is Paperclip (org-chart model, budget enforcement, audit logs). The difference is architectural: Paperclip gives you agents that do what you tell them. Mesa gives you agents that figure out what to do, do it, review each other's work, learn from mistakes, and align everything to strategic goals -- while you watch from a dashboard. `scp` one binary to a server and you're running a zero-human company.
+The closest comparison is Paperclip (org-chart model, budget enforcement, audit logs). The difference is architectural: Paperclip gives you agents that do what you tell them. Mesa gives you agents that figure out what to do, do it, review each other's work, learn from mistakes, and align everything to strategic goals -- while you watch from a dashboard.
 
 ## Why this exists
 
@@ -329,7 +329,7 @@ docker run -it --rm -p 3001:3001 \
 
 ## Design decisions
 
-- **Single binary over microservices.** `scp` it to a server and run. Backup is `cp so.db backup.db`.
+- **Single binary over microservices.** Backup is `cp so.db backup.db`.
 - **Server-rendered over SPA.** Go templates + HTMX. No build step, no node_modules, no hydration bugs.
 - **SQLite over Postgres.** Embedded, zero-ops, handles millions of rows in WAL mode. Swap later if needed.
 - **Event-driven + heartbeat.** Immediate dispatch on assignment, 5-min heartbeat as safety net.
