@@ -283,6 +283,7 @@ func main() {
 	mux.HandleFunc("POST /strategy/apex/{id}", ui.UpdateApexBlockUI)
 	mux.HandleFunc("GET /issues", ui.ListIssues)
 	mux.HandleFunc("POST /issues", ui.ListIssues)
+	mux.HandleFunc("POST /issues/clear-open", ui.ClearOpenIssues)
 	mux.HandleFunc("GET /wiki", ui.WikiList)
 	mux.HandleFunc("GET /wiki/new", ui.WikiNew)
 	mux.HandleFunc("POST /wiki", ui.WikiCreate)

@@ -315,6 +315,21 @@ func (d *DB) GetRecentIssues(limit int) ([]models.Issue, error) {
 	return issues, rows.Err()
 }
 
+// CancelAllOpenIssues bulk-cancels every non-terminal issue (todo, in_progress,
+// in_review, blocked). Returns the number of rows affected. Does not touch
+// running agent processes or wake the CEO — it only flips DB status.
+func (d *DB) CancelAllOpenIssues() (int64, error) {
+	now := time.Now().UTC()
+	res, err := d.Exec(`UPDATE issues SET status=?, updated_at=?
+		WHERE status NOT IN ('done','cancelled','wont_do')`,
+		models.StatusCancelled, now)
+	if err != nil {
+		return 0, err
+	}
+	n, _ := res.RowsAffected()
+	return n, nil
+}
+
 func (d *DB) UpdateIssue(i *models.Issue) error {
 	i.UpdatedAt = time.Now().UTC()
 	stagesJSON, _ := json.Marshal(i.Stages)

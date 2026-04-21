@@ -111,6 +111,15 @@
       {{template "issue_list" .}}
     </div>
 
+    <!-- Danger zone: operator workaround to reset the queue -->
+    <div class="mt-10 pt-6 border-t border-bd">
+      <form method="POST" action="/issues/clear-open">
+        <button type="submit" onclick="return confirm('Cancel every open issue (todo, in progress, review, blocked)? This does not stop running agents and cannot be undone.')" class="text-[11px] text-ink3/50 hover:text-red-400 underline-offset-2 hover:underline transition-colors">
+          Clear open issues (bulk cancel)
+        </button>
+      </form>
+    </div>
+
   </div>
 </main>
 {{template "foot" .}}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -159,6 +160,21 @@ func (u *UI) ListIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u.render(w, "issues", data)
+}
+
+// ClearOpenIssues is an operator workaround that bulk-cancels every non-terminal
+// issue in one DB update. Intended for cleaning up a queue where work has
+// already been completed out-of-band. Does not wake the CEO.
+func (u *UI) ClearOpenIssues(w http.ResponseWriter, r *http.Request) {
+	n, err := u.db.CancelAllOpenIssues()
+	if err != nil {
+		slog.Error("clear open issues failed", "error", err)
+		http.Redirect(w, r, "/issues?error="+url.QueryEscape("Failed to clear queue: "+err.Error()), http.StatusSeeOther)
+		return
+	}
+	slog.Info("clear open issues", "cancelled", n)
+	msg := fmt.Sprintf("Cleared %d open issue(s) to cancelled", n)
+	http.Redirect(w, r, "/issues?success="+url.QueryEscape(msg), http.StatusSeeOther)
 }
 
 type wikiPageListItem struct {
