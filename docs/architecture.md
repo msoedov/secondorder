@@ -319,6 +319,15 @@ Uses `github.com/sirupsen/logrus` with structured fields. Log lines include:
 - **Completion**: agent name, run ID, status, elapsed, issue key, cost, token counts
 - No prompt content in logs (was previously dumped in args, now removed)
 
+### Startup timing
+
+A single `mesa ready` log line is emitted once at boot to let operators detect slow starts or regressions.
+
+- **Start point**: `main()` entry. Captured before CLI parsing, DB open, template parsing, template seeding, scheduler wiring, and notifier setup.
+- **Ready point**: the HTTP TCP listener has been bound on the configured port via `net.Listen`. At this instant the process can accept HTTP connections; `srv.Serve(listener)` is started immediately after in a goroutine.
+- **Emitted fields**: `url`, `port`, `template`, `runner`, `startup_duration_ms`.
+- **Caveat**: on first-run interactive setup (TTY, no agents yet), `startup_duration_ms` includes time spent waiting for user input at the template/runner prompts. In headless/server environments the prompt is skipped and the value reflects real boot work only.
+
 ## API Endpoints
 
 ### UI (HTMX)

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -36,6 +37,10 @@ import (
 var startupTemplatesFS embed.FS
 
 func main() {
+	// Startup timing: start point = main() entry.
+	// Ready point = HTTP listener bound (see "mesa ready" log below).
+	startTime := time.Now()
+
 	// slog level set after CLI parsing; initialize with default
 	logLevel := new(slog.LevelVar)
 	logLevel.Set(slog.LevelWarn)
@@ -410,17 +415,30 @@ func main() {
 		WriteTimeout: 0, // disabled for SSE
 	}
 
+	if dashToken != "" {
+		fmt.Fprintf(os.Stderr, "\n  Dashboard auth enabled\n")
+		fmt.Fprintf(os.Stderr, "  Open: http://localhost:%s/dashboard?token=%s\n\n", port, dashToken)
+	}
+	if externalAPIKey != "" {
+		fmt.Fprintf(os.Stderr, "  External API key enabled\n")
+		fmt.Fprintf(os.Stderr, "  Usage: curl -H 'Authorization: Bearer %s' http://localhost:%s/api/v1/issues\n\n", externalAPIKey, port)
+	}
+
+	listener, err := net.Listen("tcp", srv.Addr)
+	if err != nil {
+		slog.Error("failed to bind listener", "addr", srv.Addr, "error", err)
+		os.Exit(1)
+	}
+	slog.Info("mesa ready",
+		"url", "http://localhost:"+port,
+		"port", port,
+		"template", templateName,
+		"runner", resolveRunner(defaultModel),
+		"startup_duration_ms", time.Since(startTime).Milliseconds(),
+	)
+
 	go func() {
-		if dashToken != "" {
-			fmt.Fprintf(os.Stderr, "\n  Dashboard auth enabled\n")
-			fmt.Fprintf(os.Stderr, "  Open: http://localhost:%s/dashboard?token=%s\n\n", port, dashToken)
-		}
-		if externalAPIKey != "" {
-			fmt.Fprintf(os.Stderr, "  External API key enabled\n")
-			fmt.Fprintf(os.Stderr, "  Usage: curl -H 'Authorization: Bearer %s' http://localhost:%s/api/v1/issues\n\n", externalAPIKey, port)
-		}
-		slog.Info("mesa running", "url", "http://localhost:"+port)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
 			slog.Error("http server error", "error", err)
 			os.Exit(1)
 		}
