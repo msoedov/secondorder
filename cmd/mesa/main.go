@@ -71,7 +71,7 @@ func main() {
 		arg := args[i]
 		if arg == "-h" || arg == "--help" {
 			fmt.Println("Usage: mesa [-t <template>] [-m <model>] [-v|-vv|-vvv] [--auth] [--api-key <key>] [doctor|wiki-search] [port]")
-			fmt.Println("  -t, --template  Team template: startup, dev-team, enterprise, saas, agency (default: startup)")
+			fmt.Println("  -t, --template  Team template: startup, dev-team, enterprise, saas, agency, smm, media (default: startup)")
 			fmt.Println("  -m, --model     Default agent runner: claude, gemini, codex, opencode (default: claude)")
 			fmt.Println("  -v              Verbosity: -v info, -vv debug, -vvv debug+cmd")
 			fmt.Println("  --auth          Enable dashboard authentication with auto-generated token")
@@ -613,7 +613,7 @@ func promptFirstRun(database *db.DB, templateName, defaultModel string, template
 					name := strings.TrimSuffix(e.Name(), ".json")
 					// Skip names that match built-in templates
 					switch name {
-					case "startup", "dev-team", "saas", "agency", "enterprise":
+					case "startup", "dev-team", "saas", "agency", "enterprise", "smm", "media":
 						continue
 					}
 					customTemplates = append(customTemplates, name)
@@ -629,9 +629,11 @@ func promptFirstRun(database *db.DB, templateName, defaultModel string, template
 		fmt.Println("  3. saas        - SaaS product team")
 		fmt.Println("  4. agency      - Agency delivery team")
 		fmt.Println("  5. enterprise  - Larger org structure")
-		fmt.Println("  6. blank       - No agents, configure manually")
+		fmt.Println("  6. smm         - Social media marketing team")
+		fmt.Println("  7. media       - PR & media relations team")
+		fmt.Println("  8. blank       - No agents, configure manually")
 		for i, name := range customTemplates {
-			fmt.Printf("  %d. %-12s - Custom template\n", 7+i, name)
+			fmt.Printf("  %d. %-12s - Custom template\n", 9+i, name)
 		}
 
 		prompt := func() string {
@@ -652,12 +654,16 @@ func promptFirstRun(database *db.DB, templateName, defaultModel string, template
 				return "agency"
 			case "5", "enterprise":
 				return "enterprise"
-			case "6", "blank":
+			case "6", "smm":
+				return "smm"
+			case "7", "media":
+				return "media"
+			case "8", "blank":
 				return "blank"
 			default:
 				// Check if input matches a custom template by number or name
 				for i, name := range customTemplates {
-					if input == fmt.Sprintf("%d", 7+i) || input == name {
+					if input == fmt.Sprintf("%d", 9+i) || input == name {
 						return name
 					}
 				}

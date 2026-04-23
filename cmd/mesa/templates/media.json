@@ -1,0 +1,10 @@
+{
+  "name": "Media",
+  "agents": [
+    {"name": "CEO", "slug": "ceo", "archetype_slug": "ceo", "model": "opus", "heartbeat_enabled": true, "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "PR Lead", "slug": "pr-lead", "archetype_slug": "pr", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Communications Writer", "slug": "communications-writer", "archetype_slug": "pr", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Media Relations", "slug": "media-relations", "archetype_slug": "pr", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Marketing Lead", "slug": "marketing-lead", "archetype_slug": "marketing", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
+  ]
+}
