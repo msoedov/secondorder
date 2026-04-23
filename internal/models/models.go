@@ -204,8 +204,14 @@ type Comment struct {
 	AgentID   *string   `json:"agent_id"`
 	Author    string    `json:"author"`
 	Body      string    `json:"body"`
+	Kind      string    `json:"kind"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+const (
+	CommentKindComment  = "comment"
+	CommentKindEvidence = "evidence"
+)
 
 type WikiPage struct {
 	ID               string    `json:"id"`

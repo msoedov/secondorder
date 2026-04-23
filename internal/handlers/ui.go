@@ -639,21 +639,27 @@ func (u *UI) updateIssueUI(w http.ResponseWriter, r *http.Request, key string) {
 		}
 		issue.Status = models.StatusCancelled
 		u.db.UpdateIssue(issue)
-	case "comment":
+	case "comment", "evidence":
 		body := r.FormValue("body")
 		if body != "" {
+			kind := models.CommentKindComment
+			if action == "evidence" {
+				kind = models.CommentKindEvidence
+			}
 			comment := &models.Comment{
 				ID:       uuid.New().String(),
 				IssueKey: key,
 				Author:   "Board",
 				Body:     body,
+				Kind:     kind,
 			}
 			u.db.CreateComment(comment)
-			data, _ := json.Marshal(map[string]string{"issue_key": key, "author": "Board", "body": body})
+			data, _ := json.Marshal(map[string]string{"issue_key": key, "author": "Board", "body": body, "kind": kind})
 			u.sse.Broadcast("comment", string(data))
 
-			// Reopen ticket to in_progress when board comments on a completed/blocked/in_review issue
-			if issue.Status == models.StatusDone || issue.Status == models.StatusBlocked || issue.Status == models.StatusInReview {
+			// Reopen ticket to in_progress when board adds a regular comment on completed/blocked/in_review issue.
+			// Evidence comments don't reopen the issue — they affirm completion.
+			if kind == models.CommentKindComment && (issue.Status == models.StatusDone || issue.Status == models.StatusBlocked || issue.Status == models.StatusInReview) {
 				issue.Status = models.StatusInProgress
 				u.db.UpdateIssue(issue)
 				if issue.AssigneeAgentID != nil {

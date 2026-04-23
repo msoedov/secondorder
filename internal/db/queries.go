@@ -611,15 +611,18 @@ func (d *DB) CreateComment(c *models.Comment) error {
 	if c.ID == "" {
 		c.ID = uuid.NewString()
 	}
+	if c.Kind == "" {
+		c.Kind = models.CommentKindComment
+	}
 	c.CreatedAt = time.Now().UTC()
-	_, err := d.Exec(`INSERT INTO comments (id, issue_key, agent_id, author, body, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		c.ID, c.IssueKey, c.AgentID, c.Author, c.Body, c.CreatedAt)
+	_, err := d.Exec(`INSERT INTO comments (id, issue_key, agent_id, author, body, kind, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		c.ID, c.IssueKey, c.AgentID, c.Author, c.Body, c.Kind, c.CreatedAt)
 	return err
 }
 
 func (d *DB) ListComments(issueKey string) ([]models.Comment, error) {
-	rows, err := d.Query(`SELECT id, issue_key, agent_id, author, body, created_at
+	rows, err := d.Query(`SELECT id, issue_key, agent_id, author, body, kind, created_at
 		FROM comments WHERE issue_key=? ORDER BY created_at`, issueKey)
 	if err != nil {
 		return nil, err
@@ -629,7 +632,7 @@ func (d *DB) ListComments(issueKey string) ([]models.Comment, error) {
 	var comments []models.Comment
 	for rows.Next() {
 		var c models.Comment
-		if err := rows.Scan(&c.ID, &c.IssueKey, &c.AgentID, &c.Author, &c.Body, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.IssueKey, &c.AgentID, &c.Author, &c.Body, &c.Kind, &c.CreatedAt); err != nil {
 			return nil, err
 		}
 		comments = append(comments, c)

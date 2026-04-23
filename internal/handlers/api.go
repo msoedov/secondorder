@@ -456,6 +456,7 @@ func (a *API) CreateComment(w http.ResponseWriter, r *http.Request) {
 
 	var body struct {
 		Body string `json:"body"`
+		Kind string `json:"kind"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Body == "" {
 		jsonError(w, "body required", http.StatusBadRequest)
@@ -467,12 +468,18 @@ func (a *API) CreateComment(w http.ResponseWriter, r *http.Request) {
 		agentName = agent.Name
 	}
 
+	kind := models.CommentKindComment
+	if body.Kind == models.CommentKindEvidence {
+		kind = models.CommentKindEvidence
+	}
+
 	comment := &models.Comment{
 		ID:       uuid.New().String(),
 		IssueKey: key,
 		AgentID:  ptrStr(agent),
 		Author:   agentName,
 		Body:     body.Body,
+		Kind:     kind,
 	}
 	if err := a.db.CreateComment(comment); err != nil {
 		jsonError(w, err.Error(), http.StatusInternalServerError)
@@ -483,6 +490,7 @@ func (a *API) CreateComment(w http.ResponseWriter, r *http.Request) {
 		"issue_key": key,
 		"author":    agentName,
 		"body":      body.Body,
+		"kind":      kind,
 	})
 	a.sse.Broadcast("comment", string(data))
 

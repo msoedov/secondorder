@@ -297,6 +297,16 @@
           <h3 class="text-[13px] font-medium text-ink2 mb-2">Comments</h3>
           <div class="space-y-2 mb-3 stagger">
             {{range .Comments}}
+            {{if eq .Kind "evidence"}}
+            <div class="bg-emerald-500/5 border border-emerald-500/40 rounded-lg px-4 py-3 ring-1 ring-emerald-500/20 transition-colors">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 uppercase tracking-wide">Done Evidence</span>
+                <span class="text-xs font-medium text-ink2">{{.Author}}</span>
+                <span class="text-[11px] text-ink3/40">{{timeAgo .CreatedAt}}</span>
+              </div>
+              <div class="text-[13px] text-ink whitespace-pre-wrap leading-relaxed">{{.Body}}</div>
+            </div>
+            {{else}}
             <div class="bg-sf border border-bd rounded-lg px-4 py-3 hover:border-bd transition-colors">
               <div class="flex items-center gap-2 mb-1.5">
                 <span class="text-xs font-medium text-ink2">{{.Author}}</span>
@@ -305,13 +315,15 @@
               <div class="text-[13px] text-ink3 whitespace-pre-wrap leading-relaxed">{{.Body}}</div>
             </div>
             {{end}}
+            {{end}}
           </div>
 
           <form method="POST" action="/issues/{{.Issue.Key}}" class="bg-sf border border-bd rounded-lg p-3">
-            <input type="hidden" name="action" value="comment">
-            <textarea name="body" rows="2" placeholder="Add a comment..." class="w-full bg-sf border border-bd rounded-md px-3 py-2 text-sm text-ink placeholder-ink3/30 outline-none focus:ring-1 focus:ring-ac resize-none transition-shadow mb-2"></textarea>
-            <div class="flex justify-end">
-              <button type="submit" class="px-3 py-1.5 rounded-md text-xs font-medium bg-bd text-ink hover:bg-ink3/40 active:scale-[0.97] transition-all">Comment</button>
+            <input type="hidden" name="action" id="comment-action" value="comment">
+            <textarea name="body" rows="2" placeholder="Add a comment, or attach done evidence (PR URL, artifact, decision)..." class="w-full bg-sf border border-bd rounded-md px-3 py-2 text-sm text-ink placeholder-ink3/30 outline-none focus:ring-1 focus:ring-ac resize-none transition-shadow mb-2"></textarea>
+            <div class="flex justify-end gap-2">
+              <button type="submit" onclick="document.getElementById('comment-action').value='evidence'" class="px-3 py-1.5 rounded-md text-xs font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/25 active:scale-[0.97] transition-all">Attach Evidence</button>
+              <button type="submit" onclick="document.getElementById('comment-action').value='comment'" class="px-3 py-1.5 rounded-md text-xs font-medium bg-bd text-ink hover:bg-ink3/40 active:scale-[0.97] transition-all">Comment</button>
             </div>
           </form>
         </div>

@@ -1,0 +1,1 @@
+ALTER TABLE comments ADD COLUMN kind TEXT NOT NULL DEFAULT 'comment';
