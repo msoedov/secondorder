@@ -466,11 +466,11 @@ func (d *DB) CreateRun(r *models.Run) error {
 	r.StartedAt = now
 	r.CreatedAt = now
 	_, err := d.Exec(`INSERT INTO runs (id, agent_id, issue_key, mode, status, stdout, diff,
-		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd,
+		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd, failure_reason,
 		started_at, completed_at, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		r.ID, r.AgentID, r.IssueKey, r.Mode, r.Status, r.Stdout, r.Diff,
-		r.InputTokens, r.OutputTokens, r.CacheReadTokens, r.CacheCreateTokens, r.TotalCostUSD,
+		r.InputTokens, r.OutputTokens, r.CacheReadTokens, r.CacheCreateTokens, r.TotalCostUSD, r.FailureReason,
 		r.StartedAt, r.CompletedAt, r.CreatedAt)
 	return err
 }
@@ -481,11 +481,11 @@ func (d *DB) GetRun(id string) (*models.Run, error) {
 	var completedAt NullDBTime
 	var createdAt DBTime
 	err := d.QueryRow(`SELECT id, agent_id, issue_key, mode, status, stdout, diff,
-		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd,
+		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd, failure_reason,
 		started_at, completed_at, created_at
 		FROM runs WHERE id=?`, id).Scan(
 		&r.ID, &r.AgentID, &r.IssueKey, &r.Mode, &r.Status, &r.Stdout, &r.Diff,
-		&r.InputTokens, &r.OutputTokens, &r.CacheReadTokens, &r.CacheCreateTokens, &r.TotalCostUSD,
+		&r.InputTokens, &r.OutputTokens, &r.CacheReadTokens, &r.CacheCreateTokens, &r.TotalCostUSD, &r.FailureReason,
 		&startedAt, &completedAt, &createdAt)
 	if err != nil {
 		return nil, err
@@ -500,7 +500,7 @@ func (d *DB) GetRun(id string) (*models.Run, error) {
 
 func (d *DB) ListRunsForAgent(agentID string, limit int) ([]models.Run, error) {
 	query := `SELECT id, agent_id, issue_key, mode, status, stdout, diff,
-		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd,
+		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd, failure_reason,
 		started_at, completed_at, created_at
 		FROM runs WHERE agent_id=? ORDER BY created_at DESC`
 	var args []any
@@ -520,7 +520,7 @@ func (d *DB) ListRunsForAgent(agentID string, limit int) ([]models.Run, error) {
 
 func (d *DB) ListRunsForIssue(issueKey string) ([]models.Run, error) {
 	rows, err := d.Query(`SELECT id, agent_id, issue_key, mode, status, stdout, diff,
-		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd,
+		input_tokens, output_tokens, cache_read_tokens, cache_create_tokens, total_cost_usd, failure_reason,
 		started_at, completed_at, created_at
 		FROM runs WHERE issue_key=? ORDER BY created_at DESC`, issueKey)
 	if err != nil {
@@ -538,10 +538,10 @@ func (d *DB) UpdateRunStdout(id, stdout string) error {
 func (d *DB) CompleteRun(id, status, stdout, diff string, tokens models.Run) error {
 	now := time.Now().UTC()
 	_, err := d.Exec(`UPDATE runs SET status=?, stdout=?, diff=?, input_tokens=?, output_tokens=?,
-		cache_read_tokens=?, cache_create_tokens=?, total_cost_usd=?, completed_at=?
+		cache_read_tokens=?, cache_create_tokens=?, total_cost_usd=?, failure_reason=?, completed_at=?
 		WHERE id=?`,
 		status, stdout, diff, tokens.InputTokens, tokens.OutputTokens,
-		tokens.CacheReadTokens, tokens.CacheCreateTokens, tokens.TotalCostUSD, now, id)
+		tokens.CacheReadTokens, tokens.CacheCreateTokens, tokens.TotalCostUSD, tokens.FailureReason, now, id)
 	return err
 }
 
@@ -591,7 +591,7 @@ func scanRuns(rows *sql.Rows) ([]models.Run, error) {
 		var completedAt NullDBTime
 		var createdAt DBTime
 		if err := rows.Scan(&r.ID, &r.AgentID, &r.IssueKey, &r.Mode, &r.Status, &r.Stdout, &r.Diff,
-			&r.InputTokens, &r.OutputTokens, &r.CacheReadTokens, &r.CacheCreateTokens, &r.TotalCostUSD,
+			&r.InputTokens, &r.OutputTokens, &r.CacheReadTokens, &r.CacheCreateTokens, &r.TotalCostUSD, &r.FailureReason,
 			&startedAt, &completedAt, &createdAt); err != nil {
 			return nil, err
 		}

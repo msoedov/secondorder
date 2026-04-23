@@ -48,8 +48,8 @@ const (
 
 var RunnerModels = map[string][]string{
 	RunnerClaudeCode: {
-		"sonnet",
 		"opus",
+		"sonnet",
 		"haiku",
 	},
 	RunnerGemini: {
@@ -193,6 +193,7 @@ type Run struct {
 	CacheReadTokens   int64      `json:"cache_read_tokens"`
 	CacheCreateTokens int64      `json:"cache_create_tokens"`
 	TotalCostUSD      float64    `json:"total_cost_usd"`
+	FailureReason     string     `json:"failure_reason"`
 	StartedAt         time.Time  `json:"started_at"`
 	CompletedAt       *time.Time `json:"completed_at"`
 	CreatedAt         time.Time  `json:"created_at"`

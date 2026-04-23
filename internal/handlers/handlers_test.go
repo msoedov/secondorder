@@ -421,8 +421,9 @@ func TestCreateIssueDuplicateDetection(t *testing.T) {
 
 type stubSched struct{}
 
-func (s *stubSched) WakeAgentHeartbeat(*models.Agent) {}
-func (s *stubSched) CancelAudit(string) error         { return nil }
+func (s *stubSched) WakeAgentHeartbeat(*models.Agent)    {}
+func (s *stubSched) CancelAudit(string) error            { return nil }
+func (s *stubSched) DispatchCron(string) (string, error) { return "", nil }
 func (s *stubSched) RunAudit(int, int, string, string, string) (string, error) {
 	return "", nil
 }

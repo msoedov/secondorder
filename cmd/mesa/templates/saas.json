@@ -2,11 +2,11 @@
   "name": "SaaS",
   "agents": [
     {"name": "CEO", "slug": "ceo", "archetype_slug": "ceo", "model": "opus", "heartbeat_enabled": true, "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Fullstack Engineer", "slug": "fullstack-engineer", "archetype_slug": "fullstack", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Product Manager", "slug": "product-manager", "archetype_slug": "product", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Marketing Lead", "slug": "marketing-lead", "archetype_slug": "marketing", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Sales Rep", "slug": "sales-rep", "archetype_slug": "sales", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Support Engineer", "slug": "support-engineer", "archetype_slug": "support", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Designer", "slug": "designer", "archetype_slug": "designer", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
+    {"name": "Fullstack Engineer", "slug": "fullstack-engineer", "archetype_slug": "fullstack", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Product Manager", "slug": "product-manager", "archetype_slug": "product", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Marketing Lead", "slug": "marketing-lead", "archetype_slug": "marketing", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Sales Rep", "slug": "sales-rep", "archetype_slug": "sales", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Support Engineer", "slug": "support-engineer", "archetype_slug": "support", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Designer", "slug": "designer", "archetype_slug": "designer", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
   ]
 }

@@ -2,10 +2,10 @@
   "name": "Startup",
   "agents": [
     {"name": "CEO", "slug": "ceo", "archetype_slug": "ceo", "model": "opus", "heartbeat_enabled": true, "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Founding Engineer", "slug": "founding-engineer", "archetype_slug": "fullstack", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Product Lead", "slug": "product-lead", "archetype_slug": "product", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Designer", "slug": "designer", "archetype_slug": "designer", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "QA Engineer", "slug": "qa-engineer", "archetype_slug": "qa", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "DevOps", "slug": "devops", "archetype_slug": "devops", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
+    {"name": "Founding Engineer", "slug": "founding-engineer", "archetype_slug": "fullstack", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Product Lead", "slug": "product-lead", "archetype_slug": "product", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Designer", "slug": "designer", "archetype_slug": "designer", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "QA Engineer", "slug": "qa-engineer", "archetype_slug": "qa", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "DevOps", "slug": "devops", "archetype_slug": "devops", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
   ]
 }

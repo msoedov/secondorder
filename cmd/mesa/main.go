@@ -430,6 +430,9 @@ func main() {
 		slog.Error("failed to bind listener", "addr", srv.Addr, "error", err)
 		os.Exit(1)
 	}
+	if dashToken == "" {
+		fmt.Fprintf(os.Stderr, "\n  mesa ready\n  Open: http://localhost:%s\n\n", port)
+	}
 	slog.Info("mesa ready",
 		"url", "http://localhost:"+port,
 		"port", port,

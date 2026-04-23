@@ -2,12 +2,12 @@
   "name": "Dev Team",
   "agents": [
     {"name": "CEO", "slug": "ceo", "archetype_slug": "ceo", "model": "opus", "heartbeat_enabled": true, "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Backend Engineer", "slug": "backend-engineer", "archetype_slug": "backend", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Frontend Engineer", "slug": "frontend-engineer", "archetype_slug": "frontend", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Backend Engineer", "slug": "backend-engineer", "archetype_slug": "backend", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Frontend Engineer", "slug": "frontend-engineer", "archetype_slug": "frontend", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
     {"name": "Architect", "slug": "architect", "archetype_slug": "architect", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "QA Engineer", "slug": "qa-engineer", "archetype_slug": "qa", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "DevOps", "slug": "devops", "archetype_slug": "devops", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Product Manager", "slug": "product-manager", "archetype_slug": "product", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Designer", "slug": "designer", "archetype_slug": "designer", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
+    {"name": "QA Engineer", "slug": "qa-engineer", "archetype_slug": "qa", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "DevOps", "slug": "devops", "archetype_slug": "devops", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Product Manager", "slug": "product-manager", "archetype_slug": "product", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Designer", "slug": "designer", "archetype_slug": "designer", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
   ]
 }

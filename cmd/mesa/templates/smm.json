@@ -2,9 +2,9 @@
   "name": "SMM",
   "agents": [
     {"name": "CEO", "slug": "ceo", "archetype_slug": "ceo", "model": "opus", "heartbeat_enabled": true, "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Social Media Lead", "slug": "social-lead", "archetype_slug": "social-media", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Community Manager", "slug": "community-manager", "archetype_slug": "social-media", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Copywriter", "slug": "copywriter", "archetype_slug": "marketing", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Designer", "slug": "designer", "archetype_slug": "designer", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
+    {"name": "Social Media Lead", "slug": "social-lead", "archetype_slug": "social-media", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Community Manager", "slug": "community-manager", "archetype_slug": "social-media", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Copywriter", "slug": "copywriter", "archetype_slug": "marketing", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Designer", "slug": "designer", "archetype_slug": "designer", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
   ]
 }

@@ -2,10 +2,10 @@
   "name": "Agency",
   "agents": [
     {"name": "CEO", "slug": "ceo", "archetype_slug": "ceo", "model": "opus", "heartbeat_enabled": true, "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Fullstack Engineer", "slug": "fullstack-engineer", "archetype_slug": "fullstack", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Designer", "slug": "designer", "archetype_slug": "designer", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "QA Engineer", "slug": "qa-engineer", "archetype_slug": "qa", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Operations", "slug": "operations", "archetype_slug": "operations", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
-    {"name": "Design Partner", "slug": "design-partner", "archetype_slug": "design-partner", "model": "haiku", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
+    {"name": "Fullstack Engineer", "slug": "fullstack-engineer", "archetype_slug": "fullstack", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Designer", "slug": "designer", "archetype_slug": "designer", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "QA Engineer", "slug": "qa-engineer", "archetype_slug": "qa", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Operations", "slug": "operations", "archetype_slug": "operations", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]},
+    {"name": "Design Partner", "slug": "design-partner", "archetype_slug": "design-partner", "model": "opus", "chrome_enabled": true, "disable_skills": true, "disallowed_tools": ["Bash(git:*)"]}
   ]
 }

@@ -33,6 +33,7 @@ type UI struct {
 		WakeAgentHeartbeat(agent *models.Agent)
 		RunAudit(maxBlocks, maxIssues int, focus, runner, model string) (string, error)
 		CancelAudit(auditRunID string) error
+		DispatchCron(jobID string) (string, error)
 		Pause()
 		Resume()
 		IsPaused() bool
@@ -43,6 +44,7 @@ func NewUI(database *db.DB, sse *SSEHub, tmpl *template.Template, wake func(*mod
 	WakeAgentHeartbeat(*models.Agent)
 	RunAudit(int, int, string, string, string) (string, error)
 	CancelAudit(string) error
+	DispatchCron(string) (string, error)
 	Pause()
 	Resume()
 	IsPaused() bool
@@ -1678,6 +1680,15 @@ func (u *UI) CronAction(w http.ResponseWriter, r *http.Request) {
 		u.db.UpdateCronJob(cron)
 	case "delete":
 		u.db.DeleteCronJob(id)
+	case "run_now":
+		if u.sched != nil {
+			if runID, err := u.sched.DispatchCron(id); err == nil {
+				http.Redirect(w, r, "/runs/"+runID, http.StatusSeeOther)
+				return
+			} else {
+				slog.Error("cron run_now failed", "cron_id", id, "error", err)
+			}
+		}
 	}
 
 	http.Redirect(w, r, "/crons", http.StatusSeeOther)

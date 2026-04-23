@@ -28,6 +28,11 @@
         {{if eq .Run.Status "running"}}<span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>{{end}}
         {{.Run.Status}}
       </span>
+      {{if .Run.FailureReason}}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-300 border border-red-500/30" title="Failure reason">
+        {{.Run.FailureReason}}
+      </span>
+      {{end}}
     </div>
 
     <!-- Stats -->

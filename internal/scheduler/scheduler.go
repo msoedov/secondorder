@@ -281,6 +281,12 @@ func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt strin
 		}
 		elapsed := time.Since(startTime)
 
+		// Parse token usage + failure reason early so logs include them.
+		tokens := parseTokenUsage(stdout)
+		if agent.Runner != "claude_code" && agent.Runner != "gemini" && agent.Runner != "codex" && agent.Runner != "opencode" && agent.Runner != "" {
+			tokens = tokenUsage{}
+		}
+
 		status := models.RunStatusCompleted
 		if err != nil {
 			status = models.RunStatusFailed
@@ -304,15 +310,23 @@ func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt strin
 					"issue_key", issueKey,
 					"elapsed", elapsed.Round(time.Second),
 					"error", err,
+					"reason", tokens.FailureReason,
 					"output", lastOutput,
 				)
 			}
 		}
 
-		// Parse token usage from stream-json output
-		tokens := parseTokenUsage(stdout)
-		if agent.Runner != "claude_code" && agent.Runner != "gemini" && agent.Runner != "codex" && agent.Runner != "opencode" && agent.Runner != "" {
-			tokens = tokenUsage{}
+		// Fallback failure reason from exec error when runner didn't emit structured reason
+		if tokens.FailureReason == "" && err != nil && status == models.RunStatusFailed {
+			if ctx.Err() == context.DeadlineExceeded {
+				tokens.FailureReason = "timeout"
+			} else {
+				msg := err.Error()
+				if len(msg) > 200 {
+					msg = msg[:200]
+				}
+				tokens.FailureReason = msg
+			}
 		}
 
 		// Capture git diff
@@ -325,6 +339,7 @@ func (s *Scheduler) spawnAgent(agent *models.Agent, issueKey, mode, prompt strin
 			CacheReadTokens:   tokens.CacheReadTokens,
 			CacheCreateTokens: tokens.CacheCreateTokens,
 			TotalCostUSD:      tokens.TotalCostUSD,
+			FailureReason:     tokens.FailureReason,
 		}
 		if err := s.db.CompleteRun(runID, status, stdout, diff, completedRun); err != nil {
 			slog.Error("scheduler: failed to complete run", "run_id", runID, "error", err)
@@ -1164,6 +1179,7 @@ type tokenUsage struct {
 	CacheReadTokens   int64
 	CacheCreateTokens int64
 	TotalCostUSD      float64
+	FailureReason     string
 }
 
 func parseTokenUsage(stdout string) tokenUsage {
@@ -1174,8 +1190,12 @@ func parseTokenUsage(stdout string) tokenUsage {
 			continue
 		}
 		var msg struct {
-			Type   string `json:"type"`
-			Result struct {
+			Type           string `json:"type"`
+			Subtype        string `json:"subtype"`
+			IsError        bool   `json:"is_error"`
+			TerminalReason string `json:"terminal_reason"`
+			Error          string `json:"error"`
+			Result         struct {
 				InputTokens              int64   `json:"input_tokens"`
 				OutputTokens             int64   `json:"output_tokens"`
 				CacheReadInputTokens     int64   `json:"cache_read_input_tokens"`
@@ -1211,6 +1231,16 @@ func parseTokenUsage(stdout string) tokenUsage {
 		}
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
 			continue
+		}
+		if usage.FailureReason == "" {
+			switch {
+			case msg.TerminalReason != "":
+				usage.FailureReason = msg.TerminalReason
+			case msg.Type == "result" && msg.IsError && msg.Subtype != "" && msg.Subtype != "success":
+				usage.FailureReason = msg.Subtype
+			case msg.Type == "result" && msg.Error != "":
+				usage.FailureReason = msg.Error
+			}
 		}
 		if msg.Type == "result" {
 			// Prefer explicit result fields
@@ -1338,9 +1368,35 @@ func (s *Scheduler) runCronJobs() {
 			slog.Error("scheduler: failed to update cron last_run_at", "cron_id", job.ID, "error", err)
 		}
 		runID := s.spawnAgent(agent, "", "cron", job.Task)
-		details := fmt.Sprintf("Cron job dispatched: %s (run: %s, frequency: %s)", job.Task, runID, job.Frequency)
-		s.logActivity("cron_dispatch", "cron_job", job.ID, &agent.ID, details)
+		details := fmt.Sprintf("Cron dispatched (%s): %s", job.Frequency, job.Task)
+		s.logActivity("cron_dispatch", "run", runID, &agent.ID, details)
 	}
+}
+
+// DispatchCron runs a cron job immediately, bypassing the frequency schedule.
+// Used by the "Run Now" action on the crons UI.
+func (s *Scheduler) DispatchCron(jobID string) (string, error) {
+	job, err := s.db.GetCronJob(jobID)
+	if err != nil {
+		return "", err
+	}
+	agent, err := s.db.GetAgent(job.AgentID)
+	if err != nil {
+		return "", err
+	}
+	if !agent.Active {
+		return "", fmt.Errorf("agent %s is inactive", agent.Name)
+	}
+	if over, _ := s.db.IsAgentOverBudget(agent.ID); over {
+		return "", fmt.Errorf("agent %s is over budget", agent.Name)
+	}
+	if err := s.db.TouchCronJobLastRun(job.ID); err != nil {
+		slog.Error("scheduler: failed to update cron last_run_at", "cron_id", job.ID, "error", err)
+	}
+	runID := s.spawnAgent(agent, "", "cron", job.Task)
+	details := fmt.Sprintf("Cron run-now: %s", job.Task)
+	s.logActivity("cron_run_now", "run", runID, &agent.ID, details)
+	return runID, nil
 }
 
 // StartAPIKeyExpiryLoop runs a periodic sweep to expire stale session-scoped API keys.
